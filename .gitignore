@@ -1,0 +1,16 @@
+.deps/
+.libs/
+INSTALL
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+autostuff/
+config.log
+config.status
+configure
+libserialport.la
+libserialport.pc
+libtool
+serialport.lo
+serialport.o
