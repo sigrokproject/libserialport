@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libserialport
+Description: Cross-platform serial port access library.
+URL: http://github.com/martinling/libserialport
+Version: @VERSION@
+Libs: -L${libdir} -lserialport
+Cflags: -I${includedir}
