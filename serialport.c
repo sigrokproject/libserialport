@@ -24,16 +24,186 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
 #ifdef _WIN32
 #include <windows.h>
+#include <tchar.h>
 #else
 #include <termios.h>
 #include <sys/ioctl.h>
 #endif
-#include <stdlib.h>
-#include <errno.h>
+#ifdef __APPLE__
+#include <IOKitLib.h>
+#include <serial/IOSerialKeys.h>
+#endif
+#ifdef __linux__
+#include "libudev.h"
+#endif
 
 #include "serialport.h"
+
+static char **sp_list_new(void)
+{
+	char **list;
+	if ((list = malloc(sizeof(char *))))
+		list[0] = NULL;
+	return list;
+}
+
+static char **sp_list_append(char **list, void *data, size_t len)
+{
+	void *tmp;
+	unsigned int count;
+	for (count = 0; list[count]; count++);
+	if (!(tmp = realloc(list, sizeof(char *) * (++count + 1))))
+		goto fail;
+	list = tmp;
+	if (!(list[count] = malloc(len)))
+		goto fail;
+	memcpy(list[count], data, len);
+	return list;
+fail:
+	sp_free_port_list(list);
+	return NULL;
+}
+
+char **sp_list_ports(void)
+{
+	char **list = NULL;
+
+#ifdef _WIN32
+	HKEY key;
+	TCHAR *name, *data;
+	DWORD max_name_len, max_data_size, max_data_len;
+	DWORD name_len, data_size, data_len;
+	DWORD type, index = 0;
+
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
+			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS)
+		return NULL;
+	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+				&max_name_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS)
+		goto out_close;
+	max_data_len = max_data_size / sizeof(TCHAR);
+	if (!(name = malloc((max_name_len + 1) * sizeof(TCHAR))))
+		goto out_close;
+	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR))))
+		goto out_free_name;
+	if (!(list = sp_list_new()))
+		goto out;
+	while (
+		name_len = max_name_len,
+		data_size = max_data_size,
+		RegEnumValue(key, index, name, &name_len,
+			NULL, &type, (LPBYTE)data, &data_size) == ERROR_SUCCESS)
+	{
+		data_len = data_size / sizeof(TCHAR);
+		data[data_len] = '\0';
+		if (type == REG_SZ)
+			if (!(list = sp_list_append(list,
+					data, (data_len + 1) * sizeof(TCHAR))))
+				goto out;
+		index++;
+	}
+out:
+	free(data);
+out_free_name:
+	free(name);
+out_close:
+	RegCloseKey(key);
+	return list;
+#endif
+#ifdef __APPLE__
+	mach_port_t master;
+	CFMutableDictionaryRef classes;
+	io_iterator_t iter;
+	char *path;
+	io_object_t port;
+	CFTypeRef cf_path;
+	Boolean result;
+
+	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS)
+		return NULL;
+
+	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
+		return NULL;
+
+	CFDictionarySetValue(classes,
+			CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDAllTypes));
+
+	if (!(IOServiceGetMatchingServices(master, classes, &iter)))
+		return NULL;
+
+	if (!(path = malloc(PATH_MAX)))
+		goto out_release;
+
+	if (!(list = sp_list_new()))
+		goto out;
+
+	while (port = IOIteratorNext(iter)) {
+		cf_path = IORegistryEntryCreateCFProperty(port,
+				CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
+		if (cf_path) {
+			result = CFStringGetCString(cf_path,
+					path, PATH_MAX, kCFStringEncodingASCII);
+			CFRelease(cf_path);
+			if (result)
+				if (!(list = sp_list_append(list, path, strlen(path) + 1)))
+				{
+					IOObjectRelease(port);
+					goto out;
+				}
+		}
+		IOObjectRelease(port);
+	}
+
+out:
+	free(path);
+out_release:
+	IOObjectRelease(iter);
+	return list;
+#endif
+#ifdef __linux__
+	struct udev *ud;
+	struct udev_enumerate *ud_enumerate;
+	struct udev_list_entry *ud_list;
+	struct udev_list_entry *ud_entry;
+	const char *path;
+	struct udev_device *ud_dev;
+	const char *name;
+
+	ud = udev_new();
+	ud_enumerate = udev_enumerate_new(ud);
+	udev_enumerate_add_match_subsystem(ud_enumerate, "tty");
+	udev_enumerate_scan_devices(ud_enumerate);
+	ud_list = udev_enumerate_get_list_entry(ud_enumerate);
+	if (!(list = sp_list_new()))
+		goto out;
+	udev_list_entry_foreach(ud_entry, ud_list)
+	{
+		path = udev_list_entry_get_name(ud_entry);
+		ud_dev = udev_device_new_from_syspath(ud, path);
+		name = udev_device_get_devnode(ud_dev);
+		list = sp_list_append(list, (void *)name, strlen(name) + 1);
+		udev_device_unref(ud_dev);
+		if (!list)
+			goto out;
+	}
+out:
+	udev_enumerate_unref(ud_enumerate);
+	udev_unref(ud);
+	return list;
+#endif
+}
+
+void sp_free_port_list(char **list)
+{
+	unsigned int i;
+	for (i = 0; list[i]; i++)
+		free(list[i]);
+	free(list);
+}
 
 static int sp_validate_port(struct sp_port *port)
 {
