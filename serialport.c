@@ -56,12 +56,13 @@ static char **sp_list_append(char **list, void *data, size_t len)
 	void *tmp;
 	unsigned int count;
 	for (count = 0; list[count]; count++);
-	if (!(tmp = realloc(list, sizeof(char *) * (++count + 1))))
+	if (!(tmp = realloc(list, sizeof(char *) * (count + 2))))
 		goto fail;
 	list = tmp;
 	if (!(list[count] = malloc(len)))
 		goto fail;
 	memcpy(list[count], data, len);
+	list[count + 1] = NULL;
 	return list;
 fail:
 	sp_free_port_list(list);
