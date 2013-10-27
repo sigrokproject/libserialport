@@ -176,7 +176,7 @@ out_release:
 	struct udev_list_entry *ud_list;
 	struct udev_list_entry *ud_entry;
 	const char *path;
-	struct udev_device *ud_dev;
+	struct udev_device *ud_dev, *ud_parent;
 	const char *name;
 
 	ud = udev_new();
@@ -190,6 +190,13 @@ out_release:
 	{
 		path = udev_list_entry_get_name(ud_entry);
 		ud_dev = udev_device_new_from_syspath(ud, path);
+		/* If there is no parent device, this is a virtual tty. */
+		ud_parent = udev_device_get_parent(ud_dev);
+		if (ud_parent == NULL)
+		{
+			udev_device_unref(ud_dev);
+			continue;
+		}
 		name = udev_device_get_devnode(ud_dev);
 		list = sp_list_append(list, (void *)name, strlen(name) + 1);
 		udev_device_unref(ud_dev);
