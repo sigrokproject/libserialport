@@ -1,0 +1,204 @@
+----------------------------------------------------------------
+libserialport: cross-platform library for accessing serial ports
+----------------------------------------------------------------
+
+libserialport is a minimal library written in C that is intended to take care
+of the OS-specific details when writing software that uses serial ports.
+
+By writing your serial code to use libserialport, you enable it to work
+transparently on any platform supported by the library.
+
+The operations that are supported are:
+
+- Port enumeration (obtaining a list of serial ports on the system).
+- Opening and closing ports.
+- Setting port parameters (baud rate, parity, etc).
+- Reading, writing and flushing data.
+- Obtaining error information.
+
+libserialport is an open source project released under the LGPL3+ license.
+
+Status
+======
+
+The library should build and work on any Windows or Unix-based system. If it
+does not, please submit a bug.
+
+Enumeration is currently only implemented on Windows, Mac OS X and Linux. On
+other systems enumeration will return no results, but ports can still be opened
+by name and then used.
+
+If you know how to enumerate available ports on another OS, please submit a bug
+with this information, or better still a patch implementing it.
+
+Future
+======
+
+Future versions will add additional API calls for obtaining metadata about a
+port, e.g. for USB devices the USB VID and PID of the underlying device.
+
+Dependencies
+============
+
+On Linux, libudev is required. On other systems no other libraries are required.
+
+The libudev dependency could be eliminated in favour of direct sysfs queries at
+the cost of some brevity. This is not currently a priority but if you feel like
+doing this feel free to submit a patch.
+
+Building
+========
+
+The package uses a GNU style build system and requires a Unix style shell.
+On Windows it can be built with the MinGW toolchain and MSYS environment.
+
+Run "./autogen.sh" to generate the build system, "./configure" to setup, then
+"make" to build the library and "make install" to install it.
+
+API
+===
+
+The API is simple, and designed to be a minimal wrapper around the serial port
+support in each OS.
+
+Most functions take a pointer to a struct sp_port, which represents an open
+port. This structure should be allocated by the user and is populated by
+sp_open(). It can be freed safely after sp_close().
+
+All functions can return only two possible error values. SP_ERR_ARG indicates
+the function was called with invalid arguments. SP_ERR_FAIL indicates that the
+OS reported a failure. Both these error values are negative.
+
+When SP_ERR_FAIL is returned, an error code or string description of the error
+can be obtained by calling sp_last_error_code() or sp_last_error_message(). The
+error code or message is that provided by the OS; libserialport does not define
+any error codes or messages of its own.
+
+Functions calls that succeed return SP_OK, which is equal to zero, or where
+otherwise documented a positive value.
+
+The available functions are as follows:
+
+Enumeration
+-----------
+
+char **sp_list_ports();
+
+ Lists the serial ports available on the system. The value returned is an array
+ of port names as C strings, terminated by a NULL. It should be freed after use
+ by calling sp_free_port_list().
+
+void sp_free_port_list(char **list);
+
+ Frees the data structure returned by sp_list_ports().
+
+Opening and closing ports
+-------------------------
+
+int sp_open(struct sp_port *port, char *portname, int flags);
+
+ Opens the specified serial port.
+
+ Parameters:
+
+  port:      Pointer to empty port structure, allocated by caller.
+  portname:  Name of port to open.
+  flags:     Flags to use when opening the serial port. Possible
+             flags are: SP_MODE_RDWR, SP_MODE_RDONLY, and SP_MODE_NONBLOCK.
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          if an invalid port or name is passed.
+
+int sp_close(struct sp_port *port);
+
+ Closes the specified serial port.
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          if an invalid port is passed.
+
+Setting port parameters
+-----------------------
+
+int sp_set_params(struct sp_port *port, int baudrate,
+			      int bits, int parity, int stopbits,
+			      int flowcontrol, int rts, int dtr);
+
+ Sets serial parameters for the specified serial port.
+
+ Parameters:
+
+  port:        Pointer to port structure.
+  baudrate:    Baud rate to set.
+  bits:        Number of data bits to use.
+  parity:      Parity setting to use
+               (SP_PARITY_NONE, SP_PARITY_EVEN or SP_PARITY_ODD)
+  stopbits:    Number of stop bits to use (1 or 2).
+  flowcontrol: Flow control setting to use
+               (SP_FLOW_NONE, SP_FLOW_HARDWARE or SP_FLOW_SOFTWARE)
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+
+Reading, writing and flushing data
+----------------------------------
+
+int sp_read(struct sp_port *port, const void *buf, size_t count)
+
+ Reads a number of bytes from the specified serial port.
+
+ Parameters:
+
+  port:  Pointer to port structure.
+  buf:   Buffer in which to store the bytes read.
+  count: Number of bytes to read.
+
+ Returns: The number of bytes read, SP_ERR_FAIL on failure,
+          or SP_ERR_ARG for invalid arguments.
+
+int sp_write(struct sp_port *port, const void *buf, size_t count)
+
+ Writes a number of bytes to the specified serial port.
+
+ Parameters:
+
+  port:  Pointer to port structure.
+  buf:   Buffer containing the bytes to write.
+  count: Number of bytes to write.
+
+ Returns: The number of bytes written, SP_ERR_FAIL on failure,
+          or SP_ERR_ARG for invalid arguments.
+
+int sp_flush(struct sp_port *port);
+
+ Flushes serial port buffers.
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          if an invalid port is passed.
+
+Error handling
+--------------
+
+int sp_last_error_code();
+
+ Gets the error code for a failed operation.
+
+ In order to obtain the correct result, this function should be called
+ straight after the failure, before executing any other system operations.
+
+ Returns: The system's numeric code for the error that caused the last
+          operation to fail.
+
+char *sp_last_error_message();
+
+ Gets the error message for failed operation.
+
+ In order to obtain the correct result, this function should be called
+ straight after the failure, before executing other system operations.
+
+ Returns: The system's message for the error that caused the last
+          operation to fail. This string may be allocated by the function,
+          and should be freed after use by calling sp_free_error_message.
+
+void sp_free_error_message(char *message);
+
+ Frees the error message returned by sp_last_error_message().
