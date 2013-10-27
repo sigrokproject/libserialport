@@ -67,6 +67,16 @@ enum {
 	SP_PARITY_ODD = 2
 };
 
+/* Flow control settings. */
+enum {
+	/* No flow control. */
+	SP_FLOW_NONE = 0,
+	/* Hardware (RTS/CTS) flow control. */
+	SP_FLOW_HARDWARE = 1,
+	/* Software (XON/XOFF) flow control. */
+	SP_FLOW_SOFTWARE = 2
+};
+
 char **sp_list_ports(void);
 void sp_free_port_list(char **ports);
 int sp_open(struct sp_port *port, char *portname, int flags);
