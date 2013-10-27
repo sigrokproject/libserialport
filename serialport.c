@@ -39,6 +39,7 @@
 #endif
 #ifdef __linux__
 #include "libudev.h"
+#include "linux/serial.h"
 #endif
 
 #include "serialport.h"
@@ -178,6 +179,9 @@ out_release:
 	const char *path;
 	struct udev_device *ud_dev, *ud_parent;
 	const char *name;
+	const char *driver;
+	int fd, ioctl_result;
+	struct serial_struct serial_info;
 
 	ud = udev_new();
 	ud_enumerate = udev_enumerate_new(ud);
@@ -198,7 +202,23 @@ out_release:
 			continue;
 		}
 		name = udev_device_get_devnode(ud_dev);
+		/* The serial8250 driver has a hardcoded number of ports.
+		 * The only way to tell which actually exist on a given system
+		 * is to try to open them and make an ioctl call. */
+		driver = udev_device_get_driver(ud_parent);
+		if (driver && !strcmp(driver, "serial8250"))
+		{
+			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0)
+				goto skip;
+			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
+			close(fd);
+			if (ioctl_result != 0)
+				goto skip;
+			if (serial_info.type == PORT_UNKNOWN)
+				goto skip;
+		}
 		list = sp_list_append(list, (void *)name, strlen(name) + 1);
+skip:
 		udev_device_unref(ud_dev);
 		if (!list)
 			goto out;
