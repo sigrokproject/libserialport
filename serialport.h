@@ -17,6 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef SERIALPORT_H
+#define SERIALPORT_H
+
 #include <stddef.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -76,3 +79,5 @@ int sp_set_params(struct sp_port *port, int baudrate, int bits, int parity,
 int sp_last_error_code(void);
 char *sp_last_error_message(void);
 void sp_free_error_message(char *message);
+
+#endif /* SERIALPORT_H */
