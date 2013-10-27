@@ -618,7 +618,7 @@ int sp_set_params(struct sp_port *port, int baudrate,
 		return SP_ERR_ARG;
 	}
 
-	term.c_iflag &= ~(IXON | IXOFF);
+	term.c_iflag &= ~(IXON | IXOFF | IXANY);
 	term.c_cflag &= ~CRTSCTS;
 	switch (flowcontrol) {
 	case 0:
@@ -628,14 +628,14 @@ int sp_set_params(struct sp_port *port, int baudrate,
 		term.c_cflag |= CRTSCTS;
 		break;
 	case 2:
-		term.c_iflag |= IXON | IXOFF;
+		term.c_iflag |= IXON | IXOFF | IXANY;
 		break;
 	default:
 		return SP_ERR_ARG;
 	}
 
 	term.c_iflag &= ~IGNPAR;
-	term.c_cflag &= ~(PARODD | PARENB);
+	term.c_cflag &= ~(PARENB | PARODD);
 	switch (parity) {
 	case SP_PARITY_NONE:
 		term.c_iflag |= IGNPAR;
@@ -659,6 +659,9 @@ int sp_set_params(struct sp_port *port, int baudrate,
 
 	/* Disable canonical mode, and don't echo input characters. */
 	term.c_lflag &= ~(ICANON | ECHO);
+
+	/* Ignore modem status lines; enable receiver */
+	term.c_cflag |= (CLOCAL | CREAD);
 
 	/* Write the configured settings. */
 	if (tcsetattr(port->fd, TCSADRAIN, &term) < 0)
