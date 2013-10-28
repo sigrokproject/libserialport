@@ -81,28 +81,28 @@ char **sp_list_ports(void)
 
 #ifdef _WIN32
 	HKEY key;
-	TCHAR *name, *data;
-	DWORD max_name_len, max_data_size, max_data_len;
-	DWORD name_len, data_size, data_len;
+	TCHAR *value, *data;
+	DWORD max_value_len, max_data_size, max_data_len;
+	DWORD value_len, data_size, data_len;
 	DWORD type, index = 0;
 
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
 			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS)
 		return NULL;
 	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-				&max_name_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS)
+				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS)
 		goto out_close;
 	max_data_len = max_data_size / sizeof(TCHAR);
-	if (!(name = malloc((max_name_len + 1) * sizeof(TCHAR))))
+	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR))))
 		goto out_close;
 	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR))))
-		goto out_free_name;
+		goto out_free_value;
 	if (!(list = sp_list_new()))
 		goto out;
 	while (
-		name_len = max_name_len,
+		value_len = max_value_len,
 		data_size = max_data_size,
-		RegEnumValue(key, index, name, &name_len,
+		RegEnumValue(key, index, value, &value_len,
 			NULL, &type, (LPBYTE)data, &data_size) == ERROR_SUCCESS)
 	{
 		data_len = data_size / sizeof(TCHAR);
@@ -115,8 +115,8 @@ char **sp_list_ports(void)
 	}
 out:
 	free(data);
-out_free_name:
-	free(name);
+out_free_value:
+	free(value);
 out_close:
 	RegCloseKey(key);
 	return list;
