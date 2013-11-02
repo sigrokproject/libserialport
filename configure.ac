@@ -31,6 +31,8 @@ AC_INIT([libserialport], [sp_package_version], [martin-libserialport@earth.li],
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
+AC_CANONICAL_TARGET
+
 # We require at least automake 1.11 (needed for 'silent rules').
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -76,6 +78,18 @@ AC_SUBST(SP_LIB_LDFLAGS)
 # Checks for header files.
 # These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
 AC_CHECK_HEADERS([sys/types.h sys/stat.h fcntl.h termios.h sys/ioctl.h errno.h])
+
+case $target_os in
+*linux*)
+	PKG_CHECK_MODULES([libudev], [libudev >= 0],
+		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS"],
+		[AC_MSG_ERROR([libudev.h not found])])
+	;;
+*darwin*)
+	LDFLAGS="$LDFLAGS -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation"
+	AC_CHECK_HEADER(IOKit/IOKitLib.h, [], [AC_MSG_ERROR([IOKit/IOKitLib.h not found])])
+	;;
+esac
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE

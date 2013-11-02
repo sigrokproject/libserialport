@@ -34,8 +34,9 @@
 #include <sys/ioctl.h>
 #endif
 #ifdef __APPLE__
-#include <IOKitLib.h>
-#include <serial/IOSerialKeys.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/serial/IOSerialKeys.h>
+#include <sys/syslimits.h>
 #endif
 #ifdef __linux__
 #include "libudev.h"
@@ -148,7 +149,7 @@ out_close:
 	if (!(list = sp_list_new()))
 		goto out;
 
-	while (port = IOIteratorNext(iter)) {
+	while ((port = IOIteratorNext(iter))) {
 		cf_path = IORegistryEntryCreateCFProperty(port,
 				CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
 		if (cf_path) {
