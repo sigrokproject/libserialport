@@ -164,26 +164,30 @@ Reading, writing and flushing data
 
 int sp_read(struct sp_port *port, const void *buf, size_t count)
 
- Reads a number of bytes from the specified serial port.
+ Reads bytes from the specified serial port. Note that this function may
+ return after reading less than the specified number of bytes; it is the
+ user's responsibility to iterate as necessary in this case.
 
  Parameters:
 
   port:  Pointer to port structure.
   buf:   Buffer in which to store the bytes read.
-  count: Number of bytes to read.
+  count: Maximum number of bytes to read.
 
  Returns: The number of bytes read, SP_ERR_FAIL on failure,
           or SP_ERR_ARG for invalid arguments.
 
 int sp_write(struct sp_port *port, const void *buf, size_t count)
 
- Writes a number of bytes to the specified serial port.
+ Write bytes to the specified serial port. Note that this function may
+ return after writing less than the specified number of bytes; it is the
+ user's responsibility to iterate as necessary in this case.
 
  Parameters:
 
   port:  Pointer to port structure.
   buf:   Buffer containing the bytes to write.
-  count: Number of bytes to write.
+  count: Maximum number of bytes to write.
 
  Returns: The number of bytes written, SP_ERR_FAIL on failure,
           or SP_ERR_ARG for invalid arguments.
