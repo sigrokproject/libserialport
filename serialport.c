@@ -45,12 +45,15 @@
 
 #include "serialport.h"
 
-static struct sp_port *sp_port_new(char *portname, size_t len)
+static struct sp_port *sp_port_new(const char *portname)
 {
 	struct sp_port *port;
+	int len;
 
 	if (!(port = malloc(sizeof(struct sp_port))))
 		return NULL;
+
+	len = strlen(portname) + 1;
 
 	if (!(port->name = malloc(len)))
 	{
@@ -63,7 +66,7 @@ static struct sp_port *sp_port_new(char *portname, size_t len)
 	return port;
 }
 
-static struct sp_port **sp_list_append(struct sp_port **list, char *portname, size_t len)
+static struct sp_port **sp_list_append(struct sp_port **list, const char *portname)
 {
 	void *tmp;
 	unsigned int count;
@@ -71,7 +74,7 @@ static struct sp_port **sp_list_append(struct sp_port **list, char *portname, si
 	if (!(tmp = realloc(list, sizeof(struct sp_port *) * (count + 2))))
 		goto fail;
 	list = tmp;
-	if (!(list[count] = sp_port_new(portname, len)))
+	if (!(list[count] = sp_port_new(portname)))
 		goto fail;
 	list[count + 1] = NULL;
 	return list;
@@ -135,7 +138,7 @@ struct sp_port **sp_list_ports(void)
 		strcpy(name, data);
 #endif
 		if (type == REG_SZ)
-			if (!(list = sp_list_append(list, name, name_len)))
+			if (!(list = sp_list_append(list, name)))
 				goto out;
 		index++;
 	}
@@ -179,7 +182,7 @@ out_close:
 					path, PATH_MAX, kCFStringEncodingASCII);
 			CFRelease(cf_path);
 			if (result)
-				if (!(list = sp_list_append(list, path, strlen(path) + 1)))
+				if (!(list = sp_list_append(list, path)))
 				{
 					IOObjectRelease(port);
 					goto out;
@@ -238,7 +241,7 @@ out_release:
 			if (serial_info.type == PORT_UNKNOWN)
 				goto skip;
 		}
-		list = sp_list_append(list, (void *)name, strlen(name) + 1);
+		list = sp_list_append(list, name);
 skip:
 		udev_device_unref(ud_dev);
 		if (!list)
