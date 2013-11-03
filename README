@@ -61,8 +61,9 @@ API
 The API is simple, and designed to be a minimal wrapper around the serial port
 support in each OS.
 
-Most functions take a pointer to a struct sp_port, which represents an serial
-port. This structure is obtained from the array returned by sp_list_ports().
+Most functions take a pointer to a struct sp_port, which represents a serial
+port. These structures are always allocated and freed by the library, using the
+functions in the 'Enumeration' section below.
 
 All functions can return only three possible error values. SP_ERR_ARG indicates
 the function was called with invalid arguments. SP_ERR_FAIL indicates that the
