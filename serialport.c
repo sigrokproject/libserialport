@@ -45,10 +45,13 @@
 
 #include "serialport.h"
 
-static struct sp_port *sp_port_new(const char *portname)
+struct sp_port *sp_get_port_by_name(const char *portname)
 {
 	struct sp_port *port;
 	int len;
+
+	if (!portname)
+		return NULL;
 
 	if (!(port = malloc(sizeof(struct sp_port))))
 		return NULL;
@@ -74,7 +77,7 @@ static struct sp_port **sp_list_append(struct sp_port **list, const char *portna
 	if (!(tmp = realloc(list, sizeof(struct sp_port *) * (count + 2))))
 		goto fail;
 	list = tmp;
-	if (!(list[count] = sp_port_new(portname)))
+	if (!(list[count] = sp_get_port_by_name(portname)))
 		goto fail;
 	list[count + 1] = NULL;
 	return list;
