@@ -101,11 +101,6 @@ fail:
 	return NULL;
 }
 
-/**
- * List the serial ports available on the system.
- *
- * @return A null-terminated array of port name strings.
- */
 int sp_list_ports(struct sp_port ***list_ptr)
 {
 	struct sp_port **list;
@@ -317,9 +312,6 @@ out:
 	return ret;
 }
 
-/**
- * Free a port list returned by sp_list_ports.
- */
 void sp_free_port_list(struct sp_port **list)
 {
 	unsigned int i;
@@ -344,17 +336,6 @@ static int sp_validate_port(struct sp_port *port)
 
 #define CHECK_PORT() do { if (!sp_validate_port(port)) return SP_ERR_ARG; } while (0)
 
-/**
- * Open the specified serial port.
- *
- * @param port Pointer to empty port structure allocated by caller.
- * @param portname Name of port to open.
- * @param flags Flags to use when opening the serial port. Possible flags
- *              are: SP_MODE_RDWR, SP_MODE_RDONLY, SP_MODE_NONBLOCK.
- *
- * @return SP_OK on success, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG if an invalid port or name is passed.
- */
 int sp_open(struct sp_port *port, int flags)
 {
 	if (!port)
@@ -391,14 +372,6 @@ int sp_open(struct sp_port *port, int flags)
 	return SP_OK;
 }
 
-/**
- * Close the specified serial port.
- *
- * @param port Pointer to port structure.
- *
- * @return SP_OK on success, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG if an invalid port is passed.
- */
 int sp_close(struct sp_port *port)
 {
 	CHECK_PORT();
@@ -416,14 +389,6 @@ int sp_close(struct sp_port *port)
 	return SP_OK;
 }
 
-/**
- * Flush serial port buffers.
- *
- * @param port Pointer to port structure.
- *
- * @return SP_OK on success, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG if an invalid port is passed.
- */
 int sp_flush(struct sp_port *port)
 {
 	CHECK_PORT();
@@ -440,16 +405,6 @@ int sp_flush(struct sp_port *port)
 	return SP_OK;
 }
 
-/**
- * Write a number of bytes to the specified serial port.
- *
- * @param port Pointer to port structure.
- * @param buf Buffer containing the bytes to write.
- * @param count Number of bytes to write.
- *
- * @return The number of bytes written, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG if an invalid port is passed.
- */
 int sp_write(struct sp_port *port, const void *buf, size_t count)
 {
 	CHECK_PORT();
@@ -473,16 +428,6 @@ int sp_write(struct sp_port *port, const void *buf, size_t count)
 #endif
 }
 
-/**
- * Read a number of bytes from the specified serial port.
- *
- * @param port Pointer to port structure.
- * @param buf Buffer where to store the bytes that are read.
- * @param count The number of bytes to read.
- *
- * @return The number of bytes read, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG if an invalid port is passed.
- */
 int sp_read(struct sp_port *port, void *buf, size_t count)
 {
 	CHECK_PORT();
@@ -505,20 +450,6 @@ int sp_read(struct sp_port *port, void *buf, size_t count)
 #endif
 }
 
-/**
- * Set serial parameters for the specified serial port.
- *
- * @param port Pointer to port structure.
- * @param baudrate The baudrate to set.
- * @param bits The number of data bits to use.
- * @param parity The parity setting to use (0 = none, 1 = even, 2 = odd).
- * @param stopbits The number of stop bits to use (1 or 2).
- * @param flowcontrol The flow control settings to use (0 = none, 1 = RTS/CTS,
- *                    2 = XON/XOFF).
- *
- * @return The number of bytes read, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG if an invalid argument is passed.
- */
 int sp_set_params(struct sp_port *port, int baudrate,
 			      int bits, int parity, int stopbits,
 			      int flowcontrol, int rts, int dtr)
@@ -794,15 +725,6 @@ int sp_set_params(struct sp_port *port, int baudrate,
 	return SP_OK;
 }
 
-/**
- * Get error code for failed operation.
- *
- * In order to obtain the correct result, this function should be called
- * straight after the failure, before executing any other system operations.
- *
- * @return The system's numeric code for the error that caused the last
- *         operation to fail.
- */
 int sp_last_error_code(void)
 {
 #ifdef _WIN32
@@ -812,16 +734,6 @@ int sp_last_error_code(void)
 #endif
 }
 
-/**
- * Get error message for failed operation.
- *
- * In order to obtain the correct result, this function should be called
- * straight after the failure, before executing other system operations.
- *
- * @return The system's message for the error that caused the last
- *         operation to fail. This string may be allocated by the function,
- *         and can be freed after use by calling sp_free_error_message.
- */
 char *sp_last_error_message(void)
 {
 #ifdef _WIN32
@@ -844,12 +756,6 @@ char *sp_last_error_message(void)
 #endif
 }
 
-/**
- * Free error message.
- *
- * This function can be used to free a string returned by the
- * sp_last_error_message function.
- */
 void sp_free_error_message(char *message)
 {
 #ifdef _WIN32
