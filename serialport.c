@@ -45,28 +45,32 @@
 
 #include "serialport.h"
 
-struct sp_port *sp_get_port_by_name(const char *portname)
+int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
 	struct sp_port *port;
 	int len;
 
+	*port_ptr = NULL;
+
 	if (!portname)
-		return NULL;
+		return SP_ERR_ARG;
 
 	if (!(port = malloc(sizeof(struct sp_port))))
-		return NULL;
+		return SP_ERR_MEM;
 
 	len = strlen(portname) + 1;
 
 	if (!(port->name = malloc(len)))
 	{
 		free(port);
-		return NULL;
+		return SP_ERR_MEM;
 	}
 
 	memcpy(port->name, portname, len);
 
-	return port;
+	*port_ptr = port;
+
+	return SP_OK;
 }
 
 static struct sp_port **sp_list_append(struct sp_port **list, const char *portname)
@@ -77,7 +81,7 @@ static struct sp_port **sp_list_append(struct sp_port **list, const char *portna
 	if (!(tmp = realloc(list, sizeof(struct sp_port *) * (count + 2))))
 		goto fail;
 	list = tmp;
-	if (!(list[count] = sp_get_port_by_name(portname)))
+	if (sp_get_port_by_name(portname, &list[count]) != SP_OK)
 		goto fail;
 	list[count + 1] = NULL;
 	return list;
@@ -91,12 +95,13 @@ fail:
  *
  * @return A null-terminated array of port name strings.
  */
-struct sp_port **sp_list_ports(void)
+int sp_list_ports(struct sp_port ***list_ptr)
 {
 	struct sp_port **list;
+	int ret = SP_OK;
 
 	if (!(list = malloc(sizeof(struct sp_port **))))
-		return NULL;
+		return SP_ERR_MEM;;
 
 	list[0] = NULL;
 
@@ -111,15 +116,27 @@ struct sp_port **sp_list_ports(void)
 
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
 			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS)
-		return NULL;
+	{
+		ret = SP_ERR_FAIL;
+		goto out_done;
+	}
 	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS)
+	{
+		ret = SP_ERR_FAIL;
 		goto out_close;
+	}
 	max_data_len = max_data_size / sizeof(TCHAR);
 	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR))))
+	{
+		ret = SP_ERR_MEM;
 		goto out_close;
+	}
 	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR))))
+	{
+		ret = SP_ERR_MEM;
 		goto out_free_value;
+	}
 	while (
 		value_len = max_value_len,
 		data_size = max_data_size,
@@ -134,15 +151,20 @@ struct sp_port **sp_list_ports(void)
 		name_len = data_len + 1;
 #endif
 		if (!(name = malloc(name_len)))
+		{
+			ret = SP_ERR_MEM;
 			goto out;
+		}
 #ifdef UNICODE
 		WideCharToMultiByte(CP_ACP, 0, data, -1, name, name_len, NULL, NULL);
 #else
 		strcpy(name, data);
 #endif
-		if (type == REG_SZ)
-			if (!(list = sp_list_append(list, name)))
-				goto out;
+		if (type == REG_SZ && !(list = sp_list_append(list, name)))
+		{
+			ret = SP_ERR_MEM;
+			goto out;
+		}
 		index++;
 	}
 out:
@@ -151,7 +173,7 @@ out_free_value:
 	free(value);
 out_close:
 	RegCloseKey(key);
-	return list;
+out_done:
 #endif
 #ifdef __APPLE__
 	mach_port_t master;
@@ -163,19 +185,31 @@ out_close:
 	Boolean result;
 
 	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS)
-		return NULL;
+	{
+		ret = SP_ERR_FAIL;
+		goto out_done;
+	}
 
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
-		return NULL;
+	{
+		ret = SP_ERR_FAIL;
+		goto out_done;
+	}
 
 	CFDictionarySetValue(classes,
 			CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDAllTypes));
 
 	if (!(IOServiceGetMatchingServices(master, classes, &iter)))
-		return NULL;
+	{
+		ret = SP_ERR_FAIL;
+		goto out_done;
+	}
 
 	if (!(path = malloc(PATH_MAX)))
+	{
+		ret = SP_ERR_MEM;
 		goto out_release;
+	}
 
 	while ((port = IOIteratorNext(iter))) {
 		cf_path = IORegistryEntryCreateCFProperty(port,
@@ -184,21 +218,20 @@ out_close:
 			result = CFStringGetCString(cf_path,
 					path, PATH_MAX, kCFStringEncodingASCII);
 			CFRelease(cf_path);
-			if (result)
-				if (!(list = sp_list_append(list, path)))
-				{
-					IOObjectRelease(port);
-					goto out;
-				}
+			if (result && !(list = sp_list_append(list, path)))
+			{
+				ret = SP_ERR_MEM;
+				IOObjectRelease(port);
+				goto out;
+			}
 		}
 		IOObjectRelease(port);
 	}
-
 out:
 	free(path);
 out_release:
 	IOObjectRelease(iter);
-	return list;
+out_done:
 #endif
 #ifdef __linux__
 	struct udev *ud;
@@ -248,13 +281,29 @@ out_release:
 skip:
 		udev_device_unref(ud_dev);
 		if (!list)
+		{
+			ret = SP_ERR_MEM;
 			goto out;
+		}
 	}
 out:
 	udev_enumerate_unref(ud_enumerate);
 	udev_unref(ud);
-	return list;
 #endif
+
+	if (ret == SP_OK)
+	{
+		*list_ptr = list;
+	}
+	else
+	{
+		if (list)
+			sp_free_port_list(list);
+
+		*list_ptr = NULL;
+	}
+
+	return ret;
 }
 
 /**
