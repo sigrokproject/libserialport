@@ -45,14 +45,6 @@
 
 #include "serialport.h"
 
-static char **sp_list_new(void)
-{
-	char **list;
-	if ((list = malloc(sizeof(char *))))
-		list[0] = NULL;
-	return list;
-}
-
 static char **sp_list_append(char **list, void *data, size_t len)
 {
 	void *tmp;
@@ -78,7 +70,12 @@ fail:
  */
 char **sp_list_ports(void)
 {
-	char **list = NULL;
+	char **list;
+
+	if (!(list = malloc(sizeof(char *))))
+		return NULL;
+
+	list[0] = NULL;
 
 #ifdef _WIN32
 	HKEY key;
@@ -98,8 +95,6 @@ char **sp_list_ports(void)
 		goto out_close;
 	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR))))
 		goto out_free_value;
-	if (!(list = sp_list_new()))
-		goto out;
 	while (
 		value_len = max_value_len,
 		data_size = max_data_size,
@@ -146,9 +141,6 @@ out_close:
 	if (!(path = malloc(PATH_MAX)))
 		goto out_release;
 
-	if (!(list = sp_list_new()))
-		goto out;
-
 	while ((port = IOIteratorNext(iter))) {
 		cf_path = IORegistryEntryCreateCFProperty(port,
 				CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
@@ -189,8 +181,6 @@ out_release:
 	udev_enumerate_add_match_subsystem(ud_enumerate, "tty");
 	udev_enumerate_scan_devices(ud_enumerate);
 	ud_list = udev_enumerate_get_list_entry(ud_enumerate);
-	if (!(list = sp_list_new()))
-		goto out;
 	udev_list_entry_foreach(ud_entry, ud_list)
 	{
 		path = udev_list_entry_get_name(ud_entry);
