@@ -87,10 +87,13 @@ int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
  Obtains a pointer to a new sp_port structure representing the named port. The
  user should allocate a variable of type "struct sp_port *" and pass a pointer
  to this to receive the result.
+
+ The result should be freed after use by calling sp_free_port().
  
- Returns: SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation failure,
-          or SP_ERR_ARG if an invalid pointer is passed. If any error is returned,
-          the value pointed to by port_ptr will be set to NULL.
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
+          failure, or SP_ERR_ARG if an invalid pointer is passed. If any error
+          is returned, the variable pointed to by port_ptr will be set to NULL.
+          Otherwise, it will be set to point to the newly allocated port.
 
 void sp_free_port(struct sp_port *port);
 
@@ -105,9 +108,10 @@ int sp_list_ports(struct sp_port ***list_ptr);
 
  The result should be freed after use by calling sp_free_port_list().
 
- Returns: SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation failure,
-          or SP_ERR_ARG if an invalid pointer is passed. If any error is returned,
-          the value pointed to by list_ptr will be set to NULL.
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
+          failure, or SP_ERR_ARG if an invalid pointer is passed. If any error
+          is returned, the variable pointed to by list_ptr will be set to NULL.
+          Otherwise, it will be set to point to the newly allocated array.
 
 void sp_free_port_list(struct sp_port **list);
 
