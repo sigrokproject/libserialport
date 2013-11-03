@@ -79,9 +79,9 @@ enum {
 	SP_FLOW_SOFTWARE = 2
 };
 
-char **sp_list_ports(void);
-void sp_free_port_list(char **ports);
-int sp_open(struct sp_port *port, char *portname, int flags);
+struct sp_port **sp_list_ports(void);
+void sp_free_port_list(struct sp_port **ports);
+int sp_open(struct sp_port *port, int flags);
 int sp_close(struct sp_port *port);
 int sp_flush(struct sp_port *port);
 int sp_write(struct sp_port *port, const void *buf, size_t count);

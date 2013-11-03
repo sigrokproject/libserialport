@@ -45,17 +45,34 @@
 
 #include "serialport.h"
 
-static char **sp_list_append(char **list, void *data, size_t len)
+static struct sp_port *sp_port_new(char *portname, size_t len)
+{
+	struct sp_port *port;
+
+	if (!(port = malloc(sizeof(struct sp_port))))
+		return NULL;
+
+	if (!(port->name = malloc(len)))
+	{
+		free(port);
+		return NULL;
+	}
+
+	memcpy(port->name, portname, len);
+
+	return port;
+}
+
+static struct sp_port **sp_list_append(struct sp_port **list, char *portname, size_t len)
 {
 	void *tmp;
 	unsigned int count;
 	for (count = 0; list[count]; count++);
-	if (!(tmp = realloc(list, sizeof(char *) * (count + 2))))
+	if (!(tmp = realloc(list, sizeof(struct sp_port *) * (count + 2))))
 		goto fail;
 	list = tmp;
-	if (!(list[count] = malloc(len)))
+	if (!(list[count] = sp_port_new(portname, len)))
 		goto fail;
-	memcpy(list[count], data, len);
 	list[count + 1] = NULL;
 	return list;
 fail:
@@ -68,11 +85,11 @@ fail:
  *
  * @return A null-terminated array of port name strings.
  */
-char **sp_list_ports(void)
+struct sp_port **sp_list_ports(void)
 {
-	char **list;
+	struct sp_port **list;
 
-	if (!(list = malloc(sizeof(char *))))
+	if (!(list = malloc(sizeof(struct sp_port **))))
 		return NULL;
 
 	list[0] = NULL;
@@ -224,7 +241,7 @@ out:
 /**
  * Free a port list returned by sp_list_ports.
  */
-void sp_free_port_list(char **list)
+void sp_free_port_list(struct sp_port **list)
 {
 	unsigned int i;
 	for (i = 0; list[i]; i++)
@@ -259,15 +276,10 @@ static int sp_validate_port(struct sp_port *port)
  * @return SP_OK on success, SP_ERR_FAIL on failure,
  *         or SP_ERR_ARG if an invalid port or name is passed.
  */
-int sp_open(struct sp_port *port, char *portname, int flags)
+int sp_open(struct sp_port *port, int flags)
 {
 	if (!port)
 		return SP_ERR_ARG;
-
-	if (!portname)
-		return SP_ERR_ARG;
-
-	port->name = portname;
 
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0;
