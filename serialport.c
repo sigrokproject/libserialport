@@ -73,6 +73,17 @@ int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 	return SP_OK;
 }
 
+void sp_free_port(struct sp_port *port)
+{
+	if (!port)
+		return;
+
+	if (port->name)
+		free(port->name);
+
+	free(port);
+}
+
 static struct sp_port **sp_list_append(struct sp_port **list, const char *portname)
 {
 	void *tmp;
@@ -313,7 +324,7 @@ void sp_free_port_list(struct sp_port **list)
 {
 	unsigned int i;
 	for (i = 0; list[i]; i++)
-		free(list[i]);
+		sp_free_port(list[i]);
 	free(list);
 }
 
