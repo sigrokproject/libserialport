@@ -41,10 +41,12 @@ struct sp_port {
 enum {
 	/* Operation completed successfully. */
 	SP_OK = 0,
-	/* A system error occured while executing the operation. */
-	SP_ERR_FAIL = -1,
 	/* Invalid arguments were passed to the function. */
-	SP_ERR_ARG = -2
+	SP_ERR_ARG = -1,
+	/* A system error occured while executing the operation. */
+	SP_ERR_FAIL = -2,
+	/* A memory allocation failed while executing the operation. */
+	SP_ERR_MEM = -3
 };
 
 /* Port access modes. */
