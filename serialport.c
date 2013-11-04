@@ -29,6 +29,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
+#include <stdio.h>
 #else
 #include <termios.h>
 #include <sys/ioctl.h>
