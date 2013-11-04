@@ -343,6 +343,13 @@ int sp_open(struct sp_port *port, int flags)
 
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0;
+	char *escaped_port_name;
+
+	/* Prefix port name with '\\.\' to work with ports above COM9. */
+	if (!(escaped_port_name = malloc(strlen(port->name + 5))))
+		return SP_ERR_MEM;
+	sprintf(escaped_port_name, "\\\\.\\%s", port->name);
+
 	/* Map 'flags' to the OS-specific settings. */
 	desired_access |= GENERIC_READ;
 	flags_and_attributes = FILE_ATTRIBUTE_NORMAL;
@@ -351,8 +358,11 @@ int sp_open(struct sp_port *port, int flags)
 	if (flags & SP_MODE_NONBLOCK)
 		flags_and_attributes |= FILE_FLAG_OVERLAPPED;
 
-	port->hdl = CreateFile(port->name, desired_access, 0, 0,
+	port->hdl = CreateFile(escaped_port_name, desired_access, 0, 0,
 			 OPEN_EXISTING, flags_and_attributes, 0);
+
+	free(escaped_port_name);
+
 	if (port->hdl == INVALID_HANDLE_VALUE)
 		return SP_ERR_FAIL;
 #else

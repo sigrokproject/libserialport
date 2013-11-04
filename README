@@ -131,8 +131,8 @@ int sp_open(struct sp_port *port, int flags);
   flags:     Flags to use when opening the serial port. Possible
              flags are: SP_MODE_RDWR, SP_MODE_RDONLY, and SP_MODE_NONBLOCK.
 
- Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
-          if an invalid port is passed.
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
+          failure, or SP_ERR_ARG if an invalid port is passed.
 
 int sp_close(struct sp_port *port);
 
