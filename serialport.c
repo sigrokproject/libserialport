@@ -144,7 +144,7 @@ int sp_list_ports(struct sp_port ***list_ptr)
 		goto out_free_value;
 	}
 	while (
-		value_len = max_value_len,
+		value_len = max_value_len + 1,
 		data_size = max_data_size,
 		RegEnumValue(key, index, value, &value_len,
 			NULL, &type, (LPBYTE)data, &data_size) == ERROR_SUCCESS)
