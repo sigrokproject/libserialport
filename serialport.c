@@ -539,6 +539,8 @@ int sp_set_params(struct sp_port *port, int baudrate,
 		return SP_ERR_ARG;
 	}
 
+	dcb.ByteSize = bits;
+
 	switch (stopbits) {
 	/* Note: There's also ONE5STOPBITS == 1.5 (unneeded so far). */
 	case 1:
