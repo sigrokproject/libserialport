@@ -670,6 +670,9 @@ int sp_set_params(struct sp_port *port, int baudrate,
 	case 7:
 		term.c_cflag |= CS7;
 		break;
+	case 6:
+		term.c_cflag |= CS6;
+		break;
 	default:
 		return SP_ERR_ARG;
 	}
