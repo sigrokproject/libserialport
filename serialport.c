@@ -43,7 +43,7 @@
 #include "linux/serial.h"
 #endif
 
-#include "serialport.h"
+#include "libserialport.h"
 
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {

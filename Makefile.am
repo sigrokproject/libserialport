@@ -31,7 +31,7 @@ libserialport_la_LIBADD = $(LIBOBJS)
 libserialport_la_LDFLAGS = $(SP_LIB_LDFLAGS)
 
 library_includedir = $(includedir)
-library_include_HEADERS = serialport.h
+library_include_HEADERS = libserialport.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libserialport.pc
