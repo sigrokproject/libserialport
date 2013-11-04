@@ -82,6 +82,7 @@ enum {
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
 void sp_free_port(struct sp_port *port);
 int sp_list_ports(struct sp_port ***list_ptr);
+int sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr);
 void sp_free_port_list(struct sp_port **ports);
 int sp_open(struct sp_port *port, int flags);
 int sp_close(struct sp_port *port);

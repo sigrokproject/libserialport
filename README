@@ -107,16 +107,32 @@ int sp_list_ports(struct sp_port ***list_ptr);
  allocate a variable of type "struct sp_port **" and pass a pointer to this to
  receive the result.
 
- The result should be freed after use by calling sp_free_port_list().
+ The result should be freed after use by calling sp_free_port_list(). If a port
+ from the list is to be used after freeing the list, it must be copied first
+ using sp_copy_port().
 
  Returns: SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
           failure, or SP_ERR_ARG if an invalid pointer is passed. If any error
           is returned, the variable pointed to by list_ptr will be set to NULL.
           Otherwise, it will be set to point to the newly allocated array.
 
+int sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr);
+
+ Makes a new copy of a sp_port structure. The user should allocate a variable
+ of type "struct sp_port *" and pass a pointer to this to receive the result.
+
+ The copy should be freed after use by calling sp_free_port().
+
+ Returns: SP_OK on success, SP_ERR_MEM on allocation failure, or SP_ERR_ARG
+          if an invalid port or pointer is passed. If any error is returned,
+          the variable pointed to by copy_ptr will be set to NULL. Otherwise,
+          it will be set to point to the newly allocated copy.
+
 void sp_free_port_list(struct sp_port **list);
 
- Frees a port list obtained from sp_list_ports().
+ Frees a port list obtained from sp_list_ports(). This will also free all
+ the sp_port structures referred to from the list; any that are to be retained
+ must be copied first using sp_copy_port().
 
 Opening and closing ports
 -------------------------

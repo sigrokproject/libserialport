@@ -50,6 +50,9 @@ int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 	struct sp_port *port;
 	int len;
 
+	if (!port_ptr)
+		return SP_ERR_ARG;
+
 	*port_ptr = NULL;
 
 	if (!portname)
@@ -71,6 +74,19 @@ int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 	*port_ptr = port;
 
 	return SP_OK;
+}
+
+int sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr)
+{
+	if (!copy_ptr)
+		return SP_ERR_ARG;
+
+	*copy_ptr = NULL;
+
+	if (!port || !port->name)
+		return SP_ERR_ARG;
+
+	return sp_get_port_by_name(port->name, copy_ptr);
 }
 
 void sp_free_port(struct sp_port *port)
