@@ -205,7 +205,7 @@ out_done:
 	CFDictionarySetValue(classes,
 			CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDAllTypes));
 
-	if (!(IOServiceGetMatchingServices(master, classes, &iter)))
+	if (IOServiceGetMatchingServices(master, classes, &iter) != KERN_SUCCESS)
 	{
 		ret = SP_ERR_FAIL;
 		goto out_done;
