@@ -961,6 +961,24 @@ int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 	return SP_OK;
 }
 
+#define CREATE_SETTER(x) int sp_set_##x(struct sp_port *port, int x) { \
+	struct sp_port_data data; \
+	TRY(start_config(port, &data)); \
+	TRY(set_##x(&data, x)); \
+	TRY(apply_config(port, &data)); \
+	return SP_OK; \
+}
+
+CREATE_SETTER(baudrate)
+CREATE_SETTER(bits)
+CREATE_SETTER(parity)
+CREATE_SETTER(stopbits)
+CREATE_SETTER(rts)
+CREATE_SETTER(cts)
+CREATE_SETTER(dtr)
+CREATE_SETTER(dsr)
+CREATE_SETTER(xon_xoff)
+
 int sp_last_error_code(void)
 {
 #ifdef _WIN32
