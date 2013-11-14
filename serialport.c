@@ -51,7 +51,6 @@ struct sp_port_data {
 	DCB dcb;
 #else
 	struct termios term;
-	speed_t baud;
 	int rts;
 	int dtr;
 #endif
@@ -563,69 +562,77 @@ static int set_baudrate(struct sp_port_data *data, int baudrate)
 		return SP_ERR_ARG;
 	}
 #else
+	speed_t baud;
 	switch (baudrate) {
 	case 50:
-		data->baud = B50;
+		baud = B50;
 		break;
 	case 75:
-		data->baud = B75;
+		baud = B75;
 		break;
 	case 110:
-		data->baud = B110;
+		baud = B110;
 		break;
 	case 134:
-		data->baud = B134;
+		baud = B134;
 		break;
 	case 150:
-		data->baud = B150;
+		baud = B150;
 		break;
 	case 200:
-		data->baud = B200;
+		baud = B200;
 		break;
 	case 300:
-		data->baud = B300;
+		baud = B300;
 		break;
 	case 600:
-		data->baud = B600;
+		baud = B600;
 		break;
 	case 1200:
-		data->baud = B1200;
+		baud = B1200;
 		break;
 	case 1800:
-		data->baud = B1800;
+		baud = B1800;
 		break;
 	case 2400:
-		data->baud = B2400;
+		baud = B2400;
 		break;
 	case 4800:
-		data->baud = B4800;
+		baud = B4800;
 		break;
 	case 9600:
-		data->baud = B9600;
+		baud = B9600;
 		break;
 	case 19200:
-		data->baud = B19200;
+		baud = B19200;
 		break;
 	case 38400:
-		data->baud = B38400;
+		baud = B38400;
 		break;
 	case 57600:
-		data->baud = B57600;
+		baud = B57600;
 		break;
 	case 115200:
-		data->baud = B115200;
+		baud = B115200;
 		break;
 	case 230400:
-		data->baud = B230400;
+		baud = B230400;
 		break;
 #if !defined(__APPLE__) && !defined(__OpenBSD__)
 	case 460800:
-		data->baud = B460800;
+		baud = B460800;
 		break;
 #endif
 	default:
 		return SP_ERR_ARG;
 	}
+
+	if (cfsetospeed(&data->term, baud) < 0)
+		return SP_ERR_FAIL;
+
+	if (cfsetispeed(&data->term, baud) < 0)
+		return SP_ERR_FAIL;
+
 #endif
 	return SP_OK;
 }
@@ -790,12 +797,6 @@ static int apply_config(struct sp_port *port, struct sp_port_data *data)
 
 	/* Write the configured settings. */
 	if (tcsetattr(port->fd, TCSADRAIN, &data->term) < 0)
-		return SP_ERR_FAIL;
-
-	if (cfsetospeed(&data->term, data->baud) < 0)
-		return SP_ERR_FAIL;
-
-	if (cfsetispeed(&data->term, data->baud) < 0)
 		return SP_ERR_FAIL;
 
 	if (data->rts != -1) {
