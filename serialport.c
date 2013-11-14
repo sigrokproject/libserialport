@@ -58,6 +58,19 @@ struct sp_port_data {
 #endif
 };
 
+/* Helper functions for configuring ports. */
+static int start_config(struct sp_port *port, struct sp_port_data *data);
+static int set_baudrate(struct sp_port_data *data, int baudrate);
+static int set_bits(struct sp_port_data *data, int bits);
+static int set_parity(struct sp_port_data *data, int parity);
+static int set_stopbits(struct sp_port_data *data, int stopbits);
+static int set_rts(struct sp_port_data *data, int rts);
+static int set_cts(struct sp_port_data *data, int cts);
+static int set_dtr(struct sp_port_data *data, int dtr);
+static int set_dsr(struct sp_port_data *data, int dsr);
+static int set_xon_xoff(struct sp_port_data *data, int xon_xoff);
+static int apply_config(struct sp_port *port, struct sp_port_data *data);
+
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
 	struct sp_port *port;
