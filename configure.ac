@@ -85,8 +85,7 @@ case $target_os in
 *linux*)
 	# On Linux libudev is currently a hard requirement.
 	PKG_CHECK_MODULES([libudev], [libudev >= 0],
-		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS"],
-		[AC_MSG_ERROR([libudev.h not found])])
+		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS"])
 	;;
 *darwin*)
 	LDFLAGS="$LDFLAGS -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation"
