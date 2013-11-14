@@ -29,6 +29,17 @@ extern "C" {
 #include <windows.h>
 #endif
 
+/* Package version macros (e.g. for conditional compilation). */
+#define SP_PACKAGE_VERSION_MAJOR @SP_PACKAGE_VERSION_MAJOR@
+#define SP_PACKAGE_VERSION_MINOR @SP_PACKAGE_VERSION_MINOR@
+#define SP_PACKAGE_VERSION_STRING "@SP_PACKAGE_VERSION@"
+
+/* Library/libtool version macros (e.g. for conditional compilation). */
+#define SP_LIB_VERSION_CURRENT @SP_LIB_VERSION_CURRENT@
+#define SP_LIB_VERSION_REVISION @SP_LIB_VERSION_REVISION@
+#define SP_LIB_VERSION_AGE @SP_LIB_VERSION_AGE@
+#define SP_LIB_VERSION_STRING "@SP_LIB_VERSION@"
+
 /* A serial port. */
 struct sp_port {
 	/* Name used to open the port */

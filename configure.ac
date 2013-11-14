@@ -112,7 +112,7 @@ AC_SUBST(SP_PACKAGE_VERSION_MAJOR)
 AC_SUBST(SP_PACKAGE_VERSION_MINOR)
 AC_SUBST(SP_PACKAGE_VERSION)
 
-AC_CONFIG_FILES([Makefile libserialport.pc])
+AC_CONFIG_FILES([Makefile libserialport.h libserialport.pc])
 
 AC_OUTPUT
 
