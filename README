@@ -1,6 +1,6 @@
-----------------------------------------------------------------
+-------------------------------------------------------------------------------
 libserialport: cross-platform library for accessing serial ports
-----------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 libserialport is a minimal library written in C that is intended to take care
 of the OS-specific details when writing software that uses serial ports.
@@ -75,7 +75,7 @@ can be obtained by calling sp_last_error_code() or sp_last_error_message(). The
 error code or message is that provided by the OS; libserialport does not define
 any error codes or messages of its own.
 
-Functions calls that succeed return SP_OK, which is equal to zero, or where
+Function calls that succeed return SP_OK, which is equal to zero, or where
 otherwise documented a positive value.
 
 The available functions are as follows:

@@ -58,6 +58,7 @@ AM_PROG_CC_C_O
 LT_INIT
 
 # Initialize pkg-config.
+# We require at least 0.22, as "Requires.private" behaviour changed there.
 PKG_PROG_PKG_CONFIG([0.22])
 
 # Library version for libserialport (NOT the same as the package version).
@@ -76,11 +77,13 @@ AC_SUBST(SP_LIB_VERSION)
 AC_SUBST(SP_LIB_LDFLAGS)
 
 # Checks for header files.
-# These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
-AC_CHECK_HEADERS([sys/types.h sys/stat.h fcntl.h termios.h sys/ioctl.h errno.h])
+# These are already checked: inttypes.h dlfcn.h memory.h stdint.h stdlib.h
+# string.h strings.h sys/types.h sys/stat.h unistd.h
+AC_CHECK_HEADERS([errno.h fcntl.h stddef.h sys/ioctl.h termios.h])
 
 case $target_os in
 *linux*)
+	# On Linux libudev is currently a hard requirement.
 	PKG_CHECK_MODULES([libudev], [libudev >= 0],
 		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS"],
 		[AC_MSG_ERROR([libudev.h not found])])
@@ -117,7 +120,7 @@ AC_OUTPUT
 echo
 echo "libserialport configuration summary:"
 echo
-echo "  - Package version (major.minor):    $SP_PACKAGE_VERSION"
+echo "  - Package version (major.minor):          $SP_PACKAGE_VERSION"
 echo "  - Library version (current:revision:age): $SP_LIB_VERSION"
 echo "  - Prefix: $prefix"
 echo "  - Building on: $build"

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SERIALPORT_H
-#define SERIALPORT_H
+#ifndef LIBSERIALPORT_H
+#define LIBSERIALPORT_H
 
 #include <stddef.h>
 #ifdef _WIN32
@@ -46,7 +46,7 @@ enum {
 	/* A system error occured while executing the operation. */
 	SP_ERR_FAIL = -2,
 	/* A memory allocation failed while executing the operation. */
-	SP_ERR_MEM = -3
+	SP_ERR_MEM = -3,
 };
 
 /* Port access modes. */
@@ -56,7 +56,7 @@ enum {
 	/* Open port for read access only. */
 	SP_MODE_RDONLY = 2,
 	/* Open port in non-blocking mode. */
-	SP_MODE_NONBLOCK = 4
+	SP_MODE_NONBLOCK = 4,
 };
 
 /* Parity settings. */
@@ -66,7 +66,7 @@ enum {
 	/* Even parity. */
 	SP_PARITY_EVEN = 1,
 	/* Odd parity. */
-	SP_PARITY_ODD = 2
+	SP_PARITY_ODD = 2,
 };
 
 /* Flow control settings. */
@@ -76,7 +76,7 @@ enum {
 	/* Hardware (RTS/CTS) flow control. */
 	SP_FLOW_HARDWARE = 1,
 	/* Software (XON/XOFF) flow control. */
-	SP_FLOW_SOFTWARE = 2
+	SP_FLOW_SOFTWARE = 2,
 };
 
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
@@ -95,4 +95,4 @@ int sp_last_error_code(void);
 char *sp_last_error_message(void);
 void sp_free_error_message(char *message);
 
-#endif /* SERIALPORT_H */
+#endif /* LIBSERIALPORT_H */

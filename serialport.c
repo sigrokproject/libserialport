@@ -116,6 +116,7 @@ static struct sp_port **sp_list_append(struct sp_port **list, const char *portna
 {
 	void *tmp;
 	unsigned int count;
+
 	for (count = 0; list[count]; count++);
 	if (!(tmp = realloc(list, sizeof(struct sp_port *) * (count + 2))))
 		goto fail;
@@ -124,6 +125,7 @@ static struct sp_port **sp_list_append(struct sp_port **list, const char *portna
 		goto fail;
 	list[count + 1] = NULL;
 	return list;
+
 fail:
 	sp_free_port_list(list);
 	return NULL;
@@ -135,7 +137,7 @@ int sp_list_ports(struct sp_port ***list_ptr)
 	int ret = SP_OK;
 
 	if (!(list = malloc(sizeof(struct sp_port **))))
-		return SP_ERR_MEM;;
+		return SP_ERR_MEM;
 
 	list[0] = NULL;
 
@@ -343,6 +345,7 @@ out:
 void sp_free_port_list(struct sp_port **list)
 {
 	unsigned int i;
+
 	for (i = 0; list[i]; i++)
 		sp_free_port(list[i]);
 	free(list);
@@ -395,6 +398,7 @@ int sp_open(struct sp_port *port, int flags)
 		return SP_ERR_FAIL;
 #else
 	int flags_local = 0;
+
 	/* Map 'flags' to the OS-specific settings. */
 	if (flags & SP_MODE_RDWR)
 		flags_local |= O_RDWR;
@@ -452,6 +456,7 @@ int sp_write(struct sp_port *port, const void *buf, size_t count)
 
 #ifdef _WIN32
 	DWORD written = 0;
+
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (WriteFile(port->hdl, buf, count, &written, NULL) == 0)
 		return SP_ERR_FAIL;
@@ -459,10 +464,11 @@ int sp_write(struct sp_port *port, const void *buf, size_t count)
 #else
 	/* Returns the number of bytes written, or -1 upon failure. */
 	ssize_t written = write(port->fd, buf, count);
+
 	if (written < 0)
 		return SP_ERR_FAIL;
 	else
-		return written;;
+		return written;
 #endif
 }
 
@@ -475,12 +481,14 @@ int sp_read(struct sp_port *port, void *buf, size_t count)
 
 #ifdef _WIN32
 	DWORD bytes_read = 0;
+
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (ReadFile(port->hdl, buf, count, &bytes_read, NULL) == 0)
 		return SP_ERR_FAIL;
 	return bytes_read;
 #else
 	ssize_t bytes_read;
+
 	/* Returns the number of bytes read, or -1 upon failure. */
 	if ((bytes_read = read(port->fd, buf, count)) < 0)
 		return SP_ERR_FAIL;
