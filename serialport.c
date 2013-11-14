@@ -59,6 +59,42 @@ struct sp_port_data {
 #endif
 };
 
+/* Standard baud rates. */
+#ifdef _WIN32
+#define BAUD_TYPE DWORD
+#define BAUD(n) {CBR_##n, n}
+#else
+#define BAUD_TYPE speed_t
+#define BAUD(n) {B##n, n}
+#endif
+
+struct std_baudrate {
+	BAUD_TYPE index;
+	int value;
+};
+
+const struct std_baudrate std_baudrates[] = {
+#ifdef _WIN32
+	/*
+	 * The baudrates 50/75/134/150/200/1800/230400/460800 do not seem to
+	 * have documented CBR_* macros.
+	 */
+	BAUD(110), BAUD(300), BAUD(600), BAUD(1200), BAUD(2400), BAUD(4800),
+	BAUD(9600), BAUD(14400), BAUD(19200), BAUD(38400), BAUD(57600),
+	BAUD(115200), BAUD(128000), BAUD(256000)
+#else
+	BAUD(50), BAUD(75), BAUD(110), BAUD(134), BAUD(150), BAUD(200), BAUD(300),
+	BAUD(600), BAUD(1200), BAUD(1800), BAUD(2400), BAUD(4800), BAUD(9600),
+	BAUD(19200), BAUD(38400), BAUD(57600), BAUD(115200), BAUD(230400),
+#if !defined(__APPLE__) && !defined(__OpenBSD__)
+	BAUD(460800)
+#endif
+#endif
+};
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
+
 /* Helper functions for configuring ports. */
 static int start_config(struct sp_port *port, struct sp_port_data *data);
 static int set_baudrate(struct sp_port_data *data, int baudrate);
@@ -557,130 +593,25 @@ static int start_config(struct sp_port *port, struct sp_port_data *data)
 
 static int set_baudrate(struct sp_port_data *data, int baudrate)
 {
+	unsigned int i;
+	for (i = 0; i < NUM_STD_BAUDRATES; i++) {
+		if (baudrate == std_baudrates[i].value) {
 #ifdef _WIN32
-	switch (baudrate) {
-	/*
-	 * The baudrates 50/75/134/150/200/1800/230400/460800 do not seem to
-	 * have documented CBR_* macros.
-	 */
-	case 110:
-		data->dcb.BaudRate = CBR_110;
-		break;
-	case 300:
-		data->dcb.BaudRate = CBR_300;
-		break;
-	case 600:
-		data->dcb.BaudRate = CBR_600;
-		break;
-	case 1200:
-		data->dcb.BaudRate = CBR_1200;
-		break;
-	case 2400:
-		data->dcb.BaudRate = CBR_2400;
-		break;
-	case 4800:
-		data->dcb.BaudRate = CBR_4800;
-		break;
-	case 9600:
-		data->dcb.BaudRate = CBR_9600;
-		break;
-	case 14400:
-		data->dcb.BaudRate = CBR_14400; /* Not available on Unix? */
-		break;
-	case 19200:
-		data->dcb.BaudRate = CBR_19200;
-		break;
-	case 38400:
-		data->dcb.BaudRate = CBR_38400;
-		break;
-	case 57600:
-		data->dcb.BaudRate = CBR_57600;
-		break;
-	case 115200:
-		data->dcb.BaudRate = CBR_115200;
-		break;
-	case 128000:
-		data->dcb.BaudRate = CBR_128000; /* Not available on Unix? */
-		break;
-	case 256000:
-		data->dcb.BaudRate = CBR_256000; /* Not available on Unix? */
-		break;
-	default:
-		return SP_ERR_ARG;
-	}
+			data->dcb.BaudRate = std_baudrates[i].index;
 #else
-	speed_t baud;
-	switch (baudrate) {
-	case 50:
-		baud = B50;
-		break;
-	case 75:
-		baud = B75;
-		break;
-	case 110:
-		baud = B110;
-		break;
-	case 134:
-		baud = B134;
-		break;
-	case 150:
-		baud = B150;
-		break;
-	case 200:
-		baud = B200;
-		break;
-	case 300:
-		baud = B300;
-		break;
-	case 600:
-		baud = B600;
-		break;
-	case 1200:
-		baud = B1200;
-		break;
-	case 1800:
-		baud = B1800;
-		break;
-	case 2400:
-		baud = B2400;
-		break;
-	case 4800:
-		baud = B4800;
-		break;
-	case 9600:
-		baud = B9600;
-		break;
-	case 19200:
-		baud = B19200;
-		break;
-	case 38400:
-		baud = B38400;
-		break;
-	case 57600:
-		baud = B57600;
-		break;
-	case 115200:
-		baud = B115200;
-		break;
-	case 230400:
-		baud = B230400;
-		break;
-#if !defined(__APPLE__) && !defined(__OpenBSD__)
-	case 460800:
-		baud = B460800;
-		break;
+			if (cfsetospeed(&data->term, std_baudrates[i].index) < 0)
+				return SP_ERR_FAIL;
+
+			if (cfsetispeed(&data->term, std_baudrates[i].index) < 0)
+				return SP_ERR_FAIL;
 #endif
-	default:
-		return SP_ERR_ARG;
+			break;
+		}
 	}
 
-	if (cfsetospeed(&data->term, baud) < 0)
-		return SP_ERR_FAIL;
+	if (i == NUM_STD_BAUDRATES)
+		return SP_ERR_ARG;
 
-	if (cfsetispeed(&data->term, baud) < 0)
-		return SP_ERR_FAIL;
-
-#endif
 	return SP_OK;
 }
 
