@@ -939,22 +939,55 @@ static int apply_config(struct sp_port *port, struct sp_port_data *data)
 }
 
 #define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
-#define TRY_SET(x) do { if (config->x >= 0) TRY(set_##x(&data, config->x)); } while (0)
+#define TRY_SET(x, y) do { if (y >= 0) TRY(set_##x(&data, y)); } while (0)
+#define TRY_SET_CONFIG(x) TRY_SET(x, config->x)
 
 int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 {
 	struct sp_port_data data;
 
 	TRY(start_config(port, &data));
-	TRY_SET(baudrate);
-	TRY_SET(bits);
-	TRY_SET(parity);
-	TRY_SET(stopbits);
-	TRY_SET(rts);
-	TRY_SET(cts);
-	TRY_SET(dtr);
-	TRY_SET(dsr);
-	TRY_SET(xon_xoff);
+	TRY_SET_CONFIG(baudrate);
+	TRY_SET_CONFIG(bits);
+	TRY_SET_CONFIG(parity);
+	TRY_SET_CONFIG(stopbits);
+	TRY_SET_CONFIG(rts);
+	TRY_SET_CONFIG(cts);
+	TRY_SET_CONFIG(dtr);
+	TRY_SET_CONFIG(dsr);
+	TRY_SET_CONFIG(xon_xoff);
+	TRY(apply_config(port, &data));
+
+	return SP_OK;
+}
+
+int sp_set_flowcontrol(struct sp_port *port, int flowcontrol)
+{
+	struct sp_port_data data;
+
+	TRY(start_config(port, &data));
+
+	if (flowcontrol == SP_FLOWCONTROL_XONXOFF)
+		TRY_SET(xon_xoff, SP_XONXOFF_INOUT);
+	else
+		TRY_SET(xon_xoff, SP_XONXOFF_DISABLED);
+
+	if (flowcontrol == SP_FLOWCONTROL_RTSCTS) {
+		TRY_SET(rts, SP_RTS_FLOW_CONTROL);
+		TRY_SET(cts, SP_CTS_FLOW_CONTROL);
+	} else {
+		TRY_SET(rts, SP_RTS_ON);
+		TRY_SET(cts, SP_CTS_IGNORE);
+	}
+
+	if (flowcontrol == SP_FLOWCONTROL_DTRDSR) {
+		TRY_SET(dtr, SP_DTR_FLOW_CONTROL);
+		TRY_SET(dsr, SP_DSR_FLOW_CONTROL);
+	} else {
+		TRY_SET(dtr, SP_DTR_ON);
+		TRY_SET(dsr, SP_DSR_IGNORE);
+	}
+
 	TRY(apply_config(port, &data));
 
 	return SP_OK;

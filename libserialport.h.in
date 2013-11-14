@@ -132,6 +132,14 @@ enum {
 	SP_XONXOFF_INOUT = 3
 };
 
+/* Standard flow control combinations. */
+enum {
+	SP_FLOWCONTROL_NONE = 0,
+	SP_FLOWCONTROL_XONXOFF = 1,
+	SP_FLOWCONTROL_RTSCTS = 2,
+	SP_FLOWCONTROL_DTRDSR = 3
+};
+
 /* Enumeration */
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
 void sp_free_port(struct sp_port *port);
@@ -148,12 +156,15 @@ int sp_read(struct sp_port *port, void *buf, size_t count);
 int sp_write(struct sp_port *port, const void *buf, size_t count);
 int sp_flush(struct sp_port *port);
 
-/* Port configuration */
+/* Basic port configuration */
 int sp_set_config(struct sp_port *port, struct sp_port_config *config);
 int sp_set_baudrate(struct sp_port *port, int baudrate);
 int sp_set_bits(struct sp_port *port, int bits);
 int sp_set_parity(struct sp_port *port, int parity);
 int sp_set_stopbits(struct sp_port *port, int stopbits);
+int sp_set_flowcontrol(struct sp_port *port, int flowcontrol);
+
+/* Advanced port configuration */
 int sp_set_rts(struct sp_port *port, int rts);
 int sp_set_cts(struct sp_port *port, int cts);
 int sp_set_dtr(struct sp_port *port, int dtr);
