@@ -745,12 +745,10 @@ static int set_flowcontrol(struct sp_port_data *data, int flowcontrol)
 static int set_rts(struct sp_port_data *data, int rts)
 {
 #ifdef _WIN32
-	if (rts != -1) {
-		if (rts)
-			data->dcb.fRtsControl = RTS_CONTROL_ENABLE;
-		else
-			data->dcb.fRtsControl = RTS_CONTROL_DISABLE;
-	}
+	if (rts)
+		data->dcb.fRtsControl = RTS_CONTROL_ENABLE;
+	else
+		data->dcb.fRtsControl = RTS_CONTROL_DISABLE;
 #else
 	data->rts = rts;
 #endif
@@ -760,12 +758,10 @@ static int set_rts(struct sp_port_data *data, int rts)
 static int set_dtr(struct sp_port_data *data, int dtr)
 {
 #ifdef _WIN32
-	if (dtr != -1) {
-		if (dtr)
-			data->dcb.fDtrControl = DTR_CONTROL_ENABLE;
-		else
-			data->dcb.fDtrControl = DTR_CONTROL_DISABLE;
-	}
+	if (dtr)
+		data->dcb.fDtrControl = DTR_CONTROL_ENABLE;
+	else
+		data->dcb.fDtrControl = DTR_CONTROL_DISABLE;
 #else
 	data->dtr = dtr;
 #endif
@@ -820,19 +816,20 @@ static int apply_config(struct sp_port *port, struct sp_port_data *data)
 }
 
 #define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
+#define TRY_SET(x) do { if (config->x >= 0) TRY(set_##x(&data, config->x)); } while (0)
 
 int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 {
 	struct sp_port_data data;
 
 	TRY(start_config(port, &data));
-	TRY(set_baudrate(&data, config->baudrate));
-	TRY(set_bits(&data, config->bits));
-	TRY(set_parity(&data, config->parity));
-	TRY(set_stopbits(&data, config->stopbits));
-	TRY(set_flowcontrol(&data, config->flowcontrol));
-	TRY(set_rts(&data, config->rts));
-	TRY(set_dtr(&data, config->dtr));
+	TRY_SET(baudrate);
+	TRY_SET(bits);
+	TRY_SET(parity);
+	TRY_SET(stopbits);
+	TRY_SET(flowcontrol);
+	TRY_SET(rts);
+	TRY_SET(dtr);
 	TRY(apply_config(port, &data));
 
 	return SP_OK;
