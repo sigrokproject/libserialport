@@ -46,6 +46,17 @@
 
 #include "libserialport.h"
 
+struct sp_port_data {
+#ifdef _WIN32
+	DCB dcb;
+#else
+	struct termios term;
+	speed_t baud;
+	int rts;
+	int dtr;
+#endif
+};
+
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
 	struct sp_port *port;
@@ -477,282 +488,345 @@ int sp_read(struct sp_port *port, void *buf, size_t count)
 #endif
 }
 
-int sp_set_params(struct sp_port *port, int baudrate,
-			      int bits, int parity, int stopbits,
-			      int flowcontrol, int rts, int dtr)
+static int start_config(struct sp_port *port, struct sp_port_data *data)
 {
 	CHECK_PORT();
-
 #ifdef _WIN32
-	DCB dcb;
-
-	if (!GetCommState(port->hdl, &dcb))
+	if (!GetCommState(port->hdl, &data->dcb))
 		return SP_ERR_FAIL;
+#else
+	if (tcgetattr(port->fd, &data->term) < 0)
+		return SP_ERR_FAIL;
+#endif
+	return SP_OK;
+}
 
+static int set_baudrate(struct sp_port_data *data, int baudrate)
+{
+#ifdef _WIN32
 	switch (baudrate) {
 	/*
 	 * The baudrates 50/75/134/150/200/1800/230400/460800 do not seem to
 	 * have documented CBR_* macros.
 	 */
 	case 110:
-		dcb.BaudRate = CBR_110;
+		data->dcb.BaudRate = CBR_110;
 		break;
 	case 300:
-		dcb.BaudRate = CBR_300;
+		data->dcb.BaudRate = CBR_300;
 		break;
 	case 600:
-		dcb.BaudRate = CBR_600;
+		data->dcb.BaudRate = CBR_600;
 		break;
 	case 1200:
-		dcb.BaudRate = CBR_1200;
+		data->dcb.BaudRate = CBR_1200;
 		break;
 	case 2400:
-		dcb.BaudRate = CBR_2400;
+		data->dcb.BaudRate = CBR_2400;
 		break;
 	case 4800:
-		dcb.BaudRate = CBR_4800;
+		data->dcb.BaudRate = CBR_4800;
 		break;
 	case 9600:
-		dcb.BaudRate = CBR_9600;
+		data->dcb.BaudRate = CBR_9600;
 		break;
 	case 14400:
-		dcb.BaudRate = CBR_14400; /* Not available on Unix? */
+		data->dcb.BaudRate = CBR_14400; /* Not available on Unix? */
 		break;
 	case 19200:
-		dcb.BaudRate = CBR_19200;
+		data->dcb.BaudRate = CBR_19200;
 		break;
 	case 38400:
-		dcb.BaudRate = CBR_38400;
+		data->dcb.BaudRate = CBR_38400;
 		break;
 	case 57600:
-		dcb.BaudRate = CBR_57600;
+		data->dcb.BaudRate = CBR_57600;
 		break;
 	case 115200:
-		dcb.BaudRate = CBR_115200;
+		data->dcb.BaudRate = CBR_115200;
 		break;
 	case 128000:
-		dcb.BaudRate = CBR_128000; /* Not available on Unix? */
+		data->dcb.BaudRate = CBR_128000; /* Not available on Unix? */
 		break;
 	case 256000:
-		dcb.BaudRate = CBR_256000; /* Not available on Unix? */
+		data->dcb.BaudRate = CBR_256000; /* Not available on Unix? */
 		break;
 	default:
 		return SP_ERR_ARG;
 	}
-
-	dcb.ByteSize = bits;
-
-	switch (stopbits) {
-	/* Note: There's also ONE5STOPBITS == 1.5 (unneeded so far). */
-	case 1:
-		dcb.StopBits = ONESTOPBIT;
-		break;
-	case 2:
-		dcb.StopBits = TWOSTOPBITS;
-		break;
-	default:
-		return SP_ERR_ARG;
-	}
-
-	switch (parity) {
-	/* Note: There's also SPACEPARITY, MARKPARITY (unneeded so far). */
-	case SP_PARITY_NONE:
-		dcb.Parity = NOPARITY;
-		break;
-	case SP_PARITY_EVEN:
-		dcb.Parity = EVENPARITY;
-		break;
-	case SP_PARITY_ODD:
-		dcb.Parity = ODDPARITY;
-		break;
-	default:
-		return SP_ERR_ARG;
-	}
-
-	if (rts != -1) {
-		if (rts)
-			dcb.fRtsControl = RTS_CONTROL_ENABLE;
-		else
-			dcb.fRtsControl = RTS_CONTROL_DISABLE;
-	}
-
-	if (dtr != -1) {
-		if (dtr)
-			dcb.fDtrControl = DTR_CONTROL_ENABLE;
-		else
-			dcb.fDtrControl = DTR_CONTROL_DISABLE;
-	}
-
-	if (!SetCommState(port->hdl, &dcb))
-		return SP_ERR_FAIL;
 #else
-	struct termios term;
-	speed_t baud;
-	int controlbits;
-
-	if (tcgetattr(port->fd, &term) < 0)
-		return SP_ERR_FAIL;
-
 	switch (baudrate) {
 	case 50:
-		baud = B50;
+		data->baud = B50;
 		break;
 	case 75:
-		baud = B75;
+		data->baud = B75;
 		break;
 	case 110:
-		baud = B110;
+		data->baud = B110;
 		break;
 	case 134:
-		baud = B134;
+		data->baud = B134;
 		break;
 	case 150:
-		baud = B150;
+		data->baud = B150;
 		break;
 	case 200:
-		baud = B200;
+		data->baud = B200;
 		break;
 	case 300:
-		baud = B300;
+		data->baud = B300;
 		break;
 	case 600:
-		baud = B600;
+		data->baud = B600;
 		break;
 	case 1200:
-		baud = B1200;
+		data->baud = B1200;
 		break;
 	case 1800:
-		baud = B1800;
+		data->baud = B1800;
 		break;
 	case 2400:
-		baud = B2400;
+		data->baud = B2400;
 		break;
 	case 4800:
-		baud = B4800;
+		data->baud = B4800;
 		break;
 	case 9600:
-		baud = B9600;
+		data->baud = B9600;
 		break;
 	case 19200:
-		baud = B19200;
+		data->baud = B19200;
 		break;
 	case 38400:
-		baud = B38400;
+		data->baud = B38400;
 		break;
 	case 57600:
-		baud = B57600;
+		data->baud = B57600;
 		break;
 	case 115200:
-		baud = B115200;
+		data->baud = B115200;
 		break;
 	case 230400:
-		baud = B230400;
+		data->baud = B230400;
 		break;
 #if !defined(__APPLE__) && !defined(__OpenBSD__)
 	case 460800:
-		baud = B460800;
+		data->baud = B460800;
 		break;
 #endif
 	default:
 		return SP_ERR_ARG;
 	}
+#endif
+	return SP_OK;
+}
 
-	if (cfsetospeed(&term, baud) < 0)
-		return SP_ERR_FAIL;
-
-	if (cfsetispeed(&term, baud) < 0)
-		return SP_ERR_FAIL;
-
-	term.c_cflag &= ~CSIZE;
+static int set_bits(struct sp_port_data *data, int bits)
+{
+#ifdef _WIN32
+	data->dcb.ByteSize = bits;
+#else
+	data->term.c_cflag &= ~CSIZE;
 	switch (bits) {
 	case 8:
-		term.c_cflag |= CS8;
+		data->term.c_cflag |= CS8;
 		break;
 	case 7:
-		term.c_cflag |= CS7;
+		data->term.c_cflag |= CS7;
 		break;
 	case 6:
-		term.c_cflag |= CS6;
+		data->term.c_cflag |= CS6;
 		break;
 	default:
 		return SP_ERR_ARG;
 	}
+#endif
+	return SP_OK;
+}
 
-	term.c_cflag &= ~CSTOPB;
+static int set_parity(struct sp_port_data *data, int parity)
+{
+#ifdef _WIN32
+	switch (parity) {
+	/* Note: There's also SPACEPARITY, MARKPARITY (unneeded so far). */
+	case SP_PARITY_NONE:
+		data->dcb.Parity = NOPARITY;
+		break;
+	case SP_PARITY_EVEN:
+		data->dcb.Parity = EVENPARITY;
+		break;
+	case SP_PARITY_ODD:
+		data->dcb.Parity = ODDPARITY;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
+#else
+	data->term.c_iflag &= ~IGNPAR;
+	data->term.c_cflag &= ~(PARENB | PARODD);
+	switch (parity) {
+	case SP_PARITY_NONE:
+		data->term.c_iflag |= IGNPAR;
+		break;
+	case SP_PARITY_EVEN:
+		data->term.c_cflag |= PARENB;
+		break;
+	case SP_PARITY_ODD:
+		data->term.c_cflag |= PARENB | PARODD;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
+#endif
+	return SP_OK;
+}
+
+static int set_stopbits(struct sp_port_data *data, int stopbits)
+{
+#ifdef _WIN32
 	switch (stopbits) {
+	/* Note: There's also ONE5STOPBITS == 1.5 (unneeded so far). */
 	case 1:
-		term.c_cflag &= ~CSTOPB;
+		data->dcb.StopBits = ONESTOPBIT;
 		break;
 	case 2:
-		term.c_cflag |= CSTOPB;
+		data->dcb.StopBits = TWOSTOPBITS;
 		break;
 	default:
 		return SP_ERR_ARG;
 	}
+#else
+	data->term.c_cflag &= ~CSTOPB;
+	switch (stopbits) {
+	case 1:
+		data->term.c_cflag &= ~CSTOPB;
+		break;
+	case 2:
+		data->term.c_cflag |= CSTOPB;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
+#endif
+	return SP_OK;
+}
 
-	term.c_iflag &= ~(IXON | IXOFF | IXANY);
-	term.c_cflag &= ~CRTSCTS;
+static int set_flowcontrol(struct sp_port_data *data, int flowcontrol)
+{
+#ifndef _WIN32
+	data->term.c_iflag &= ~(IXON | IXOFF | IXANY);
+	data->term.c_cflag &= ~CRTSCTS;
 	switch (flowcontrol) {
 	case 0:
 		/* No flow control. */
 		break;
 	case 1:
-		term.c_cflag |= CRTSCTS;
+		data->term.c_cflag |= CRTSCTS;
 		break;
 	case 2:
-		term.c_iflag |= IXON | IXOFF | IXANY;
+		data->term.c_iflag |= IXON | IXOFF | IXANY;
 		break;
 	default:
 		return SP_ERR_ARG;
 	}
+#endif
+	return SP_OK;
+}
 
-	term.c_iflag &= ~IGNPAR;
-	term.c_cflag &= ~(PARENB | PARODD);
-	switch (parity) {
-	case SP_PARITY_NONE:
-		term.c_iflag |= IGNPAR;
-		break;
-	case SP_PARITY_EVEN:
-		term.c_cflag |= PARENB;
-		break;
-	case SP_PARITY_ODD:
-		term.c_cflag |= PARENB | PARODD;
-		break;
-	default:
-		return SP_ERR_ARG;
+static int set_rts(struct sp_port_data *data, int rts)
+{
+#ifdef _WIN32
+	if (rts != -1) {
+		if (rts)
+			data->dcb.fRtsControl = RTS_CONTROL_ENABLE;
+		else
+			data->dcb.fRtsControl = RTS_CONTROL_DISABLE;
 	}
+#else
+	data->rts = rts;
+#endif
+	return SP_OK;
+}
+
+static int set_dtr(struct sp_port_data *data, int dtr)
+{
+#ifdef _WIN32
+	if (dtr != -1) {
+		if (dtr)
+			data->dcb.fDtrControl = DTR_CONTROL_ENABLE;
+		else
+			data->dcb.fDtrControl = DTR_CONTROL_DISABLE;
+	}
+#else
+	data->dtr = dtr;
+#endif
+	return SP_OK;
+}
+
+static int apply_config(struct sp_port *port, struct sp_port_data *data)
+{
+#ifdef _WIN32
+	if (!SetCommState(port->hdl, &data->dcb))
+		return SP_ERR_FAIL;
+#else
+	int controlbits;
 
 	/* Turn off all serial port cooking. */
-	term.c_iflag &= ~(ISTRIP | INLCR | ICRNL);
-	term.c_oflag &= ~(ONLCR | OCRNL | ONOCR);
+	data->term.c_iflag &= ~(ISTRIP | INLCR | ICRNL);
+	data->term.c_oflag &= ~(ONLCR | OCRNL | ONOCR);
 #if !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__NetBSD__)
-	term.c_oflag &= ~OFILL;
+	data->term.c_oflag &= ~OFILL;
 #endif
-
 	/* Disable canonical mode, and don't echo input characters. */
-	term.c_lflag &= ~(ICANON | ECHO);
+	data->term.c_lflag &= ~(ICANON | ECHO);
 
 	/* Ignore modem status lines; enable receiver */
-	term.c_cflag |= (CLOCAL | CREAD);
+	data->term.c_cflag |= (CLOCAL | CREAD);
 
 	/* Write the configured settings. */
-	if (tcsetattr(port->fd, TCSADRAIN, &term) < 0)
+	if (tcsetattr(port->fd, TCSADRAIN, &data->term) < 0)
 		return SP_ERR_FAIL;
 
-	if (rts != -1) {
+	if (cfsetospeed(&data->term, data->baud) < 0)
+		return SP_ERR_FAIL;
+
+	if (cfsetispeed(&data->term, data->baud) < 0)
+		return SP_ERR_FAIL;
+
+	if (data->rts != -1) {
 		controlbits = TIOCM_RTS;
-		if (ioctl(port->fd, rts ? TIOCMBIS : TIOCMBIC,
+		if (ioctl(port->fd, data->rts ? TIOCMBIS : TIOCMBIC,
 				&controlbits) < 0)
 			return SP_ERR_FAIL;
 	}
 
-	if (dtr != -1) {
+	if (data->dtr != -1) {
 		controlbits = TIOCM_DTR;
-		if (ioctl(port->fd, dtr ? TIOCMBIS : TIOCMBIC,
+		if (ioctl(port->fd, data->dtr ? TIOCMBIS : TIOCMBIC,
 				&controlbits) < 0)
 			return SP_ERR_FAIL;
 	}
 #endif
+	return SP_OK;
+}
+
+#define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
+
+int sp_set_params(struct sp_port *port, int baudrate, int bits, int parity,
+		int stopbits, int flowcontrol, int rts, int dtr)
+{
+	struct sp_port_data data;
+
+	TRY(start_config(port, &data));
+	TRY(set_baudrate(&data, baudrate));
+	TRY(set_bits(&data, bits));
+	TRY(set_parity(&data, parity));
+	TRY(set_stopbits(&data, stopbits));
+	TRY(set_flowcontrol(&data, flowcontrol));
+	TRY(set_rts(&data, rts));
+	TRY(set_dtr(&data, dtr));
+	TRY(apply_config(port, &data));
 
 	return SP_OK;
 }
