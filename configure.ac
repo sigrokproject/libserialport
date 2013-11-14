@@ -76,22 +76,32 @@ AC_SUBST(SP_LIB_VERSION_AGE)
 AC_SUBST(SP_LIB_VERSION)
 AC_SUBST(SP_LIB_LDFLAGS)
 
-# Checks for header files.
-# These are already checked: inttypes.h dlfcn.h memory.h stdint.h stdlib.h
-# string.h strings.h sys/types.h sys/stat.h unistd.h
-AC_CHECK_HEADERS([errno.h fcntl.h stddef.h sys/ioctl.h termios.h])
+# Checks for libraries.
+
+# This variable collects the pkg-config names of all detected libs.
+# It is then used to construct the "Requires.private:" field in the
+# libserialport.pc file.
+SP_PKGLIBS=""
 
 case $target_os in
 *linux*)
 	# On Linux libudev is currently a hard requirement.
 	PKG_CHECK_MODULES([libudev], [libudev >= 0],
-		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS"])
+		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
+		SP_PKGLIBS="$SP_PKGLIBS libudev"])
 	;;
 *darwin*)
 	LDFLAGS="$LDFLAGS -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation"
 	AC_CHECK_HEADER(IOKit/IOKitLib.h, [], [AC_MSG_ERROR([IOKit/IOKitLib.h not found])])
 	;;
 esac
+
+AC_SUBST(SP_PKGLIBS)
+
+# Checks for header files.
+# These are already checked: inttypes.h dlfcn.h memory.h stdint.h stdlib.h
+# string.h strings.h sys/types.h sys/stat.h unistd.h
+AC_CHECK_HEADERS([errno.h fcntl.h stddef.h sys/ioctl.h termios.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE

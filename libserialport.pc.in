@@ -6,6 +6,7 @@ includedir=@includedir@
 Name: libserialport
 Description: Cross-platform serial port access library.
 URL: http://github.com/martinling/libserialport
+Requires.private: @SP_PKGLIBS@
 Version: @VERSION@
 Libs: -L${libdir} -lserialport
 Cflags: -I${includedir}
