@@ -51,6 +51,7 @@ struct sp_port_data {
 	DCB dcb;
 #else
 	struct termios term;
+	int controlbits;
 	int rts;
 	int cts;
 	int dtr;
@@ -534,23 +535,21 @@ static int start_config(struct sp_port *port, struct sp_port_data *data)
 	if (!GetCommState(port->hdl, &data->dcb))
 		return SP_ERR_FAIL;
 #else
-	int controlbits;
-
 	if (tcgetattr(port->fd, &data->term) < 0)
 		return SP_ERR_FAIL;
 
-	if (ioctl(port->fd, TIOCMGET, &controlbits) < 0)
+	if (ioctl(port->fd, TIOCMGET, &data->controlbits) < 0)
 		return SP_ERR_FAIL;
 
 	if (data->term.c_cflag & CRTSCTS) {
 		data->rts = SP_RTS_FLOW_CONTROL;
 		data->cts = SP_CTS_FLOW_CONTROL;
 	} else {
-		data->rts = (controlbits & TIOCM_RTS) ? SP_RTS_ON : SP_RTS_OFF;
+		data->rts = (data->controlbits & TIOCM_RTS) ? SP_RTS_ON : SP_RTS_OFF;
 		data->cts = SP_CTS_IGNORE;
 	}
 
-	data->dtr = (controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
+	data->dtr = (data->controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
 	data->dsr = SP_DSR_IGNORE;
 #endif
 	return SP_OK;
