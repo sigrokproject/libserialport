@@ -52,7 +52,9 @@ struct sp_port_data {
 #else
 	struct termios term;
 	int rts;
+	int cts;
 	int dtr;
+	int dsr;
 #endif
 };
 
@@ -727,37 +729,43 @@ static int set_stopbits(struct sp_port_data *data, int stopbits)
 	return SP_OK;
 }
 
-static int set_flowcontrol(struct sp_port_data *data, int flowcontrol)
+static int set_rts(struct sp_port_data *data, int rts)
 {
-#ifndef _WIN32
-	data->term.c_iflag &= ~(IXON | IXOFF | IXANY);
-	data->term.c_cflag &= ~CRTSCTS;
-	switch (flowcontrol) {
-	case 0:
-		/* No flow control. */
+#ifdef _WIN32
+	switch (rts) {
+	case SP_RTS_OFF:
+		data->dcb.fRtsControl = RTS_CONTROL_DISABLE;
 		break;
-	case 1:
-		data->term.c_cflag |= CRTSCTS;
+	case SP_RTS_ON:
+		data->dcb.fRtsControl = RTS_CONTROL_ENABLE;
 		break;
-	case 2:
-		data->term.c_iflag |= IXON | IXOFF | IXANY;
+	case SP_RTS_FLOW_CONTROL:
+		data->dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
 		break;
 	default:
 		return SP_ERR_ARG;
 	}
+#else
+	data->rts = rts;
 #endif
 	return SP_OK;
 }
 
-static int set_rts(struct sp_port_data *data, int rts)
+static int set_cts(struct sp_port_data *data, int cts)
 {
 #ifdef _WIN32
-	if (rts)
-		data->dcb.fRtsControl = RTS_CONTROL_ENABLE;
-	else
-		data->dcb.fRtsControl = RTS_CONTROL_DISABLE;
+	switch (cts) {
+	case SP_CTS_IGNORE:
+		data->dcb.fOutxCtsFlow = FALSE;
+		break;
+	case SP_CTS_FLOW_CONTROL:
+		data->dcb.fOutxCtsFlow = TRUE;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
 #else
-	data->rts = rts;
+	data->cts = cts;
 #endif
 	return SP_OK;
 }
@@ -765,12 +773,84 @@ static int set_rts(struct sp_port_data *data, int rts)
 static int set_dtr(struct sp_port_data *data, int dtr)
 {
 #ifdef _WIN32
-	if (dtr)
-		data->dcb.fDtrControl = DTR_CONTROL_ENABLE;
-	else
+	switch (dtr) {
+	case SP_DTR_OFF:
 		data->dcb.fDtrControl = DTR_CONTROL_DISABLE;
+		break;
+	case SP_DTR_ON:
+		data->dcb.fDtrControl = DTR_CONTROL_ENABLE;
+		break;
+	case SP_DTR_FLOW_CONTROL:
+		data->dcb.fDtrControl = DTR_CONTROL_HANDSHAKE;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
 #else
 	data->dtr = dtr;
+#endif
+	return SP_OK;
+}
+
+static int set_dsr(struct sp_port_data *data, int dsr)
+{
+#ifdef _WIN32
+	switch (dsr) {
+	case SP_DSR_IGNORE:
+		data->dcb.fOutxDsrFlow = FALSE;
+		break;
+	case SP_DSR_FLOW_CONTROL:
+		data->dcb.fOutxDsrFlow = TRUE;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
+#else
+	data->dsr = dsr;
+#endif
+	return SP_OK;
+}
+
+static int set_xon_xoff(struct sp_port_data *data, int xon_xoff)
+{
+#ifdef _WIN32
+	switch (xon_xoff) {
+	case SP_XONXOFF_DISABLED:
+		data->dcb.fInX = FALSE;
+		data->dcb.fOutX = FALSE;
+		break;
+	case SP_XONXOFF_IN:
+		data->dcb.fInX = TRUE;
+		data->dcb.fOutX = FALSE;
+		break;
+	case SP_XONXOFF_OUT:
+		data->dcb.fInX = FALSE;
+		data->dcb.fOutX = TRUE;
+		break;
+	case SP_XONXOFF_INOUT:
+		data->dcb.fInX = TRUE;
+		data->dcb.fOutX = TRUE;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
+#else
+	data->term.c_iflag &= ~(IXON | IXOFF | IXANY);
+	switch (xon_xoff) {
+	case SP_XONXOFF_DISABLED:
+		break;
+	case SP_XONXOFF_IN:
+		data->term.c_iflag |= IXOFF;
+		break;
+	case SP_XONXOFF_OUT:
+		data->term.c_iflag |= IXON | IXANY;
+		break;
+	case SP_XONXOFF_INOUT:
+		data->term.c_iflag |= IXON | IXOFF | IXANY;
+		break;
+	default:
+		return SP_ERR_ARG;
+	}
 #endif
 	return SP_OK;
 }
@@ -795,23 +875,32 @@ static int apply_config(struct sp_port *port, struct sp_port_data *data)
 	/* Ignore modem status lines; enable receiver */
 	data->term.c_cflag |= (CLOCAL | CREAD);
 
+	/* Asymmetric use of RTS/CTS not supported yet. */
+	if ((data->rts == SP_RTS_FLOW_CONTROL) != (data->cts == SP_CTS_FLOW_CONTROL))
+		return SP_ERR_ARG;
+
+	/* DTR/DSR flow control not supported yet. */
+	if (data->dtr == SP_DTR_FLOW_CONTROL || data->dsr == SP_DSR_FLOW_CONTROL)
+		return SP_ERR_ARG;
+
+	if (data->rts == SP_RTS_FLOW_CONTROL)
+		data->term.c_iflag |= CRTSCTS;
+	else
+	{
+		controlbits = TIOCM_RTS;
+		if (ioctl(port->fd, data->rts == SP_RTS_ON ? TIOCMBIS : TIOCMBIC,
+				&controlbits) < 0)
+			return SP_ERR_FAIL;
+	}
+
+	controlbits = TIOCM_DTR;
+	if (ioctl(port->fd, data->dtr == SP_DTR_ON ? TIOCMBIS : TIOCMBIC,
+			&controlbits) < 0)
+		return SP_ERR_FAIL;
+
 	/* Write the configured settings. */
 	if (tcsetattr(port->fd, TCSADRAIN, &data->term) < 0)
 		return SP_ERR_FAIL;
-
-	if (data->rts != -1) {
-		controlbits = TIOCM_RTS;
-		if (ioctl(port->fd, data->rts ? TIOCMBIS : TIOCMBIC,
-				&controlbits) < 0)
-			return SP_ERR_FAIL;
-	}
-
-	if (data->dtr != -1) {
-		controlbits = TIOCM_DTR;
-		if (ioctl(port->fd, data->dtr ? TIOCMBIS : TIOCMBIC,
-				&controlbits) < 0)
-			return SP_ERR_FAIL;
-	}
 #endif
 	return SP_OK;
 }
@@ -828,9 +917,11 @@ int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 	TRY_SET(bits);
 	TRY_SET(parity);
 	TRY_SET(stopbits);
-	TRY_SET(flowcontrol);
 	TRY_SET(rts);
+	TRY_SET(cts);
 	TRY_SET(dtr);
+	TRY_SET(dsr);
+	TRY_SET(xon_xoff);
 	TRY(apply_config(port, &data));
 
 	return SP_OK;

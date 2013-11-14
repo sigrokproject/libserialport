@@ -60,7 +60,10 @@ struct sp_port_config {
 	int stopbits;
 	int flowcontrol;
 	int rts;
+	int cts;
 	int dtr;
+	int dsr;
+	int xon_xoff;
 };
 
 /* Return values. */
@@ -95,14 +98,38 @@ enum {
 	SP_PARITY_ODD = 2,
 };
 
-/* Flow control settings. */
+/* RTS pin behaviour. */
 enum {
-	/* No flow control. */
-	SP_FLOW_NONE = 0,
-	/* Hardware (RTS/CTS) flow control. */
-	SP_FLOW_HARDWARE = 1,
-	/* Software (XON/XOFF) flow control. */
-	SP_FLOW_SOFTWARE = 2,
+	SP_RTS_OFF = 0,
+	SP_RTS_ON = 1,
+	SP_RTS_FLOW_CONTROL = 2
+};
+
+/* CTS pin behaviour. */
+enum {
+	SP_CTS_IGNORE = 0,
+	SP_CTS_FLOW_CONTROL = 1
+};
+
+/* DTR pin behaviour. */
+enum {
+	SP_DTR_OFF = 0,
+	SP_DTR_ON = 1,
+	SP_DTR_FLOW_CONTROL = 2
+};
+
+/* DSR pin behaviour. */
+enum {
+	SP_DSR_IGNORE = 0,
+	SP_DSR_FLOW_CONTROL = 1
+};
+
+/* XON/XOFF flow control behaviour. */
+enum {
+	SP_XONXOFF_DISABLED = 0,
+	SP_XONXOFF_IN = 1,
+	SP_XONXOFF_OUT = 2,
+	SP_XONXOFF_INOUT = 3
 };
 
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
