@@ -20,6 +20,10 @@
 #ifndef LIBSERIALPORT_H
 #define LIBSERIALPORT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -94,5 +98,9 @@ int sp_set_params(struct sp_port *port, int baudrate, int bits, int parity,
 int sp_last_error_code(void);
 char *sp_last_error_message(void);
 void sp_free_error_message(char *message);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBSERIALPORT_H */
