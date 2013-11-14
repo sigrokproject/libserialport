@@ -412,6 +412,7 @@ int sp_open(struct sp_port *port, int flags)
 		return SP_ERR_FAIL;
 #else
 	int flags_local = 0;
+	struct sp_port_data data;
 
 	/* Map 'flags' to the OS-specific settings. */
 	if (flags & SP_MODE_RDWR)
@@ -423,6 +424,22 @@ int sp_open(struct sp_port *port, int flags)
 
 	if ((port->fd = open(port->name, flags_local)) < 0)
 		return SP_ERR_FAIL;
+
+	start_config(port, &data);
+
+	/* Turn off all serial port cooking. */
+	data.term.c_iflag &= ~(ISTRIP | INLCR | ICRNL);
+	data.term.c_oflag &= ~(ONLCR | OCRNL | ONOCR);
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__NetBSD__)
+	data.term.c_oflag &= ~OFILL;
+#endif
+	/* Disable canonical mode, and don't echo input characters. */
+	data.term.c_lflag &= ~(ICANON | ECHO);
+
+	/* Ignore modem status lines; enable receiver */
+	data.term.c_cflag |= (CLOCAL | CREAD);
+
+	apply_config(port, &data);
 #endif
 
 	return SP_OK;
@@ -891,18 +908,6 @@ static int apply_config(struct sp_port *port, struct sp_port_data *data)
 		return SP_ERR_FAIL;
 #else
 	int controlbits;
-
-	/* Turn off all serial port cooking. */
-	data->term.c_iflag &= ~(ISTRIP | INLCR | ICRNL);
-	data->term.c_oflag &= ~(ONLCR | OCRNL | ONOCR);
-#if !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__NetBSD__)
-	data->term.c_oflag &= ~OFILL;
-#endif
-	/* Disable canonical mode, and don't echo input characters. */
-	data->term.c_lflag &= ~(ICANON | ECHO);
-
-	/* Ignore modem status lines; enable receiver */
-	data->term.c_cflag |= (CLOCAL | CREAD);
 
 	/* Asymmetric use of RTS/CTS not supported yet. */
 	if ((data->rts == SP_RTS_FLOW_CONTROL) != (data->cts == SP_CTS_FLOW_CONTROL))
