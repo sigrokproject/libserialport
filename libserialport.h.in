@@ -58,7 +58,6 @@ struct sp_port_config {
 	int bits;
 	int parity;
 	int stopbits;
-	int flowcontrol;
 	int rts;
 	int cts;
 	int dtr;
