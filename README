@@ -160,22 +160,105 @@ int sp_close(struct sp_port *port);
 Setting port parameters
 -----------------------
 
-int sp_set_params(struct sp_port *port, int baudrate,
-			      int bits, int parity, int stopbits,
-			      int flowcontrol, int rts, int dtr);
+int sp_set_baudrate(struct sp_port *port, int baudrate)
 
- Sets serial parameters for the specified serial port.
+ Sets the baud rate for the specified serial port.
+
+ Parameters:
+
+  port: Pointer to port structure.
+  baud: Baud rate in bits per second.
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+
+int sp_set_bits(struct sp_port *port, int bits)
+
+ Sets the number of data bits for the specified serial port.
+
+ Parameters:
+
+  port: Pointer to port structure.
+  bits: Number of data bits to use. Valid values are 5 to 8.
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+
+int sp_set_parity(struct sp_port *port, int parity)
+
+ Sets the parity for the specified serial port.
+
+ Parameters:
+
+  port:   Pointer to port structure.
+  parity: Parity setting to use.
+          (SP_PARITY_NONE, SP_PARITY_EVEN or SP_PARITY_ODD)
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+
+int sp_set_stopbits(struct sp_port *port, int stopbits)
+
+ Sets the number of stop bits for the specified port.
+
+ Parameters:
+
+  port:     Pointer to port structure.
+  stopbits: Number of stop bits to use (1 or 2).
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+
+int sp_set_flowcontrol(struct sp_port *port, int flowcontrol)
+
+ Sets the flow control type for the specified serial port.
+
+ This function is a wrapper that sets the RTS, CTS, DTR, DSR and
+ XON/XOFF settings as necessary for the specified flow control
+ type. For more fine-grained control of these settings, use their
+ individual configuration functions or the sp_set_config() function.
 
  Parameters:
 
   port:        Pointer to port structure.
-  baudrate:    Baud rate to set.
-  bits:        Number of data bits to use.
-  parity:      Parity setting to use
-               (SP_PARITY_NONE, SP_PARITY_EVEN or SP_PARITY_ODD)
-  stopbits:    Number of stop bits to use (1 or 2).
-  flowcontrol: Flow control setting to use
-               (SP_FLOW_NONE, SP_FLOW_HARDWARE or SP_FLOW_SOFTWARE)
+  flowcontrol: Flow control setting to use. Valid settings are:
+
+   SP_FLOWCONTROL_NONE: No flow control.
+   SP_FLOWCONTROL_XONXOFF: Software flow control using XON/XOFF characters.
+   SP_FLOWCONTROL_RTSCTS: Hardware flow control using RTS/CTS signals.
+   SP_FLOWCONTROL_DTRDSR: Hardware flow control using DTR/DSR signals.
+
+ Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+
+int sp_set_config(struct sp_port *port, struct sp_port_config *config)
+
+ Sets all parameters for the specified serial port.
+
+ The user should populate a struct sp_port_config, then pass a pointer to it
+ as the config parameter.
+
+ The fields of sp_port_config are:
+
+  int baudrate: Baud rate in bits per second.
+  int bits:     Number of data bits to use. Valid values are 5 to 8.
+  int parity:   Parity setting to use.
+                 (SP_PARITY_NONE, SP_PARITY_EVEN or SP_PARITY_ODD)
+  int stopbits: Number of stop bits to use (1 or 2).
+  int rts:      RTS pin mode.
+                 (SP_RTS_ON, SP_RTS_OFF or SP_RTS_FLOW_CONTROL)
+  int cts:      CTS pin mode.
+                 (SP_CTS_IGNORE or SP_CTS_FLOW_CONTROL)
+  int dtr:      DTR pin mode.
+                 (SP_DTR_ON, SP_DTR_OFF or SP_DTR_FLOW_CONTROL)
+  int dsr:      DSR pin mode.
+                 (SP_DSR_IGNORE or SP_DSR_FLOW_CONTROL)
+  int xon_xoff: XON/XOFF flow control mode.
+                 (SP_XONXOFF_DISABLED, SP_XONXOFF_IN,
+                  SP_XONXOFF_OUT or SP_XONXOFF_INOUT)
+
+ To retain the current value of any setting, set the field to to a
+ negative value.
 
  Returns: SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
           for invalid arguments.
