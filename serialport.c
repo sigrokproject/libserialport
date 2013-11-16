@@ -892,6 +892,138 @@ int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 	return SP_OK;
 }
 
+int sp_get_config(struct sp_port *port, struct sp_port_config *config)
+{
+	struct sp_port_data data;
+	unsigned int i;
+
+	TRY(start_config(port, &data));
+
+#ifdef _WIN32
+	for (i = 0; i < NUM_STD_BAUDRATES; i++) {
+		if (data.dcb.BaudRate == std_baudrates[i].index) {
+			config->baudrate = std_baudrates[i].value;
+			break;
+		}
+	}
+
+	if (i == NUM_STD_BAUDRATES)
+		/* BaudRate field can be either an index or a custom baud rate. */
+		config->baudrate = data.dcb.BaudRate;
+
+	config->bits = data.dcb.ByteSize;
+
+	if (data.dcb.fParity)
+		switch (data.dcb.Parity) {
+		case NOPARITY:
+			config->parity = SP_PARITY_NONE;
+			break;
+		case EVENPARITY:
+			config->parity = SP_PARITY_EVEN;
+			break;
+		case ODDPARITY:
+			config->parity = SP_PARITY_ODD;
+			break;
+		default:
+			config->parity = -1;
+		}
+	else
+		config->parity = SP_PARITY_NONE;
+
+	switch (data.dcb.StopBits) {
+	case ONESTOPBIT:
+		config->stopbits = 1;
+		break;
+	case TWOSTOPBITS:
+		config->stopbits = 2;
+		break;
+	default:
+		config->stopbits = -1;
+	}
+
+	switch (data.dcb.fRtsControl) {
+		case RTS_CONTROL_DISABLE:
+			config->rts = SP_RTS_OFF;
+			break;
+		case RTS_CONTROL_ENABLE:
+			config->rts = SP_RTS_ON;
+			break;
+		case RTS_CONTROL_HANDSHAKE:
+			config->rts = SP_RTS_FLOW_CONTROL;
+			break;
+		default:
+			config->rts = -1;
+	}
+
+	config->cts = data.dcb.fOutxCtsFlow ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE;
+
+	switch (data.dcb.fDtrControl) {
+		case DTR_CONTROL_DISABLE:
+			config->dtr = SP_DTR_OFF;
+			break;
+		case DTR_CONTROL_ENABLE:
+			config->dtr = SP_DTR_ON;
+			break;
+		case DTR_CONTROL_HANDSHAKE:
+			config->dtr = SP_DTR_FLOW_CONTROL;
+			break;
+		default:
+			config->dtr = -1;
+	}
+
+	config->dsr = data.dcb.fOutxDsrFlow ? SP_DSR_FLOW_CONTROL : SP_DSR_IGNORE;
+#else
+	for (i = 0; i < NUM_STD_BAUDRATES; i++) {
+		if (cfgetispeed(&data.term) == std_baudrates[i].index) {
+			config->baudrate = std_baudrates[i].value;
+			break;
+		}
+	}
+
+	if (i == NUM_STD_BAUDRATES)
+		config->baudrate = -1;
+
+	switch (data.term.c_cflag & CSIZE) {
+	case CS8:
+		config->bits = 8;
+		break;
+	case CS7:
+		config->bits = 7;
+		break;
+	case CS6:
+		config->bits = 6;
+		break;
+	case CS5:
+		config->bits = 5;
+		break;
+	default:
+		config->bits = -1;
+	}
+
+	if (!(data.term.c_cflag & PARENB) && (data.term.c_iflag & IGNPAR))
+		config->parity = SP_PARITY_NONE;
+	else if (!(data.term.c_cflag & PARENB) || (data.term.c_iflag & IGNPAR))
+		config->parity = -1;
+	else
+		config->parity = (data.term.c_cflag & PARODD) ? SP_PARITY_ODD : SP_PARITY_EVEN;
+
+	config->stopbits = (data.term.c_cflag & CSTOPB) ? 2 : 1;
+
+	if (data.term.c_cflag & CRTSCTS) {
+		config->rts = SP_RTS_FLOW_CONTROL;
+		config->cts = SP_CTS_FLOW_CONTROL;
+	} else {
+		config->rts = (data.controlbits & TIOCM_RTS) ? SP_RTS_ON : SP_RTS_OFF;
+		config->cts = SP_CTS_IGNORE;
+	}
+
+	config->dtr = (data.controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
+	config->dsr = SP_DSR_IGNORE;
+#endif
+
+	return SP_OK;
+}
+
 int sp_set_flowcontrol(struct sp_port *port, int flowcontrol)
 {
 	struct sp_port_data data;
