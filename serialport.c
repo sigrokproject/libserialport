@@ -646,6 +646,18 @@ static int get_config(struct sp_port *port, struct sp_port_data *data, struct sp
 
 	config->dsr = data->dcb.fOutxDsrFlow ? SP_DSR_FLOW_CONTROL : SP_DSR_IGNORE;
 
+	if (data->dcb.fInX) {
+		if (data->dcb.fOutX)
+			config->xon_xoff = SP_XONXOFF_INOUT;
+		else
+			config->xon_xoff = SP_XONXOFF_IN;
+	} else {
+		if (data->dcb.fOutX)
+			config->xon_xoff = SP_XONXOFF_OUT;
+		else
+			config->xon_xoff = SP_XONXOFF_DISABLED;
+	}
+
 #else // !_WIN32
 
 	if (tcgetattr(port->fd, &data->term) < 0)
