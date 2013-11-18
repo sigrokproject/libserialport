@@ -95,7 +95,7 @@ const struct std_baudrate std_baudrates[] = {
 static int validate_port(struct sp_port *port);
 static struct sp_port **list_append(struct sp_port **list, const char *portname);
 static int get_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config);
-static int set_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config);
+static int set_config(struct sp_port *port, struct port_data *data, const struct sp_port_config *config);
 
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
@@ -726,7 +726,7 @@ static int get_config(struct sp_port *port, struct port_data *data, struct sp_po
 	return SP_OK;
 }
 
-static int set_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config)
+static int set_config(struct sp_port *port, struct port_data *data, const struct sp_port_config *config)
 {
 	unsigned int i;
 
@@ -1005,7 +1005,7 @@ static int set_config(struct sp_port *port, struct port_data *data, struct sp_po
 
 #define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
 
-int sp_set_config(struct sp_port *port, struct sp_port_config *config)
+int sp_set_config(struct sp_port *port, const struct sp_port_config *config)
 {
 	struct port_data data;
 	struct sp_port_config prev_config;

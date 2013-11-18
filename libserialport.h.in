@@ -157,7 +157,7 @@ int sp_flush(struct sp_port *port);
 
 /* Basic port configuration */
 int sp_get_config(struct sp_port *port, struct sp_port_config *config);
-int sp_set_config(struct sp_port *port, struct sp_port_config *config);
+int sp_set_config(struct sp_port *port, const struct sp_port_config *config);
 int sp_set_baudrate(struct sp_port *port, int baudrate);
 int sp_set_bits(struct sp_port *port, int bits);
 int sp_set_parity(struct sp_port *port, int parity);
