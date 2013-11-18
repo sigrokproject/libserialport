@@ -91,7 +91,9 @@ const struct std_baudrate std_baudrates[] = {
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
 
-/* Helper functions for configuring ports. */
+/* Helper functions. */
+static int validate_port(struct sp_port *port);
+static struct sp_port **list_append(struct sp_port **list, const char *portname);
 static int get_config(struct sp_port *port, struct sp_port_data *data, struct sp_port_config *config);
 static int set_config(struct sp_port *port, struct sp_port_data *data, struct sp_port_config *config);
 
@@ -156,7 +158,7 @@ void sp_free_port(struct sp_port *port)
 	free(port);
 }
 
-static struct sp_port **sp_list_append(struct sp_port **list, const char *portname)
+static struct sp_port **list_append(struct sp_port **list, const char *portname)
 {
 	void *tmp;
 	unsigned int count;
@@ -240,7 +242,7 @@ int sp_list_ports(struct sp_port ***list_ptr)
 #else
 		strcpy(name, data);
 #endif
-		if (type == REG_SZ && !(list = sp_list_append(list, name)))
+		if (type == REG_SZ && !(list = list_append(list, name)))
 		{
 			ret = SP_ERR_MEM;
 			goto out;
@@ -298,7 +300,7 @@ out_done:
 			result = CFStringGetCString(cf_path,
 					path, PATH_MAX, kCFStringEncodingASCII);
 			CFRelease(cf_path);
-			if (result && !(list = sp_list_append(list, path)))
+			if (result && !(list = list_append(list, path)))
 			{
 				ret = SP_ERR_MEM;
 				IOObjectRelease(port);
@@ -357,7 +359,7 @@ out_done:
 			if (serial_info.type == PORT_UNKNOWN)
 				goto skip;
 		}
-		list = sp_list_append(list, name);
+		list = list_append(list, name);
 skip:
 		udev_device_unref(ud_dev);
 		if (!list)
@@ -395,7 +397,7 @@ void sp_free_port_list(struct sp_port **list)
 	free(list);
 }
 
-static int sp_validate_port(struct sp_port *port)
+static int validate_port(struct sp_port *port)
 {
 	if (port == NULL)
 		return 0;
@@ -409,7 +411,7 @@ static int sp_validate_port(struct sp_port *port)
 	return 1;
 }
 
-#define CHECK_PORT() do { if (!sp_validate_port(port)) return SP_ERR_ARG; } while (0)
+#define CHECK_PORT() do { if (!validate_port(port)) return SP_ERR_ARG; } while (0)
 
 int sp_open(struct sp_port *port, int flags)
 {
