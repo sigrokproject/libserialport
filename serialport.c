@@ -121,6 +121,12 @@ int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 
 	memcpy(port->name, portname, len);
 
+#ifdef _WIN32
+	port->hdl = INVALID_HANDLE_VALUE;
+#else
+	port->fd = -1;
+#endif
+
 	*port_ptr = port;
 
 	return SP_OK;
@@ -491,10 +497,12 @@ int sp_close(struct sp_port *port)
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (CloseHandle(port->hdl) == 0)
 		return SP_ERR_FAIL;
+	port->hdl = INVALID_HANDLE_VALUE;
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	if (close(port->fd) == -1)
 		return SP_ERR_FAIL;
+	port->fd = -1;
 #endif
 
 	return SP_OK;
