@@ -46,7 +46,7 @@
 
 #include "libserialport.h"
 
-struct sp_port_data {
+struct port_data {
 #ifdef _WIN32
 	DCB dcb;
 #else
@@ -94,8 +94,8 @@ const struct std_baudrate std_baudrates[] = {
 /* Helper functions. */
 static int validate_port(struct sp_port *port);
 static struct sp_port **list_append(struct sp_port **list, const char *portname);
-static int get_config(struct sp_port *port, struct sp_port_data *data, struct sp_port_config *config);
-static int set_config(struct sp_port *port, struct sp_port_data *data, struct sp_port_config *config);
+static int get_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config);
+static int set_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config);
 
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
@@ -444,7 +444,7 @@ int sp_open(struct sp_port *port, int flags)
 		return SP_ERR_FAIL;
 #else
 	int flags_local = 0;
-	struct sp_port_data data;
+	struct port_data data;
 	struct sp_port_config config;
 	int ret;
 
@@ -575,7 +575,7 @@ int sp_read(struct sp_port *port, void *buf, size_t count)
 #endif
 }
 
-static int get_config(struct sp_port *port, struct sp_port_data *data, struct sp_port_config *config)
+static int get_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config)
 {
 	unsigned int i;
 
@@ -726,7 +726,7 @@ static int get_config(struct sp_port *port, struct sp_port_data *data, struct sp
 	return SP_OK;
 }
 
-static int set_config(struct sp_port *port, struct sp_port_data *data, struct sp_port_config *config)
+static int set_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config)
 {
 	unsigned int i;
 
@@ -1007,7 +1007,7 @@ static int set_config(struct sp_port *port, struct sp_port_data *data, struct sp
 
 int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 {
-	struct sp_port_data data;
+	struct port_data data;
 	struct sp_port_config prev_config;
 
 	TRY(get_config(port, &data, &prev_config));
@@ -1017,7 +1017,7 @@ int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 }
 
 #define CREATE_SETTER(x) int sp_set_##x(struct sp_port *port, int x) { \
-	struct sp_port_data data; \
+	struct port_data data; \
 	struct sp_port_config config; \
 	TRY(get_config(port, &data, &config)); \
 	config.x = x; \
@@ -1037,7 +1037,7 @@ CREATE_SETTER(xon_xoff)
 
 int sp_set_flowcontrol(struct sp_port *port, int flowcontrol)
 {
-	struct sp_port_data data;
+	struct port_data data;
 	struct sp_port_config config;
 
 	TRY(get_config(port, &data, &config));
