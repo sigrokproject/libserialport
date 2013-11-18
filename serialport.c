@@ -1010,6 +1010,11 @@ int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 	struct port_data data;
 	struct sp_port_config prev_config;
 
+	CHECK_PORT();
+
+	if (!config)
+		return SP_ERR_ARG;
+
 	TRY(get_config(port, &data, &prev_config));
 	TRY(set_config(port, &data, config));
 
@@ -1019,6 +1024,7 @@ int sp_set_config(struct sp_port *port, struct sp_port_config *config)
 #define CREATE_SETTER(x) int sp_set_##x(struct sp_port *port, int x) { \
 	struct port_data data; \
 	struct sp_port_config config; \
+	CHECK_PORT(); \
 	TRY(get_config(port, &data, &config)); \
 	config.x = x; \
 	TRY(set_config(port, &data, &config)); \
@@ -1039,6 +1045,8 @@ int sp_set_flowcontrol(struct sp_port *port, int flowcontrol)
 {
 	struct port_data data;
 	struct sp_port_config config;
+
+	CHECK_PORT();
 
 	TRY(get_config(port, &data, &config));
 
