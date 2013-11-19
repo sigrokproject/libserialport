@@ -77,13 +77,14 @@ const struct std_baudrate std_baudrates[] = {
 	 */
 	BAUD(110), BAUD(300), BAUD(600), BAUD(1200), BAUD(2400), BAUD(4800),
 	BAUD(9600), BAUD(14400), BAUD(19200), BAUD(38400), BAUD(57600),
-	BAUD(115200), BAUD(128000), BAUD(256000)
+	BAUD(115200), BAUD(128000), BAUD(256000),
 #else
-	BAUD(50), BAUD(75), BAUD(110), BAUD(134), BAUD(150), BAUD(200), BAUD(300),
-	BAUD(600), BAUD(1200), BAUD(1800), BAUD(2400), BAUD(4800), BAUD(9600),
-	BAUD(19200), BAUD(38400), BAUD(57600), BAUD(115200), BAUD(230400),
+	BAUD(50), BAUD(75), BAUD(110), BAUD(134), BAUD(150), BAUD(200),
+	BAUD(300), BAUD(600), BAUD(1200), BAUD(1800), BAUD(2400), BAUD(4800),
+	BAUD(9600), BAUD(19200), BAUD(38400), BAUD(57600), BAUD(115200),
+	BAUD(230400),
 #if !defined(__APPLE__) && !defined(__OpenBSD__)
-	BAUD(460800)
+	BAUD(460800),
 #endif
 #endif
 };
@@ -117,8 +118,7 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 
 	len = strlen(portname) + 1;
 
-	if (!(port->name = malloc(len)))
-	{
+	if (!(port->name = malloc(len))) {
 		free(port);
 		return SP_ERR_MEM;
 	}
@@ -199,25 +199,21 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 	int name_len;
 
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
-			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS)
-	{
+			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) {
 		ret = SP_ERR_FAIL;
 		goto out_done;
 	}
 	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS)
-	{
+				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS) {
 		ret = SP_ERR_FAIL;
 		goto out_close;
 	}
 	max_data_len = max_data_size / sizeof(TCHAR);
-	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR))))
-	{
+	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR)))) {
 		ret = SP_ERR_MEM;
 		goto out_close;
 	}
-	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR))))
-	{
+	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR)))) {
 		ret = SP_ERR_MEM;
 		goto out_free_value;
 	}
@@ -234,8 +230,7 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 #else
 		name_len = data_len + 1;
 #endif
-		if (!(name = malloc(name_len)))
-		{
+		if (!(name = malloc(name_len))) {
 			ret = SP_ERR_MEM;
 			goto out;
 		}
@@ -244,8 +239,7 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 #else
 		strcpy(name, data);
 #endif
-		if (type == REG_SZ && !(list = list_append(list, name)))
-		{
+		if (type == REG_SZ && !(list = list_append(list, name))) {
 			ret = SP_ERR_MEM;
 			goto out;
 		}
@@ -268,14 +262,12 @@ out_done:
 	CFTypeRef cf_path;
 	Boolean result;
 
-	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS)
-	{
+	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS) {
 		ret = SP_ERR_FAIL;
 		goto out_done;
 	}
 
-	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
-	{
+	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue))) {
 		ret = SP_ERR_FAIL;
 		goto out_done;
 	}
@@ -283,14 +275,12 @@ out_done:
 	CFDictionarySetValue(classes,
 			CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDAllTypes));
 
-	if (IOServiceGetMatchingServices(master, classes, &iter) != KERN_SUCCESS)
-	{
+	if (IOServiceGetMatchingServices(master, classes, &iter) != KERN_SUCCESS) {
 		ret = SP_ERR_FAIL;
 		goto out_done;
 	}
 
-	if (!(path = malloc(PATH_MAX)))
-	{
+	if (!(path = malloc(PATH_MAX))) {
 		ret = SP_ERR_MEM;
 		goto out_release;
 	}
@@ -302,8 +292,7 @@ out_done:
 			result = CFStringGetCString(cf_path,
 					path, PATH_MAX, kCFStringEncodingASCII);
 			CFRelease(cf_path);
-			if (result && !(list = list_append(list, path)))
-			{
+			if (result && !(list = list_append(list, path))) {
 				ret = SP_ERR_MEM;
 				IOObjectRelease(port);
 				goto out;
@@ -334,14 +323,12 @@ out_done:
 	udev_enumerate_add_match_subsystem(ud_enumerate, "tty");
 	udev_enumerate_scan_devices(ud_enumerate);
 	ud_list = udev_enumerate_get_list_entry(ud_enumerate);
-	udev_list_entry_foreach(ud_entry, ud_list)
-	{
+	udev_list_entry_foreach(ud_entry, ud_list) {
 		path = udev_list_entry_get_name(ud_entry);
 		ud_dev = udev_device_new_from_syspath(ud, path);
 		/* If there is no parent device, this is a virtual tty. */
 		ud_parent = udev_device_get_parent(ud_dev);
-		if (ud_parent == NULL)
-		{
+		if (ud_parent == NULL) {
 			udev_device_unref(ud_dev);
 			continue;
 		}
@@ -350,8 +337,7 @@ out_done:
 		 * The only way to tell which actually exist on a given system
 		 * is to try to open them and make an ioctl call. */
 		driver = udev_device_get_driver(ud_parent);
-		if (driver && !strcmp(driver, "serial8250"))
-		{
+		if (driver && !strcmp(driver, "serial8250")) {
 			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0)
 				goto skip;
 			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
@@ -364,8 +350,7 @@ out_done:
 		list = list_append(list, name);
 skip:
 		udev_device_unref(ud_dev);
-		if (!list)
-		{
+		if (!list) {
 			ret = SP_ERR_MEM;
 			goto out;
 		}
@@ -375,15 +360,11 @@ out:
 	udev_unref(ud);
 #endif
 
-	if (ret == SP_OK)
-	{
+	if (ret == SP_OK) {
 		*list_ptr = list;
-	}
-	else
-	{
+	} else {
 		if (list)
 			sp_free_port_list(list);
-
 		*list_ptr = NULL;
 	}
 
@@ -463,8 +444,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	ret = get_config(port, &data, &config);
 
-	if (ret < 0)
-	{
+	if (ret < 0) {
 		sp_close(port);
 		return ret;
 	}
@@ -483,8 +463,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	ret = set_config(port, &data, &config);
 
-	if (ret < 0)
-	{
+	if (ret < 0) {
 		sp_close(port);
 		return ret;
 	}
@@ -628,33 +607,33 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	}
 
 	switch (data->dcb.fRtsControl) {
-		case RTS_CONTROL_DISABLE:
-			config->rts = SP_RTS_OFF;
-			break;
-		case RTS_CONTROL_ENABLE:
-			config->rts = SP_RTS_ON;
-			break;
-		case RTS_CONTROL_HANDSHAKE:
-			config->rts = SP_RTS_FLOW_CONTROL;
-			break;
-		default:
-			config->rts = -1;
+	case RTS_CONTROL_DISABLE:
+		config->rts = SP_RTS_OFF;
+		break;
+	case RTS_CONTROL_ENABLE:
+		config->rts = SP_RTS_ON;
+		break;
+	case RTS_CONTROL_HANDSHAKE:
+		config->rts = SP_RTS_FLOW_CONTROL;
+		break;
+	default:
+		config->rts = -1;
 	}
 
 	config->cts = data->dcb.fOutxCtsFlow ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE;
 
 	switch (data->dcb.fDtrControl) {
-		case DTR_CONTROL_DISABLE:
-			config->dtr = SP_DTR_OFF;
-			break;
-		case DTR_CONTROL_ENABLE:
-			config->dtr = SP_DTR_ON;
-			break;
-		case DTR_CONTROL_HANDSHAKE:
-			config->dtr = SP_DTR_FLOW_CONTROL;
-			break;
-		default:
-			config->dtr = -1;
+	case DTR_CONTROL_DISABLE:
+		config->dtr = SP_DTR_OFF;
+		break;
+	case DTR_CONTROL_ENABLE:
+		config->dtr = SP_DTR_ON;
+		break;
+	case DTR_CONTROL_HANDSHAKE:
+		config->dtr = SP_DTR_FLOW_CONTROL;
+		break;
+	default:
+		config->dtr = -1;
 	}
 
 	config->dsr = data->dcb.fOutxDsrFlow ? SP_DSR_FLOW_CONTROL : SP_DSR_IGNORE;
@@ -738,8 +717,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	unsigned int i;
 
 #ifdef _WIN32
-	if (config->baudrate >= 0)
-	{
+	if (config->baudrate >= 0) {
 		for (i = 0; i < NUM_STD_BAUDRATES; i++) {
 			if (config->baudrate == std_baudrates[i].value) {
 				data->dcb.BaudRate = std_baudrates[i].index;
@@ -871,8 +849,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 #else // !_WIN32
 
-	if (config->baudrate >= 0)
-	{
+	if (config->baudrate >= 0) {
 		for (i = 0; i < NUM_STD_BAUDRATES; i++) {
 			if (config->baudrate == std_baudrates[i].value) {
 				if (cfsetospeed(&data->term, std_baudrates[i].index) < 0)
@@ -940,8 +917,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		}
 	}
 
-	if (config->rts >= 0 || config->cts >= 0)
-	{
+	if (config->rts >= 0 || config->cts >= 0) {
 		/* Asymmetric use of RTS/CTS not supported yet. */
 
 		if (data->term.c_iflag & CRTSCTS) {
@@ -973,8 +949,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		}
 	}
 
-	if (config->dtr >= 0 || config->dsr >= 0)
-	{
+	if (config->dtr >= 0 || config->dsr >= 0) {
 		/* DTR/DSR flow control not supported yet. */
 		if (config->dtr == SP_DTR_FLOW_CONTROL || config->dsr == SP_DSR_FLOW_CONTROL)
 			return SP_ERR_ARG;
