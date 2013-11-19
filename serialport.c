@@ -704,8 +704,17 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	config->dtr = (data->controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
 	config->dsr = SP_DSR_IGNORE;
 
-	/* FIXME: Set config->xon_xoff properly, depending on data->term. */
-	config->xon_xoff = SP_XONXOFF_DISABLED;
+	if (data->term.c_iflag & IXOFF) {
+		if (data->term.c_iflag & IXON)
+			config->xon_xoff = SP_XONXOFF_INOUT;
+		else
+			config->xon_xoff = SP_XONXOFF_IN;
+	} else {
+		if (data->term.c_iflag & IXON)
+			config->xon_xoff = SP_XONXOFF_OUT;
+		else
+			config->xon_xoff = SP_XONXOFF_DISABLED;
+	}
 #endif
 
 	return SP_OK;
