@@ -19,7 +19,7 @@
 
 /**
 
-\mainpage libserialport API
+@mainpage libserialport API
 
 Introduction
 ============
@@ -32,11 +32,11 @@ transparently on any platform supported by the library.
 
 The operations that are supported are:
 
-- \ref Enumeration (obtaining a list of serial ports on the system).
-- \ref Ports
-- \ref Configuration (baud rate, parity, etc)
-- \ref Data
-- \ref Errors
+- @ref Enumeration (obtaining a list of serial ports on the system).
+- @ref Ports
+- @ref Configuration (baud rate, parity, etc)
+- @ref Data
+- @ref Errors
 
 libserialport is an open source project released under the LGPL3+ license.
 
@@ -48,7 +48,7 @@ support in each OS.
 
 Most functions take a pointer to a struct sp_port, which represents a serial
 port. These structures are always allocated and freed by the library, using
-the functions in the \ref Enumeration "Enumeration" section.
+the functions in the @ref Enumeration "Enumeration" section.
 
 All functions can return only three possible error values. SP_ERR_ARG indicates
 the function was called with invalid arguments. SP_ERR_FAIL indicates that the
@@ -196,14 +196,14 @@ enum sp_flowcontrol {
 struct sp_port {
 	/** Name used to open the port */
 	char *name;
-/** \cond 0 */
+/** @cond 0 */
 	/* OS-specific port handle */
 #ifdef _WIN32
 	HANDLE hdl;
 #else
 	int fd;
 #endif
-/** \endcond */
+/** @endcond */
 };
 
 /** Configuration for a serial port. */
@@ -229,7 +229,7 @@ struct sp_port_config {
 };
 
 /**
-\defgroup Enumeration Port enumeration
+@defgroup Enumeration Port enumeration
 @{
 */
 
@@ -291,7 +291,7 @@ void sp_free_port_list(struct sp_port **ports);
 
 /**
  @}
-\defgroup Ports Opening & closing ports
+@defgroup Ports Opening & closing ports
 @{
 */
 
@@ -316,7 +316,7 @@ enum sp_return sp_close(struct sp_port *port);
 
 /**
  @}
-\defgroup Configuration Setting port parameters
+@defgroup Configuration Setting port parameters
 @{
 */
 
@@ -465,7 +465,7 @@ enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
 
 /**
  @}
-\defgroup Data Reading, writing & flushing data
+@defgroup Data Reading, writing & flushing data
 @{
 */
 
@@ -507,7 +507,7 @@ enum sp_return sp_flush(struct sp_port *port);
 
 /**
  @}
-\defgroup Errors Obtaining error information
+@defgroup Errors Obtaining error information
 @{
 */
 
