@@ -17,6 +17,53 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+
+\mainpage libserialport API
+
+Introduction
+============
+
+libserialport is a minimal library written in C that is intended to take care
+of the OS-specific details when writing software that uses serial ports.
+
+By writing your serial code to use libserialport, you enable it to work
+transparently on any platform supported by the library.
+
+The operations that are supported are:
+
+- Port enumeration (obtaining a list of serial ports on the system).
+- Opening and closing ports.
+- Setting port parameters (baud rate, parity, etc).
+- Reading, writing and flushing data.
+- Obtaining error information.
+
+libserialport is an open source project released under the LGPL3+ license.
+
+API
+===
+
+The API is simple, and designed to be a minimal wrapper around the serial port
+support in each OS.
+
+Most functions take a pointer to a struct sp_port, which represents a serial
+port. These structures are always allocated and freed by the library.
+
+All functions can return only three possible error values. SP_ERR_ARG indicates
+the function was called with invalid arguments. SP_ERR_FAIL indicates that the
+OS reported a failure. SP_ERR_MEM indicates that a memory allocation failed.
+All of these error values are negative.
+
+When SP_ERR_FAIL is returned, an error code or string description of the error
+can be obtained by calling sp_last_error_code() or sp_last_error_message(). The
+error code or message is that provided by the OS; libserialport does not define
+any error codes or messages of its own.
+
+Function calls that succeed return SP_OK, which is equal to zero, or where
+otherwise documented a positive value.
+
+*/
+
 #ifndef LIBSERIALPORT_H
 #define LIBSERIALPORT_H
 
@@ -40,140 +87,427 @@ extern "C" {
 #define SP_LIB_VERSION_AGE @SP_LIB_VERSION_AGE@
 #define SP_LIB_VERSION_STRING "@SP_LIB_VERSION@"
 
-/* A serial port. */
+/** A serial port. */
 struct sp_port {
-	/* Name used to open the port */
+	/** Name used to open the port */
 	char *name;
+/** \cond 0 */
 	/* OS-specific port handle */
 #ifdef _WIN32
 	HANDLE hdl;
 #else
 	int fd;
 #endif
+/** \endcond */
 };
 
-/* Configuration for a serial port. */
+/** Configuration for a serial port. */
 struct sp_port_config {
+	/** Baud rate in bits per second. */
 	int baudrate;
+	/** Number of data bits to use. Valid values are 5 to 8. */
 	int bits;
+	/** Parity setting to use. */
 	int parity;
+	/** Number of stop bits to use (1 or 2). */
 	int stopbits;
+	/** RTS pin mode. */
 	int rts;
+	/** CTS pin mode. */
 	int cts;
+	/** DTR pin mode. */
 	int dtr;
+	/** DSR pin mode. */
 	int dsr;
+	/** XON/XOFF flow control mode. */
 	int xon_xoff;
 };
 
-/* Return values. */
+
+/** Return values. */
 enum {
-	/* Operation completed successfully. */
+	/** Operation completed successfully. */
 	SP_OK = 0,
-	/* Invalid arguments were passed to the function. */
+	/** Invalid arguments were passed to the function. */
 	SP_ERR_ARG = -1,
-	/* A system error occured while executing the operation. */
+	/** A system error occured while executing the operation. */
 	SP_ERR_FAIL = -2,
-	/* A memory allocation failed while executing the operation. */
+	/** A memory allocation failed while executing the operation. */
 	SP_ERR_MEM = -3,
 };
 
-/* Port access modes. */
+/** Port access modes. */
 enum {
-	/* Open port for read/write access. */
+	/** Open port for read/write access. */
 	SP_MODE_RDWR = 1,
-	/* Open port for read access only. */
+	/** Open port for read access only. */
 	SP_MODE_RDONLY = 2,
-	/* Open port in non-blocking mode. */
+	/** Open port in non-blocking mode. */
 	SP_MODE_NONBLOCK = 4,
 };
 
-/* Parity settings. */
+/** Parity settings. */
 enum {
-	/* No parity. */
+	/** No parity. */
 	SP_PARITY_NONE = 0,
-	/* Even parity. */
+	/** Even parity. */
 	SP_PARITY_EVEN = 1,
-	/* Odd parity. */
+	/** Odd parity. */
 	SP_PARITY_ODD = 2,
 };
 
-/* RTS pin behaviour. */
+/** RTS pin behaviour. */
 enum {
+	/** RTS off. */
 	SP_RTS_OFF = 0,
+	/** RTS on. */
 	SP_RTS_ON = 1,
+	/** RTS used for flow control. */
 	SP_RTS_FLOW_CONTROL = 2
 };
 
-/* CTS pin behaviour. */
+/** CTS pin behaviour. */
 enum {
+	/** CTS ignored. */
 	SP_CTS_IGNORE = 0,
+	/** CTS used for flow control. */
 	SP_CTS_FLOW_CONTROL = 1
 };
 
-/* DTR pin behaviour. */
+/** DTR pin behaviour. */
 enum {
+	/** DTR off. */
 	SP_DTR_OFF = 0,
+	/** DTR on. */
 	SP_DTR_ON = 1,
+	/** DTR used for flow control. */
 	SP_DTR_FLOW_CONTROL = 2
 };
 
-/* DSR pin behaviour. */
+/** DSR pin behaviour. */
 enum {
+	/** DSR ignored. */
 	SP_DSR_IGNORE = 0,
+	/** DSR used for flow control. */
 	SP_DSR_FLOW_CONTROL = 1
 };
 
-/* XON/XOFF flow control behaviour. */
+/** XON/XOFF flow control behaviour. */
 enum {
+	/** XON/XOFF disabled. */
 	SP_XONXOFF_DISABLED = 0,
+	/** XON/XOFF enabled for input only. */
 	SP_XONXOFF_IN = 1,
+	/** XON/XOFF enabled for output only. */
 	SP_XONXOFF_OUT = 2,
+	/** XON/XOFF enabled for input and output. */
 	SP_XONXOFF_INOUT = 3
 };
 
-/* Standard flow control combinations. */
+/** Standard flow control combinations. */
 enum {
+	/** No flow control. */
 	SP_FLOWCONTROL_NONE = 0,
+	/** Software flow control using XON/XOFF characters. */
 	SP_FLOWCONTROL_XONXOFF = 1,
+	/** Hardware flow control using RTS/CTS signals. */
 	SP_FLOWCONTROL_RTSCTS = 2,
+	/** Hardware flow control using DTR/DSR signals. */
 	SP_FLOWCONTROL_DTRDSR = 3
 };
 
-/* Enumeration */
+/**
+ Obtains a pointer to a new sp_port structure representing the named port. The
+ user should allocate a variable of type "struct sp_port *" and pass a pointer
+ to this to receive the result.
+
+ The result should be freed after use by calling sp_free_port().
+ 
+ @return  SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
+          failure, or SP_ERR_ARG if an invalid pointer is passed. If any error
+          is returned, the variable pointed to by port_ptr will be set to NULL.
+          Otherwise, it will be set to point to the newly allocated port.
+*/
 int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
+
+/**
+Frees a port structure obtained from sp_get_port_by_name() or sp_copy_port().
+*/
 void sp_free_port(struct sp_port *port);
+
+/**
+ Lists the serial ports available on the system. The result obtained is an
+ array of pointers to sp_port structures, terminated by a NULL. The user should
+ allocate a variable of type "struct sp_port **" and pass a pointer to this to
+ receive the result.
+
+ The result should be freed after use by calling sp_free_port_list(). If a port
+ from the list is to be used after freeing the list, it must be copied first
+ using sp_copy_port().
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
+          failure, or SP_ERR_ARG if an invalid pointer is passed. If any error
+          is returned, the variable pointed to by list_ptr will be set to NULL.
+          Otherwise, it will be set to point to the newly allocated array.
+*/
 int sp_list_ports(struct sp_port ***list_ptr);
+
+/**
+ Makes a new copy of a sp_port structure. The user should allocate a variable
+ of type "struct sp_port *" and pass a pointer to this to receive the result.
+
+ The copy should be freed after use by calling sp_free_port().
+
+ @return  SP_OK on success, SP_ERR_MEM on allocation failure, or SP_ERR_ARG
+          if an invalid port or pointer is passed. If any error is returned,
+          the variable pointed to by copy_ptr will be set to NULL. Otherwise,
+          it will be set to point to the newly allocated copy.
+*/
 int sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr);
+
+/**
+ Frees a port list obtained from sp_list_ports(). This will also free all
+ the sp_port structures referred to from the list; any that are to be retained
+ must be copied first using sp_copy_port().
+*/
 void sp_free_port_list(struct sp_port **ports);
 
-/* Opening & closing ports */
+/**
+ Opens the specified serial port.
+
+ @param port      Pointer to port structure.
+ @param flags     Flags to use when opening the serial port. Possible
+                  flags are: SP_MODE_RDWR, SP_MODE_RDONLY, and
+                  SP_MODE_NONBLOCK.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
+          failure, or SP_ERR_ARG if an invalid port is passed.
+*/
 int sp_open(struct sp_port *port, int flags);
+
+/**
+ Closes the specified serial port.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          if an invalid port is passed.
+*/
 int sp_close(struct sp_port *port);
 
-/* Reading, writing and flushing. */
+/**
+ Reads bytes from the specified serial port. Note that this function may
+ return after reading less than the specified number of bytes; it is the
+ user's responsibility to iterate as necessary in this case.
+
+ @param port  Pointer to port structure.
+ @param buf   Buffer in which to store the bytes read.
+ @param count Maximum number of bytes to read.
+
+ @return  The number of bytes read, SP_ERR_FAIL on failure,
+          or SP_ERR_ARG for invalid arguments.
+*/
 int sp_read(struct sp_port *port, void *buf, size_t count);
+
+/**
+ Write bytes to the specified serial port. Note that this function may
+ return after writing less than the specified number of bytes; it is the
+ user's responsibility to iterate as necessary in this case.
+
+ @param port  Pointer to port structure.
+ @param buf   Buffer containing the bytes to write.
+ @param count Maximum number of bytes to write.
+
+ @return  The number of bytes written, SP_ERR_FAIL on failure,
+          or SP_ERR_ARG for invalid arguments.
+*/
 int sp_write(struct sp_port *port, const void *buf, size_t count);
+
+/**
+ Flushes serial port buffers.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          if an invalid port is passed.
+*/
 int sp_flush(struct sp_port *port);
 
-/* Basic port configuration */
+/**
+ Gets current configuration of the specified serial port.
+
+ The user should allocate a struct sp_port_config, then pass a pointer to it
+ as the config parameter. The struct will be populated with the port
+ configuration.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_get_config(struct sp_port *port, struct sp_port_config *config);
+
+/**
+ Sets all parameters for the specified serial port.
+
+ The user should populate a struct sp_port_config, then pass a pointer to it
+ as the config parameter.
+
+ To retain the current value of any setting, set the field to to a
+ negative value.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_config(struct sp_port *port, const struct sp_port_config *config);
+
+/**
+ Sets the baud rate for the specified serial port.
+
+ @param port Pointer to port structure.
+ @param baud Baud rate in bits per second.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_baudrate(struct sp_port *port, int baudrate);
+
+/**
+ Sets the number of data bits for the specified serial port.
+
+ @param port Pointer to port structure.
+ @param bits Number of data bits to use. Valid values are 5 to 8.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_bits(struct sp_port *port, int bits);
+
+/**
+ Sets the parity for the specified serial port.
+
+ @param port   Pointer to port structure.
+ @param parity Parity setting to use.
+               (SP_PARITY_NONE, SP_PARITY_EVEN or SP_PARITY_ODD)
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_parity(struct sp_port *port, int parity);
+
+/**
+ Sets the number of stop bits for the specified port.
+
+ @param port     Pointer to port structure.
+ @param stopbits Number of stop bits to use (1 or 2).
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_stopbits(struct sp_port *port, int stopbits);
+
+/**
+ Sets the flow control type for the specified serial port.
+
+ This function is a wrapper that sets the RTS, CTS, DTR, DSR and
+ XON/XOFF settings as necessary for the specified flow control
+ type. For more fine-grained control of these settings, use their
+ individual configuration functions or the sp_set_config() function.
+
+ @param port        Pointer to port structure.
+ @param flowcontrol Flow control setting to use. Valid settings are:
+
+   SP_FLOWCONTROL_NONE: No flow control.
+   SP_FLOWCONTROL_XONXOFF: Software flow control using XON/XOFF characters.
+   SP_FLOWCONTROL_RTSCTS: Hardware flow control using RTS/CTS signals.
+   SP_FLOWCONTROL_DTRDSR: Hardware flow control using DTR/DSR signals.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_flowcontrol(struct sp_port *port, int flowcontrol);
 
-/* Advanced port configuration */
+/**
+ Sets the RTS pin behaviour for the specified port.
+
+ @param port Pointer to port structure.
+ @param rts  RTS pin mode.
+             (SP_RTS_ON, SP_RTS_OFF or SP_RTS_FLOW_CONTROL)
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_rts(struct sp_port *port, int rts);
+
+/**
+ Sets the CTS pin behaviour for the specified port.
+
+ @param port Pointer to port structure.
+ @param cts  CTS pin mode.
+             (SP_CTS_IGNORE or SP_CTS_FLOW_CONTROL)
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_cts(struct sp_port *port, int cts);
+
+/**
+ Sets the DTR pin behaviour for the specified port.
+
+ @param port Pointer to port structure.
+ @param dtr  DTR pin mode.
+             (SP_DTR_ON, SP_DTR_OFF or SP_DTR_FLOW_CONTROL)
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_dtr(struct sp_port *port, int dtr);
+
+/**
+ Sets the RTS pin behaviour for the specified port.
+
+ @param port Pointer to port structure.
+ @param dsr  DSR pin mode.
+             (SP_DSR_IGNORE or SP_DSR_FLOW_CONTROL)
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_dsr(struct sp_port *port, int dsr);
+
+/**
+ Configures XON/XOFF flow control for the specified port.
+
+ @param port     Pointer to port structure.
+ @param xon_xoff XON/XOFF flow control mode.
+                 (SP_XONXOFF_DISABLED, SP_XONXOFF_IN,
+                  SP_XONXOFF_OUT or SP_XONXOFF_INOUT)
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          for invalid arguments.
+*/
 int sp_set_xon_xoff(struct sp_port *port, int xon_xoff);
 
-/* Error handling */
+/**
+ Gets the error code for a failed operation.
+
+ In order to obtain the correct result, this function should be called
+ straight after the failure, before executing any other system operations.
+
+ @return  The system's numeric code for the error that caused the last
+          operation to fail.
+*/
 int sp_last_error_code(void);
+
+/**
+ Gets the error message for a failed operation.
+
+ In order to obtain the correct result, this function should be called
+ straight after the failure, before executing other system operations.
+
+ @return  The system's message for the error that caused the last
+          operation to fail. This string may be allocated by the function,
+          and should be freed after use by calling sp_free_error_message.
+*/
 char *sp_last_error_message(void);
+
+/**
+ Frees an error message returned by sp_last_error_message().
+*/
 void sp_free_error_message(char *message);
 
 #ifdef __cplusplus
@@ -181,3 +515,4 @@ void sp_free_error_message(char *message);
 #endif
 
 #endif /* LIBSERIALPORT_H */
+

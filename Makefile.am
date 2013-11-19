@@ -43,3 +43,6 @@ ChangeLog:
 	git --git-dir $(top_srcdir)/.git log > ChangeLog || touch ChangeLog
 
 dist-hook: ChangeLog
+
+doc: $(library_include_HEADERS) Doxyfile
+	doxygen
