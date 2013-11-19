@@ -32,22 +32,23 @@ transparently on any platform supported by the library.
 
 The operations that are supported are:
 
-- Port enumeration (obtaining a list of serial ports on the system).
-- Opening and closing ports.
-- Setting port parameters (baud rate, parity, etc).
-- Reading, writing and flushing data.
-- Obtaining error information.
+- \ref Enumeration (obtaining a list of serial ports on the system).
+- \ref Ports
+- \ref Configuration (baud rate, parity, etc)
+- \ref Data
+- \ref Errors
 
 libserialport is an open source project released under the LGPL3+ license.
 
-API
-===
+API principles
+==============
 
 The API is simple, and designed to be a minimal wrapper around the serial port
 support in each OS.
 
 Most functions take a pointer to a struct sp_port, which represents a serial
-port. These structures are always allocated and freed by the library.
+port. These structures are always allocated and freed by the library, using
+the functions in the \ref Enumeration "Enumeration" section.
 
 All functions can return only three possible error values. SP_ERR_ARG indicates
 the function was called with invalid arguments. SP_ERR_FAIL indicates that the
@@ -222,6 +223,11 @@ struct sp_port_config {
 };
 
 /**
+\defgroup Enumeration Port enumeration
+@{
+*/
+
+/**
  Obtains a pointer to a new sp_port structure representing the named port. The
  user should allocate a variable of type "struct sp_port *" and pass a pointer
  to this to receive the result.
@@ -278,6 +284,12 @@ enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_pt
 void sp_free_port_list(struct sp_port **ports);
 
 /**
+ @}
+\defgroup Ports Opening & closing ports
+@{
+*/
+
+/**
  Opens the specified serial port.
 
  @param port      Pointer to port structure.
@@ -297,40 +309,10 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags);
 enum sp_return sp_close(struct sp_port *port);
 
 /**
- Reads bytes from the specified serial port. Note that this function may
- return after reading less than the specified number of bytes; it is the
- user's responsibility to iterate as necessary in this case.
-
- @param port  Pointer to port structure.
- @param buf   Buffer in which to store the bytes read.
- @param count Maximum number of bytes to read.
-
- @return  The number of bytes read, SP_ERR_FAIL on failure,
-          or SP_ERR_ARG for invalid arguments.
+ @}
+\defgroup Configuration Setting port parameters
+@{
 */
-enum sp_return sp_read(struct sp_port *port, void *buf, size_t count);
-
-/**
- Write bytes to the specified serial port. Note that this function may
- return after writing less than the specified number of bytes; it is the
- user's responsibility to iterate as necessary in this case.
-
- @param port  Pointer to port structure.
- @param buf   Buffer containing the bytes to write.
- @param count Maximum number of bytes to write.
-
- @return  The number of bytes written, SP_ERR_FAIL on failure,
-          or SP_ERR_ARG for invalid arguments.
-*/
-enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count);
-
-/**
- Flushes serial port buffers.
-
- @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
-          if an invalid port is passed.
-*/
-enum sp_return sp_flush(struct sp_port *port);
 
 /**
  Gets current configuration of the specified serial port.
@@ -474,6 +456,54 @@ enum sp_return sp_set_dsr(struct sp_port *port, enum sp_dsr dsr);
 enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
 
 /**
+ @}
+\defgroup Data Reading, writing & flushing data
+@{
+*/
+
+/**
+ Reads bytes from the specified serial port. Note that this function may
+ return after reading less than the specified number of bytes; it is the
+ user's responsibility to iterate as necessary in this case.
+
+ @param port  Pointer to port structure.
+ @param buf   Buffer in which to store the bytes read.
+ @param count Maximum number of bytes to read.
+
+ @return  The number of bytes read, SP_ERR_FAIL on failure,
+          or SP_ERR_ARG for invalid arguments.
+*/
+enum sp_return sp_read(struct sp_port *port, void *buf, size_t count);
+
+/**
+ Write bytes to the specified serial port. Note that this function may
+ return after writing less than the specified number of bytes; it is the
+ user's responsibility to iterate as necessary in this case.
+
+ @param port  Pointer to port structure.
+ @param buf   Buffer containing the bytes to write.
+ @param count Maximum number of bytes to write.
+
+ @return  The number of bytes written, SP_ERR_FAIL on failure,
+          or SP_ERR_ARG for invalid arguments.
+*/
+enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count);
+
+/**
+ Flushes serial port buffers.
+
+ @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+          if an invalid port is passed.
+*/
+enum sp_return sp_flush(struct sp_port *port);
+
+/**
+ @}
+\defgroup Errors Obtaining error information
+@{
+*/
+
+/**
  Gets the error code for a failed operation.
 
  In order to obtain the correct result, this function should be called
@@ -500,6 +530,10 @@ char *sp_last_error_message(void);
  Frees an error message returned by sp_last_error_message().
 */
 void sp_free_error_message(char *message);
+
+/**
+ @}
+*/
 
 #ifdef __cplusplus
 }
