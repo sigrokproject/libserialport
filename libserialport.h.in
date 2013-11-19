@@ -352,7 +352,7 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
  Sets the baud rate for the specified serial port.
 
  @param port Pointer to port structure.
- @param baud Baud rate in bits per second.
+ @param baudrate Baud rate in bits per second.
 
  @return  SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
           for invalid arguments.
