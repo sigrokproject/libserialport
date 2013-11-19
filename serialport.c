@@ -92,12 +92,14 @@ const struct std_baudrate std_baudrates[] = {
 #define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
 
 /* Helper functions. */
-static int validate_port(struct sp_port *port);
+static enum sp_return validate_port(struct sp_port *port);
 static struct sp_port **list_append(struct sp_port **list, const char *portname);
-static int get_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config);
-static int set_config(struct sp_port *port, struct port_data *data, const struct sp_port_config *config);
+static enum sp_return get_config(struct sp_port *port, struct port_data *data,
+	struct sp_port_config *config);
+static enum sp_return set_config(struct sp_port *port, struct port_data *data,
+	const struct sp_port_config *config);
 
-int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
+enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
 	struct sp_port *port;
 	int len;
@@ -134,7 +136,7 @@ int sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 	return SP_OK;
 }
 
-int sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr)
+enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr)
 {
 	if (!copy_ptr)
 		return SP_ERR_ARG;
@@ -177,7 +179,7 @@ fail:
 	return NULL;
 }
 
-int sp_list_ports(struct sp_port ***list_ptr)
+enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 {
 	struct sp_port **list;
 	int ret = SP_OK;
@@ -397,7 +399,7 @@ void sp_free_port_list(struct sp_port **list)
 	free(list);
 }
 
-static int validate_port(struct sp_port *port)
+static enum sp_return validate_port(struct sp_port *port)
 {
 	if (port == NULL)
 		return 0;
@@ -413,7 +415,7 @@ static int validate_port(struct sp_port *port)
 
 #define CHECK_PORT() do { if (!validate_port(port)) return SP_ERR_ARG; } while (0)
 
-int sp_open(struct sp_port *port, int flags)
+enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 {
 	if (!port)
 		return SP_ERR_ARG;
@@ -491,7 +493,7 @@ int sp_open(struct sp_port *port, int flags)
 	return SP_OK;
 }
 
-int sp_close(struct sp_port *port)
+enum sp_return sp_close(struct sp_port *port)
 {
 	CHECK_PORT();
 
@@ -510,7 +512,7 @@ int sp_close(struct sp_port *port)
 	return SP_OK;
 }
 
-int sp_flush(struct sp_port *port)
+enum sp_return sp_flush(struct sp_port *port)
 {
 	CHECK_PORT();
 
@@ -526,7 +528,7 @@ int sp_flush(struct sp_port *port)
 	return SP_OK;
 }
 
-int sp_write(struct sp_port *port, const void *buf, size_t count)
+enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 {
 	CHECK_PORT();
 
@@ -551,7 +553,7 @@ int sp_write(struct sp_port *port, const void *buf, size_t count)
 #endif
 }
 
-int sp_read(struct sp_port *port, void *buf, size_t count)
+enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
 {
 	CHECK_PORT();
 
@@ -575,7 +577,8 @@ int sp_read(struct sp_port *port, void *buf, size_t count)
 #endif
 }
 
-static int get_config(struct sp_port *port, struct port_data *data, struct sp_port_config *config)
+static enum sp_return get_config(struct sp_port *port, struct port_data *data,
+	struct sp_port_config *config)
 {
 	unsigned int i;
 
@@ -726,7 +729,8 @@ static int get_config(struct sp_port *port, struct port_data *data, struct sp_po
 	return SP_OK;
 }
 
-static int set_config(struct sp_port *port, struct port_data *data, const struct sp_port_config *config)
+static enum sp_return set_config(struct sp_port *port, struct port_data *data, 
+	const struct sp_port_config *config)
 {
 	unsigned int i;
 
@@ -1005,7 +1009,7 @@ static int set_config(struct sp_port *port, struct port_data *data, const struct
 
 #define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
 
-int sp_set_config(struct sp_port *port, const struct sp_port_config *config)
+enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *config)
 {
 	struct port_data data;
 	struct sp_port_config prev_config;
@@ -1021,7 +1025,7 @@ int sp_set_config(struct sp_port *port, const struct sp_port_config *config)
 	return SP_OK;
 }
 
-#define CREATE_SETTER(x) int sp_set_##x(struct sp_port *port, int x) { \
+#define CREATE_SETTER(x, type) int sp_set_##x(struct sp_port *port, type x) { \
 	struct port_data data; \
 	struct sp_port_config config; \
 	CHECK_PORT(); \
@@ -1031,17 +1035,17 @@ int sp_set_config(struct sp_port *port, const struct sp_port_config *config)
 	return SP_OK; \
 }
 
-CREATE_SETTER(baudrate)
-CREATE_SETTER(bits)
-CREATE_SETTER(parity)
-CREATE_SETTER(stopbits)
-CREATE_SETTER(rts)
-CREATE_SETTER(cts)
-CREATE_SETTER(dtr)
-CREATE_SETTER(dsr)
-CREATE_SETTER(xon_xoff)
+CREATE_SETTER(baudrate, int)
+CREATE_SETTER(bits, int)
+CREATE_SETTER(parity, enum sp_parity)
+CREATE_SETTER(stopbits, int)
+CREATE_SETTER(rts, enum sp_rts)
+CREATE_SETTER(cts, enum sp_cts)
+CREATE_SETTER(dtr, enum sp_dtr)
+CREATE_SETTER(dsr, enum sp_dsr)
+CREATE_SETTER(xon_xoff, enum sp_xonxoff)
 
-int sp_set_flowcontrol(struct sp_port *port, int flowcontrol)
+enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flowcontrol)
 {
 	struct port_data data;
 	struct sp_port_config config;
