@@ -897,6 +897,9 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		case 6:
 			data->term.c_cflag |= CS6;
 			break;
+		case 5:
+			data->term.c_cflag |= CS5;
+			break;
 		default:
 			return SP_ERR_ARG;
 		}
