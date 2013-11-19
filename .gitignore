@@ -11,6 +11,7 @@ config.status
 configure
 libserialport.la
 libserialport.pc
+libserialport.h
 libtool
 serialport.lo
 serialport.o
