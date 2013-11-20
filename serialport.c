@@ -1298,6 +1298,34 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 	return SP_OK;
 }
 
+enum sp_return sp_start_break(struct sp_port *port)
+{
+	CHECK_PORT();
+#ifdef _WIN32
+	if (SetCommBreak(port->hdl) == 0)
+		return SP_ERR_FAIL;
+#else
+	if (ioctl(port->fd, TIOCSBRK, 1) < 0)
+		return SP_ERR_FAIL;
+#endif
+
+	return SP_OK;
+}
+
+enum sp_return sp_end_break(struct sp_port *port)
+{
+	CHECK_PORT();
+#ifdef _WIN32
+	if (ClearCommBreak(port->hdl) == 0)
+		return SP_ERR_FAIL;
+#else
+	if (ioctl(port->fd, TIOCCBRK, 1) < 0)
+		return SP_ERR_FAIL;
+#endif
+
+	return SP_OK;
+}
+
 int sp_last_error_code(void)
 {
 #ifdef _WIN32

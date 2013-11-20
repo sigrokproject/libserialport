@@ -536,6 +536,28 @@ enum sp_return sp_drain(struct sp_port *port);
 
 /**
  * @}
+ * @defgroup Signal Port signalling operations
+ * @{
+ */
+
+/**
+ * Put the port transmit line into the break state.
+ *
+ * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+ *         if an invalid port is passed.
+ */
+enum sp_return sp_start_break(struct sp_port *port);
+
+/**
+ * Take the port transmit line out of the break state.
+ *
+ * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+ *         if an invalid port is passed.
+ */
+enum sp_return sp_end_break(struct sp_port *port);
+
+/**
+ * @}
  * @defgroup Errors Obtaining error information
  * @{
 */
