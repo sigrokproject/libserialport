@@ -518,6 +518,7 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count);
 /**
  * Flush serial port buffers. Data in the selected buffer(s) is discarded.
  *
+ * @param port Pointer to port structure.
  * @param buffers Which buffer(s) to flush.
  *
  * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
