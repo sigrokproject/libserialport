@@ -115,10 +115,10 @@ enum sp_parity {
 	SP_PARITY_INVALID = -1,
 	/** No parity. */
 	SP_PARITY_NONE = 0,
-	/** Even parity. */
-	SP_PARITY_EVEN = 1,
 	/** Odd parity. */
-	SP_PARITY_ODD = 2,
+	SP_PARITY_ODD = 1,
+	/** Even parity. */
+	SP_PARITY_EVEN = 2,
 };
 
 /** RTS pin behaviour. */
