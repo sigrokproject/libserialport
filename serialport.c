@@ -535,6 +535,23 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 	return SP_OK;
 }
 
+enum sp_return sp_drain(struct sp_port *port)
+{
+	CHECK_PORT();
+
+#ifdef _WIN32
+	/* Returns non-zero upon success, 0 upon failure. */
+	if (FlushFileBuffers(port->hdl) == 0)
+		return SP_ERR_FAIL;
+#else
+	/* Returns 0 upon success, -1 upon failure. */
+	if (tcdrain(port->fd) < 0)
+		return SP_ERR_FAIL;
+#endif
+
+	return SP_OK;
+}
+
 enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 {
 	CHECK_PORT();

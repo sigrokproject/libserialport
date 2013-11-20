@@ -527,6 +527,14 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count);
 enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
 
 /**
+ * Wait for buffered data to be transmitted.
+ *
+ * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+ *         if an invalid port is passed.
+ */
+enum sp_return sp_drain(struct sp_port *port);
+
+/**
  * @}
  * @defgroup Errors Obtaining error information
  * @{
