@@ -4,6 +4,7 @@
  * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2013 Martin Ling <martin-libserialport@earth.li>
+ * Copyright (C) 2013 Matthias Heidbrink <m-sigrok@heidbrink.biz>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -37,6 +38,7 @@
 #ifdef __APPLE__
 #include <IOKit/IOKitLib.h>
 #include <IOKit/serial/IOSerialKeys.h>
+#include <IOKit/serial/ioss.h>
 #include <sys/syslimits.h>
 #endif
 #ifdef __linux__
@@ -664,8 +666,13 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		}
 	}
 
-	if (i == NUM_STD_BAUDRATES)
+	if (i == NUM_STD_BAUDRATES) {
+#ifdef __APPLE__
+		config->baudrate = (int)data->term.c_ispeed;
+#else
 		config->baudrate = -1;
+#endif
+	}
 
 	switch (data->term.c_cflag & CSIZE) {
 	case CS8:
@@ -724,6 +731,11 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config)
 {
 	unsigned int i;
+#ifdef __APPLE__
+	BAUD_TYPE baud_nonstd;
+
+	baud_nonstd = B0;
+#endif
 
 #ifdef _WIN32
 	if (config->baudrate >= 0) {
@@ -856,7 +868,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	if (!SetCommState(port->hdl, &data->dcb))
 		return SP_ERR_FAIL;
 
-#else // !_WIN32
+#else /* !_WIN32 */
 
 	if (config->baudrate >= 0) {
 		for (i = 0; i < NUM_STD_BAUDRATES; i++) {
@@ -870,8 +882,17 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			}
 		}
 
-		if (i == NUM_STD_BAUDRATES)
+		/* Non-standard baud rate */
+		if (i == NUM_STD_BAUDRATES) {
+#ifdef __APPLE__
+			/* Set "dummy" baud rate */
+			if (cfsetspeed(&data->term, B9600) < 0)
+				return SP_ERR_FAIL;
+			baud_nonstd = config->baudrate;
+#else
 			return SP_ERR_ARG;
+#endif
+		}
 	}
 
 	if (config->bits >= 0) {
@@ -992,7 +1013,19 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	if (tcsetattr(port->fd, TCSADRAIN, &data->term) < 0)
 		return SP_ERR_FAIL;
-#endif
+
+#ifdef __APPLE__
+	if (baud_nonstd != B0) {
+		if (ioctl(port->fd, IOSSIOSPEED, &baud_nonstd) == -1)
+			return SP_ERR_FAIL;
+		/* Set baud rates in data->term to correct, but incompatible
+		 * with tcsetattr() value, same as delivered by tcgetattr(). */
+		if (cfsetspeed(&data->term, baud_nonstd) < 0)
+			return SP_ERR_FAIL;
+	}
+#endif /* __APPLE__ */
+
+#endif /* !_WIN32 */
 
 	return SP_OK;
 }
