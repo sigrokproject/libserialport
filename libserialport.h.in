@@ -541,6 +541,8 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
 /**
  * Wait for buffered data to be transmitted.
  *
+ * @param port Pointer to port structure.
+ *
  * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
  *         if an invalid port is passed.
  */
@@ -571,6 +573,8 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals);
 /**
  * Put the port transmit line into the break state.
  *
+ * @param port Pointer to port structure.
+ *
  * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
  *         if an invalid port is passed.
  */
@@ -578,6 +582,8 @@ enum sp_return sp_start_break(struct sp_port *port);
 
 /**
  * Take the port transmit line out of the break state.
+ *
+ * @param port Pointer to port structure.
  *
  * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
  *         if an invalid port is passed.
