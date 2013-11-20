@@ -201,6 +201,18 @@ enum sp_flowcontrol {
 	SP_FLOWCONTROL_DTRDSR = 3,
 };
 
+/** Input signals. */
+enum sp_signal {
+	/** Clear to send. */
+	SP_SIG_CTS = 1,
+	/** Data set ready. */
+	SP_SIG_DSR = 2,
+	/** Data carrier detect. */
+	SP_SIG_DCD = 4,
+	/** Ring indicator. */
+	SP_SIG_RI = 8,
+};
+
 /** A serial port. */
 struct sp_port {
 	/** Name used to open the port. */
@@ -539,6 +551,22 @@ enum sp_return sp_drain(struct sp_port *port);
  * @defgroup Signal Port signalling operations
  * @{
  */
+
+/**
+ * Gets the status of the control signals for the specified port.
+ *
+ * The user should allocate a variable of type "enum sp_signal" and pass a
+ * pointer to this variable to receive the result. The result is a bitmask
+ * in which individual signals can be checked by bitwise OR with values of
+ * the sp_signal enum.
+ *
+ * @param port Pointer to port structure.
+ * @param signals Pointer to variable to receive result.
+ *
+ * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
+ *         if an an invalid port or pointer is passed.
+ */
+enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals);
 
 /**
  * Put the port transmit line into the break state.

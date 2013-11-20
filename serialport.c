@@ -1298,6 +1298,42 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 	return SP_OK;
 }
 
+enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals)
+{
+	CHECK_PORT();
+
+	if (!signals)
+		return SP_ERR_ARG;
+
+	*signals = 0;
+#ifdef _WIN32
+	DWORD bits;
+	if (GetCommModemStatus(port->hdl, &bits) == 0)
+		return SP_ERR_FAIL;
+	if (bits & MS_CTS_ON)
+		*signals |= SP_SIG_CTS;
+	if (bits & MS_DSR_ON)
+		*signals |= SP_SIG_DSR;
+	if (bits & MS_RING_ON)
+		*signals |= SP_SIG_DCD;
+	if (bits & MS_RLSD_ON)
+		*signals |= SP_SIG_RI;
+#else
+	int bits;
+	if (ioctl(port->fd, TIOCMGET, &bits) < 0)
+		return SP_ERR_FAIL;
+	if (bits & TIOCM_CTS)
+		*signals |= SP_SIG_CTS;
+	if (bits & TIOCM_DSR)
+		*signals |= SP_SIG_DSR;
+	if (bits & TIOCM_CAR)
+		*signals |= SP_SIG_DCD;
+	if (bits & TIOCM_RNG)
+		*signals |= SP_SIG_RI;
+#endif
+	return SP_OK;
+}
+
 enum sp_return sp_start_break(struct sp_port *port)
 {
 	CHECK_PORT();
