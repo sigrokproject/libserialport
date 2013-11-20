@@ -101,10 +101,10 @@ enum sp_return {
 
 /** Port access modes. */
 enum sp_mode {
-	/** Open port for read/write access. */
-	SP_MODE_RDWR = 1,
-	/** Open port for read access only. */
-	SP_MODE_RDONLY = 2,
+	/** Open port for read access. */
+	SP_MODE_READ = 1,
+	/** Open port for write access. */
+	SP_MODE_WRITE = 2,
 	/** Open port in non-blocking mode. */
 	SP_MODE_NONBLOCK = 4,
 };

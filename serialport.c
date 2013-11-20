@@ -422,9 +422,10 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	sprintf(escaped_port_name, "\\\\.\\%s", port->name);
 
 	/* Map 'flags' to the OS-specific settings. */
-	desired_access |= GENERIC_READ;
 	flags_and_attributes = FILE_ATTRIBUTE_NORMAL;
-	if (flags & SP_MODE_RDWR)
+	if (flags & SP_MODE_READ)
+		desired_access |= GENERIC_READ;
+	if (flags & SP_MODE_WRITE)
 		desired_access |= GENERIC_WRITE;
 	if (flags & SP_MODE_NONBLOCK)
 		flags_and_attributes |= FILE_FLAG_OVERLAPPED;
@@ -443,10 +444,12 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	int ret;
 
 	/* Map 'flags' to the OS-specific settings. */
-	if (flags & SP_MODE_RDWR)
+	if (flags & (SP_MODE_READ | SP_MODE_WRITE))
 		flags_local |= O_RDWR;
-	if (flags & SP_MODE_RDONLY)
+	else if (flags & SP_MODE_READ)
 		flags_local |= O_RDONLY;
+	else if (flags & SP_MODE_WRITE)
+		flags_local |= O_WRONLY;
 	if (flags & SP_MODE_NONBLOCK)
 		flags_local |= O_NONBLOCK;
 
