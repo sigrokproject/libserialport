@@ -505,17 +505,31 @@ enum sp_return sp_close(struct sp_port *port)
 	return SP_OK;
 }
 
-enum sp_return sp_flush(struct sp_port *port)
+enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 {
 	CHECK_PORT();
 
 #ifdef _WIN32
+	DWORD flags = 0;
+	if (buffers & SP_BUF_INPUT)
+		flags |= PURGE_RXCLEAR;
+	if (buffers & SP_BUF_OUTPUT)
+		flags |= PURGE_TXCLEAR;
+
 	/* Returns non-zero upon success, 0 upon failure. */
-	if (PurgeComm(port->hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0)
+	if (PurgeComm(port->hdl, flags) == 0)
 		return SP_ERR_FAIL;
 #else
+	int flags = 0;
+	if (buffers & SP_BUF_BOTH)
+		flags = TCIOFLUSH;
+	else if (buffers & SP_BUF_INPUT)
+		flags = TCIFLUSH;
+	if (buffers & SP_BUF_OUTPUT)
+		flags = TCOFLUSH;
+
 	/* Returns 0 upon success, -1 upon failure. */
-	if (tcflush(port->fd, TCIOFLUSH) < 0)
+	if (tcflush(port->fd, flags) < 0)
 		return SP_ERR_FAIL;
 #endif
 	return SP_OK;
