@@ -45,6 +45,9 @@
 #include "libudev.h"
 #include "linux/serial.h"
 #include "linux_termios.h"
+#if defined(TCGETX) && defined(TCSETX) && defined(HAVE_TERMIOX)
+#define USE_TERMIOX
+#endif
 #endif
 
 #include "libserialport.h"
@@ -55,6 +58,9 @@ struct port_data {
 #else
 	struct termios term;
 	int controlbits;
+#ifdef USE_TERMIOX
+	int flow;
+#endif
 #endif
 };
 
@@ -594,7 +600,42 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 
 	return SP_OK;
 }
-#endif
+
+#ifdef USE_TERMIOX
+static enum sp_return get_flow(int fd, int *flow)
+{
+	void *data;
+
+	if (!(data = malloc(get_termiox_size())))
+		return SP_ERR_MEM;
+
+	if (ioctl(fd, TCGETX, data) < 0)
+		return SP_ERR_FAIL;
+
+	*flow = get_termiox_flow(data);
+
+	return SP_OK;
+}
+
+static enum sp_return set_flow(int fd, int flow)
+{
+	void *data;
+
+	if (!(data = malloc(get_termiox_size())))
+		return SP_ERR_MEM;
+
+	if (ioctl(fd, TCGETX, data) < 0)
+		return SP_ERR_FAIL;
+
+	set_termiox_flow(data, flow);
+
+	if (ioctl(fd, TCSETX, data) < 0)
+		return SP_ERR_FAIL;
+
+	return SP_OK;
+}
+#endif /* USE_TERMIOX */
+#endif /* __linux__ */
 
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config)
@@ -697,6 +738,11 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 
 	if (ioctl(port->fd, TIOCMGET, &data->controlbits) < 0)
 		return SP_ERR_FAIL;
+
+#ifdef USE_TERMIOX
+	TRY(get_flow(port->fd, &data->flow));
+#endif
+
 	for (i = 0; i < NUM_STD_BAUDRATES; i++) {
 		if (cfgetispeed(&data->term) == std_baudrates[i].index) {
 			config->baudrate = std_baudrates[i].value;
@@ -744,12 +790,30 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		config->rts = SP_RTS_FLOW_CONTROL;
 		config->cts = SP_CTS_FLOW_CONTROL;
 	} else {
+#ifdef USE_TERMIOX
+		if (data->flow & RTS_FLOW)
+			config->rts = SP_RTS_FLOW_CONTROL;
+		else
+			config->rts = (data->controlbits & TIOCM_RTS) ? SP_RTS_ON : SP_RTS_OFF;
+
+		config->cts = (data->flow & CTS_FLOW) ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE;
+#else
 		config->rts = (data->controlbits & TIOCM_RTS) ? SP_RTS_ON : SP_RTS_OFF;
 		config->cts = SP_CTS_IGNORE;
+#endif
 	}
 
+#ifdef USE_TERMIOX
+	if (data->flow & DTR_FLOW)
+		config->dtr = SP_DTR_FLOW_CONTROL;
+	else
+		config->dtr = (data->controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
+
+	config->dsr = (data->flow & DSR_FLOW) ? SP_DSR_FLOW_CONTROL : SP_DSR_IGNORE;
+#else
 	config->dtr = (data->controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
 	config->dsr = SP_DSR_IGNORE;
+#endif
 
 	if (data->term.c_iflag & IXOFF) {
 		if (data->term.c_iflag & IXON)
@@ -995,8 +1059,31 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	}
 
 	if (config->rts >= 0 || config->cts >= 0) {
-		/* Asymmetric use of RTS/CTS not supported yet. */
+#ifdef USE_TERMIOX
+		data->flow &= ~(RTS_FLOW | CTS_FLOW);
+		switch (config->rts) {
+			case SP_RTS_OFF:
+			case SP_RTS_ON:
+				controlbits = TIOCM_RTS;
+				if (ioctl(port->fd, config->rts == SP_RTS_ON ? TIOCMBIS : TIOCMBIC,
+						&controlbits) < 0)
+					return SP_ERR_FAIL;
+				break;
+			case SP_RTS_FLOW_CONTROL:
+				data->flow |= RTS_FLOW;
+				break;
+			default:
+				break;
+		}
+		if (config->cts == SP_CTS_FLOW_CONTROL)
+			data->flow |= CTS_FLOW;
 
+		if (data->flow & (RTS_FLOW | CTS_FLOW))
+			data->term.c_iflag |= CRTSCTS;
+		else
+			data->term.c_iflag &= ~CRTSCTS;
+#else
+		/* Asymmetric use of RTS/CTS not supported. */
 		if (data->term.c_iflag & CRTSCTS) {
 			/* Flow control can only be disabled for both RTS & CTS together. */
 			if (config->rts >= 0 && config->rts != SP_RTS_FLOW_CONTROL) {
@@ -1024,10 +1111,30 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 					return SP_ERR_FAIL;
 			}
 		}
+#endif
 	}
 
 	if (config->dtr >= 0 || config->dsr >= 0) {
-		/* DTR/DSR flow control not supported yet. */
+#ifdef USE_TERMIOX
+		data->flow &= ~(DTR_FLOW | DSR_FLOW);
+		switch (config->dtr) {
+			case SP_DTR_OFF:
+			case SP_DTR_ON:
+				controlbits = TIOCM_DTR;
+				if (ioctl(port->fd, config->dtr == SP_DTR_ON ? TIOCMBIS : TIOCMBIC,
+						&controlbits) < 0)
+					return SP_ERR_FAIL;
+				break;
+			case SP_DTR_FLOW_CONTROL:
+				data->flow |= DTR_FLOW;
+				break;
+			default:
+				break;
+		}
+		if (config->dsr == SP_DSR_FLOW_CONTROL)
+			data->flow |= DSR_FLOW;
+#else
+		/* DTR/DSR flow control not supported. */
 		if (config->dtr == SP_DTR_FLOW_CONTROL || config->dsr == SP_DSR_FLOW_CONTROL)
 			return SP_ERR_ARG;
 
@@ -1037,6 +1144,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 					&controlbits) < 0)
 				return SP_ERR_FAIL;
 		}
+#endif
 	}
 
 	if (config->xon_xoff >= 0) {
@@ -1073,6 +1181,9 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 #elif defined(__linux__)
 	if (baud_nonstd)
 		TRY(set_baudrate(port->fd, config->baudrate));
+#ifdef USE_TERMIOX
+	TRY(set_flow(port->fd, data->flow));
+#endif
 #endif
 
 #endif /* !_WIN32 */

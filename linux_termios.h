@@ -17,8 +17,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define RTS_FLOW 1
+#define CTS_FLOW 2
+#define DTR_FLOW 4
+#define DSR_FLOW 8
+
 int get_termios_get_ioctl(void);
 int get_termios_set_ioctl(void);
 int get_termios_size(void);
 int get_termios_speed(void *data);
 void set_termios_speed(void *data, int speed);
+int get_termiox_size(void);
+int get_termiox_flow(void *data);
+void set_termiox_flow(void *data, int flags);

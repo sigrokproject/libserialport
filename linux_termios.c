@@ -71,3 +71,43 @@ void set_termios_speed(void *data, int speed)
 	term->c_cflag |= BOTHER;
 	term->c_ispeed = term->c_ospeed = speed;
 }
+
+#ifdef HAVE_TERMIOX
+int get_termiox_size(void)
+{
+	return sizeof(struct termiox);
+}
+
+int get_termiox_flow(void *data)
+{
+	struct termiox *termx = (struct termiox *) data;
+
+	int flags = 0;
+	if (termx->x_cflag & RTSXOFF)
+		flags |= RTS_FLOW;
+	if (termx->x_cflag & CTSXON)
+		flags |= CTS_FLOW;
+	if (termx->x_cflag & DTRXOFF)
+		flags |= DTR_FLOW;
+	if (termx->x_cflag & DSRXON)
+		flags |= DSR_FLOW;
+
+	return flags;
+}
+
+void set_termiox_flow(void *data, int flags)
+{
+	struct termiox *termx = (struct termiox *) data;
+
+	termx->x_cflag &= ~(RTSXOFF | CTSXON | DTRXOFF | DSRXON);
+
+	if (flags & RTS_FLOW)
+		termx->x_cflag |= RTSXOFF;
+	if (flags & CTS_FLOW)
+		termx->x_cflag |= CTSXON;
+	if (flags & DTR_FLOW)
+		termx->x_cflag |= DTRXOFF;
+	if (flags & DSR_FLOW)
+		termx->x_cflag |= DSRXON;
+}
+#endif
