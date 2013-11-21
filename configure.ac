@@ -107,6 +107,7 @@ AC_CHECK_HEADERS([errno.h fcntl.h stddef.h sys/ioctl.h termios.h])
 AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
+AC_CHECK_TYPE([struct termios2],[AC_DEFINE(HAVE_TERMIOS2, 1)],[],[[#include <linux/termios.h>]])
 
 # Checks for library functions.
 AC_CHECK_FUNCS([strerror])

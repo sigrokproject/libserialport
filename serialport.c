@@ -44,6 +44,7 @@
 #ifdef __linux__
 #include "libudev.h"
 #include "linux/serial.h"
+#include "linux_termios.h"
 #endif
 
 #include "libserialport.h"
@@ -93,6 +94,8 @@ const struct std_baudrate std_baudrates[] = {
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
+
+#define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
 
 /* Helper functions. */
 static enum sp_return validate_port(struct sp_port *port);
@@ -558,6 +561,41 @@ enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
 #endif
 }
 
+#ifdef __linux__
+static enum sp_return get_baudrate(int fd, int *baudrate)
+{
+	void *data;
+
+	if (!(data = malloc(get_termios_size())))
+		return SP_ERR_MEM;
+
+	if (ioctl(fd, get_termios_get_ioctl(), data) < 0)
+		return SP_ERR_FAIL;
+
+	*baudrate = get_termios_speed(data);
+
+	return SP_OK;
+}
+
+static enum sp_return set_baudrate(int fd, int baudrate)
+{
+	void *data;
+
+	if (!(data = malloc(get_termios_size())))
+		return SP_ERR_MEM;
+
+	if (ioctl(fd, get_termios_get_ioctl(), data) < 0)
+		return SP_ERR_FAIL;
+
+	set_termios_speed(data, baudrate);
+
+	if (ioctl(fd, get_termios_set_ioctl(), data) < 0)
+		return SP_ERR_FAIL;
+
+	return SP_OK;
+}
+#endif
+
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config)
 {
@@ -669,6 +707,8 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	if (i == NUM_STD_BAUDRATES) {
 #ifdef __APPLE__
 		config->baudrate = (int)data->term.c_ispeed;
+#elif defined(__linux__)
+		TRY(get_baudrate(port->fd, &config->baudrate));
 #else
 		config->baudrate = -1;
 #endif
@@ -727,7 +767,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	return SP_OK;
 }
 
-static enum sp_return set_config(struct sp_port *port, struct port_data *data, 
+static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config)
 {
 	unsigned int i;
@@ -735,6 +775,9 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	BAUD_TYPE baud_nonstd;
 
 	baud_nonstd = B0;
+#endif
+#ifdef __linux__
+	int baud_nonstd = 0;
 #endif
 
 #ifdef _WIN32
@@ -870,6 +913,8 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 #else /* !_WIN32 */
 
+	int controlbits;
+
 	if (config->baudrate >= 0) {
 		for (i = 0; i < NUM_STD_BAUDRATES; i++) {
 			if (config->baudrate == std_baudrates[i].value) {
@@ -889,6 +934,8 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			if (cfsetspeed(&data->term, B9600) < 0)
 				return SP_ERR_FAIL;
 			baud_nonstd = config->baudrate;
+#elif defined(__linux__)
+			baud_nonstd = 1;
 #else
 			return SP_ERR_ARG;
 #endif
@@ -971,7 +1018,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			if (config->rts == SP_RTS_FLOW_CONTROL) {
 				data->term.c_iflag |= CRTSCTS;
 			} else {
-				int controlbits = TIOCM_RTS;
+				controlbits = TIOCM_RTS;
 				if (ioctl(port->fd, config->rts == SP_RTS_ON ? TIOCMBIS : TIOCMBIC,
 						&controlbits) < 0)
 					return SP_ERR_FAIL;
@@ -985,7 +1032,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			return SP_ERR_ARG;
 
 		if (config->dtr >= 0) {
-			int controlbits = TIOCM_DTR;
+			controlbits = TIOCM_DTR;
 			if (ioctl(port->fd, config->dtr == SP_DTR_ON ? TIOCMBIS : TIOCMBIC,
 					&controlbits) < 0)
 				return SP_ERR_FAIL;
@@ -1023,14 +1070,15 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		if (cfsetspeed(&data->term, baud_nonstd) < 0)
 			return SP_ERR_FAIL;
 	}
-#endif /* __APPLE__ */
+#elif defined(__linux__)
+	if (baud_nonstd)
+		TRY(set_baudrate(port->fd, config->baudrate));
+#endif
 
 #endif /* !_WIN32 */
 
 	return SP_OK;
 }
-
-#define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
 
 enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *config)
 {

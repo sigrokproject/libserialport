@@ -24,7 +24,7 @@ AM_CPPFLAGS = -I$(top_srcdir)
 
 lib_LTLIBRARIES = libserialport.la
 
-libserialport_la_SOURCES = serialport.c
+libserialport_la_SOURCES = serialport.c linux_termios.c
 
 libserialport_la_LIBADD = $(LIBOBJS)
 
