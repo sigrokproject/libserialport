@@ -17,6 +17,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * At the time of writing, glibc does not support the Linux kernel interfaces
+ * for setting non-standard baud rates and flow control. We therefore have to
+ * prepare the correct ioctls ourselves, for which we need the declarations in
+ * linux/termios.h.
+ *
+ * We can't include linux/termios.h in serialport.c however, because its
+ * contents conflict with the termios.h provided by glibc. So this file exists
+ * to isolate the bits of code which use the kernel termios declarations.
+ *
+ * The details vary by architecture. Some architectures have c_ispeed/c_ospeed
+ * in struct termios, accessed with TCSETS/TCGETS. Others have these fields in
+ * struct termios2, accessed with TCSETS2/TCGETS2. Some architectures have the
+ * TCSETX/TCGETX ioctls used with struct termiox, others do not.
+ */
+
 #include <linux/termios.h>
 #include "linux_termios.h"
 
