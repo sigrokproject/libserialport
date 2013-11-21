@@ -525,7 +525,7 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 		flags = TCIOFLUSH;
 	else if (buffers & SP_BUF_INPUT)
 		flags = TCIFLUSH;
-	if (buffers & SP_BUF_OUTPUT)
+	else if (buffers & SP_BUF_OUTPUT)
 		flags = TCOFLUSH;
 
 	/* Returns 0 upon success, -1 upon failure. */
