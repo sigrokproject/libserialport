@@ -24,7 +24,8 @@ AC_PREREQ([2.63])
 # libserialport package version number (NOT the same as shared lib version!).
 m4_define([sp_package_version_major], [0])
 m4_define([sp_package_version_minor], [1])
-m4_define([sp_package_version], [sp_package_version_major.sp_package_version_minor])
+m4_define([sp_package_version_micro], [0])
+m4_define([sp_package_version], [sp_package_version_major.sp_package_version_minor.sp_package_version_micro])
 
 AC_INIT([libserialport], [sp_package_version], [martin-libserialport@earth.li],
 	[libserialport], [http://sigrok.org/wiki/Libserialport])
@@ -118,10 +119,12 @@ AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
 SP_PACKAGE_VERSION_MAJOR=sp_package_version_major
 SP_PACKAGE_VERSION_MINOR=sp_package_version_minor
+SP_PACKAGE_VERSION_MICRO=sp_package_version_micro
 SP_PACKAGE_VERSION=sp_package_version
 
 AC_SUBST(SP_PACKAGE_VERSION_MAJOR)
 AC_SUBST(SP_PACKAGE_VERSION_MINOR)
+AC_SUBST(SP_PACKAGE_VERSION_MICRO)
 AC_SUBST(SP_PACKAGE_VERSION)
 
 AC_CONFIG_FILES([Makefile libserialport.h libserialport.pc])
@@ -131,7 +134,7 @@ AC_OUTPUT
 echo
 echo "libserialport configuration summary:"
 echo
-echo "  - Package version (major.minor):          $SP_PACKAGE_VERSION"
+echo "  - Package version (major.minor.micro):    $SP_PACKAGE_VERSION"
 echo "  - Library version (current:revision:age): $SP_LIB_VERSION"
 echo "  - Prefix: $prefix"
 echo "  - Building on: $build"

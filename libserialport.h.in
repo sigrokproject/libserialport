@@ -78,6 +78,7 @@ extern "C" {
 /* Package version macros (e.g. for conditional compilation). */
 #define SP_PACKAGE_VERSION_MAJOR @SP_PACKAGE_VERSION_MAJOR@
 #define SP_PACKAGE_VERSION_MINOR @SP_PACKAGE_VERSION_MINOR@
+#define SP_PACKAGE_VERSION_MICRO @SP_PACKAGE_VERSION_MICRO@
 #define SP_PACKAGE_VERSION_STRING "@SP_PACKAGE_VERSION@"
 
 /* Library/libtool version macros (e.g. for conditional compilation). */
