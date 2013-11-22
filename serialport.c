@@ -610,10 +610,14 @@ static enum sp_return get_baudrate(int fd, int *baudrate)
 	if (!(data = malloc(get_termios_size())))
 		return SP_ERR_MEM;
 
-	if (ioctl(fd, get_termios_get_ioctl(), data) < 0)
+	if (ioctl(fd, get_termios_get_ioctl(), data) < 0) {
+		free(data);
 		return SP_ERR_FAIL;
+	}
 
 	*baudrate = get_termios_speed(data);
+
+	free(data);
 
 	return SP_OK;
 }
@@ -625,13 +629,19 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 	if (!(data = malloc(get_termios_size())))
 		return SP_ERR_MEM;
 
-	if (ioctl(fd, get_termios_get_ioctl(), data) < 0)
+	if (ioctl(fd, get_termios_get_ioctl(), data) < 0) {
+		free(data);
 		return SP_ERR_FAIL;
+	}
 
 	set_termios_speed(data, baudrate);
 
-	if (ioctl(fd, get_termios_set_ioctl(), data) < 0)
+	if (ioctl(fd, get_termios_set_ioctl(), data) < 0) {
+		free(data);
 		return SP_ERR_FAIL;
+	}
+
+	free(data);
 
 	return SP_OK;
 }
@@ -644,10 +654,14 @@ static enum sp_return get_flow(int fd, int *flow)
 	if (!(data = malloc(get_termiox_size())))
 		return SP_ERR_MEM;
 
-	if (ioctl(fd, TCGETX, data) < 0)
+	if (ioctl(fd, TCGETX, data) < 0) {
+		free(data);
 		return SP_ERR_FAIL;
+	}
 
 	*flow = get_termiox_flow(data);
+
+	free(data);
 
 	return SP_OK;
 }
@@ -659,13 +673,19 @@ static enum sp_return set_flow(int fd, int flow)
 	if (!(data = malloc(get_termiox_size())))
 		return SP_ERR_MEM;
 
-	if (ioctl(fd, TCGETX, data) < 0)
+	if (ioctl(fd, TCGETX, data) < 0) {
+		free(data);
 		return SP_ERR_FAIL;
+	}
 
 	set_termiox_flow(data, flow);
 
-	if (ioctl(fd, TCSETX, data) < 0)
+	if (ioctl(fd, TCSETX, data) < 0) {
+		free(data);
 		return SP_ERR_FAIL;
+	}
+
+	free(data);
 
 	return SP_OK;
 }
