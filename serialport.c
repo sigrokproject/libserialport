@@ -1055,7 +1055,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 #elif defined(__linux__)
 			baud_nonstd = 1;
 #else
-			return SP_ERR_ARG;
+			return SP_ERR_SUPP;
 #endif
 		}
 	}
@@ -1141,17 +1141,17 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 				/* Flow control can only be disabled for both RTS & CTS together. */
 				if (config->rts >= 0 && config->rts != SP_RTS_FLOW_CONTROL) {
 					if (config->cts != SP_CTS_IGNORE)
-						return SP_ERR_ARG;
+						return SP_ERR_SUPP;
 				}
 				if (config->cts >= 0 && config->cts != SP_CTS_FLOW_CONTROL) {
 					if (config->rts <= 0 || config->rts == SP_RTS_FLOW_CONTROL)
-						return SP_ERR_ARG;
+						return SP_ERR_SUPP;
 				}
 			} else {
 				/* Flow control can only be enabled for both RTS & CTS together. */
 				if (((config->rts == SP_RTS_FLOW_CONTROL) && (config->cts != SP_CTS_FLOW_CONTROL)) ||
 					((config->cts == SP_CTS_FLOW_CONTROL) && (config->rts != SP_RTS_FLOW_CONTROL)))
-					return SP_ERR_ARG;
+					return SP_ERR_SUPP;
 			}
 
 			if (config->rts >= 0) {
@@ -1188,7 +1188,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		} else {
 			/* DTR/DSR flow control not supported. */
 			if (config->dtr == SP_DTR_FLOW_CONTROL || config->dsr == SP_DSR_FLOW_CONTROL)
-				return SP_ERR_ARG;
+				return SP_ERR_SUPP;
 
 			if (config->dtr >= 0) {
 				controlbits = TIOCM_DTR;

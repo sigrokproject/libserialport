@@ -49,15 +49,25 @@
  * port. These structures are always allocated and freed by the library, using
  * the functions in the @ref Enumeration "Enumeration" section.
  *
- * All functions can return only three possible error values. @ref SP_ERR_ARG
- * indicates the function was called with invalid arguments. @ref SP_ERR_FAIL
- * indicates that the OS reported a failure. @ref SP_ERR_MEM indicates that a
- * memory allocation failed. All of these error values are negative.
+ * All functions can return only four possible error values:
  *
- * When @ref SP_ERR_FAIL is returned, an error code or string description of
- * the error can be obtained by calling sp_last_error_code() or
- * sp_last_error_message(). The error code or message is that provided by the
- * OS; libserialport does not define any error codes or messages of its own.
+ * - @ref SP_ERR_ARG means that a function was called with invalid
+ *   arguments. This implies a bug in the caller. The arguments passed would
+ *   be invalid regardless of the underlying OS or serial device involved.
+ *
+ * - @ref SP_ERR_FAIL means that the OS reported a failure. The error code or
+ *   message provided by the OS can be obtained by calling sp_last_error_code()
+ *   or sp_last_error_message().
+ *
+ * - @ref SP_ERR_SUPP indicates that there is no support for the requested
+ *   operation in the current OS, driver or device. No error message is
+ *   available from the OS in this case. There is either no way to request
+ *   the operation in the first place, or libserialport does not know how to
+ *   do so in the current version.
+ *
+ * - @ref SP_ERR_MEM indicates that a memory allocation failed.
+ *
+ * All of these error values are negative.
  *
  * Function calls that succeed return @ref SP_OK, which is equal to zero,
  * or where otherwise documented a positive value.
@@ -97,6 +107,8 @@ enum sp_return {
 	SP_ERR_FAIL = -2,
 	/** A memory allocation failed while executing the operation. */
 	SP_ERR_MEM = -3,
+	/** The requested operation is not supported by this system or device. */
+	SP_ERR_SUPP = -4,
 };
 
 /** Port access modes. */
