@@ -33,6 +33,8 @@
  * TCSETX/TCGETX ioctls used with struct termiox, others do not.
  */
 
+#ifdef __linux__
+
 #include <linux/termios.h>
 #include "linux_termios.h"
 
@@ -127,3 +129,6 @@ void set_termiox_flow(void *data, int flags)
 		termx->x_cflag |= DSRXON;
 }
 #endif
+
+#endif
+
