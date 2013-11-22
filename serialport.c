@@ -110,6 +110,33 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 
 #define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
 
+/* Debug output macros. */
+#define DEBUG(fmt, ...) do { if (sp_debug_handler) sp_debug_handler(fmt ".\n", ##__VA_ARGS__); } while (0)
+#define DEBUG_ERROR(err, msg) DEBUG("%s returning " #err ": " msg, __func__)
+#define DEBUG_FAIL(msg) do { \
+	char *errmsg = sp_last_error_message(); \
+	DEBUG("%s returning SP_ERR_FAIL: " msg ": %s", __func__, errmsg); \
+	sp_free_error_message(errmsg); \
+} while (0);
+#define RETURN() do { DEBUG("%s returning", __func__); return; } while(0)
+#define RETURN_CODE(x) do { DEBUG("%s returning " #x, __func__); return x; } while (0)
+#define RETURN_CODEVAL(x) do { \
+	switch (x) { \
+		case SP_OK: RETURN_CODE(SP_OK); \
+		case SP_ERR_ARG: RETURN_CODE(SP_ERR_ARG); \
+		case SP_ERR_FAIL: RETURN_CODE(SP_ERR_FAIL); \
+		case SP_ERR_MEM: RETURN_CODE(SP_ERR_MEM); \
+		case SP_ERR_SUPP: RETURN_CODE(SP_ERR_SUPP); \
+	} \
+} while (0)
+#define RETURN_OK() RETURN_CODE(SP_OK);
+#define RETURN_ERROR(err, msg) do { DEBUG_ERROR(err, msg); return err; } while (0)
+#define RETURN_FAIL(msg) do { DEBUG_FAIL(msg); return SP_ERR_FAIL; } while (0)
+#define RETURN_VALUE(fmt, x) do { DEBUG("%s returning " fmt, __func__, x); return x; } while (0)
+#define SET_ERROR(val, err, msg) do { DEBUG_ERROR(err, msg); val = err; } while (0)
+#define SET_FAIL(val, msg) do { DEBUG_FAIL(msg); val = err; } while (0)
+#define TRACE(fmt, ...) DEBUG("%s(" fmt ") called", __func__, ##__VA_ARGS__)
+
 /* Helper functions. */
 static enum sp_return validate_port(struct sp_port *port);
 static struct sp_port **list_append(struct sp_port **list, const char *portname);
