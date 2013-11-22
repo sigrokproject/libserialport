@@ -99,8 +99,8 @@ int get_termiox_size(void)
 int get_termiox_flow(void *data)
 {
 	struct termiox *termx = (struct termiox *) data;
-
 	int flags = 0;
+
 	if (termx->x_cflag & RTSXOFF)
 		flags |= RTS_FLOW;
 	if (termx->x_cflag & CTSXON)
@@ -131,4 +131,3 @@ void set_termiox_flow(void *data, int flags)
 #endif
 
 #endif
-

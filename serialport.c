@@ -1028,7 +1028,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		/* Non-standard baud rate */
 		if (i == NUM_STD_BAUDRATES) {
 #ifdef __APPLE__
-			/* Set "dummy" baud rate */
+			/* Set "dummy" baud rate. */
 			if (cfsetspeed(&data->term, B9600) < 0)
 				return SP_ERR_FAIL;
 			baud_nonstd = config->baudrate;
@@ -1096,18 +1096,17 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 #ifdef USE_TERMIOX
 		data->flow &= ~(RTS_FLOW | CTS_FLOW);
 		switch (config->rts) {
-			case SP_RTS_OFF:
-			case SP_RTS_ON:
-				controlbits = TIOCM_RTS;
-				if (ioctl(port->fd, config->rts == SP_RTS_ON ? TIOCMBIS : TIOCMBIC,
-						&controlbits) < 0)
-					return SP_ERR_FAIL;
-				break;
-			case SP_RTS_FLOW_CONTROL:
-				data->flow |= RTS_FLOW;
-				break;
-			default:
-				break;
+		case SP_RTS_OFF:
+		case SP_RTS_ON:
+			controlbits = TIOCM_RTS;
+			if (ioctl(port->fd, config->rts == SP_RTS_ON ? TIOCMBIS : TIOCMBIC, &controlbits) < 0)
+				return SP_ERR_FAIL;
+			break;
+		case SP_RTS_FLOW_CONTROL:
+			data->flow |= RTS_FLOW;
+			break;
+		default:
+			break;
 		}
 		if (config->cts == SP_CTS_FLOW_CONTROL)
 			data->flow |= CTS_FLOW;
@@ -1152,18 +1151,17 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 #ifdef USE_TERMIOX
 		data->flow &= ~(DTR_FLOW | DSR_FLOW);
 		switch (config->dtr) {
-			case SP_DTR_OFF:
-			case SP_DTR_ON:
-				controlbits = TIOCM_DTR;
-				if (ioctl(port->fd, config->dtr == SP_DTR_ON ? TIOCMBIS : TIOCMBIC,
-						&controlbits) < 0)
-					return SP_ERR_FAIL;
-				break;
-			case SP_DTR_FLOW_CONTROL:
-				data->flow |= DTR_FLOW;
-				break;
-			default:
-				break;
+		case SP_DTR_OFF:
+		case SP_DTR_ON:
+			controlbits = TIOCM_DTR;
+			if (ioctl(port->fd, config->dtr == SP_DTR_ON ? TIOCMBIS : TIOCMBIC, &controlbits) < 0)
+				return SP_ERR_FAIL;
+			break;
+		case SP_DTR_FLOW_CONTROL:
+			data->flow |= DTR_FLOW;
+			break;
+		default:
+			break;
 		}
 		if (config->dsr == SP_DSR_FLOW_CONTROL)
 			data->flow |= DSR_FLOW;
