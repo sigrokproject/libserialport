@@ -46,7 +46,8 @@
 #include "linux/serial.h"
 #include "linux_termios.h"
 #if defined(TCGETX) && defined(TCSETX) && defined(HAVE_TERMIOX)
-#define USE_TERMIOX
+// FIXME: Temporarily disabled, breaks all lib functionality on some systems.
+// #define USE_TERMIOX
 #endif
 #endif
 
