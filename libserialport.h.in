@@ -64,8 +64,8 @@
  * or where otherwise documented a positive value.
  */
 
-#ifndef LIBSERIALPORT_H
-#define LIBSERIALPORT_H
+#ifndef LIBSERIALPORT_LIBSERIALPORT_H
+#define LIBSERIALPORT_LIBSERIALPORT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -630,4 +630,4 @@ void sp_free_error_message(char *message);
 }
 #endif
 
-#endif /* LIBSERIALPORT_H */
+#endif
