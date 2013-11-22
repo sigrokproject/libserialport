@@ -274,10 +274,10 @@ struct sp_port_config {
  *
  * The result should be freed after use by calling sp_free_port().
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
- *         failure, or SP_ERR_ARG if an invalid pointer is passed. If any error
- *         is returned, the variable pointed to by port_ptr will be set to NULL.
- *         Otherwise, it will be set to point to the newly allocated port.
+ * If any error is returned, the variable pointed to by port_ptr will be set
+ * to NULL. Otherwise, it will be set to point to the newly allocated port.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
 
@@ -297,10 +297,10 @@ void sp_free_port(struct sp_port *port);
  * If a port from the list is to be used after freeing the list, it must be
  * copied first using sp_copy_port().
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
- *         failure, or SP_ERR_ARG if an invalid pointer is passed. If any error
- *         is returned, the variable pointed to by list_ptr will be set to NULL.
- *         Otherwise, it will be set to point to the newly allocated array.
+ * If any error is returned, the variable pointed to by list_ptr will be set
+ * to NULL. Otherwise, it will be set to point to the newly allocated array.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_list_ports(struct sp_port ***list_ptr);
 
@@ -312,10 +312,10 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr);
  *
  * The copy should be freed after use by calling sp_free_port().
  *
- * @return SP_OK on success, SP_ERR_MEM on allocation failure, or SP_ERR_ARG
- *         if an invalid port or pointer is passed. If any error is returned,
- *         the variable pointed to by copy_ptr will be set to NULL. Otherwise,
- *         it will be set to point to the newly allocated copy.
+ * If any error is returned, the variable pointed to by copy_ptr will be set
+ * to NULL. Otherwise, it will be set to point to the newly allocated copy.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr);
 
@@ -339,16 +339,14 @@ void sp_free_port_list(struct sp_port **ports);
  * @param port Pointer to port structure.
  * @param flags Flags to use when opening the serial port.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, SP_ERR_MEM on allocation
- *         failure, or SP_ERR_ARG if an invalid port is passed.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_open(struct sp_port *port, enum sp_mode flags);
 
 /**
  * Close the specified serial port.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         if an invalid port is passed.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_close(struct sp_port *port);
 
@@ -368,8 +366,7 @@ enum sp_return sp_close(struct sp_port *port);
  * Any setting that is in a state not recognised or supported by
  * libserialport will have its value set to -1 in the struct.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config);
 
@@ -381,8 +378,7 @@ enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config
  *
  * To retain the current value of any setting, set that field to -1.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *config);
 
@@ -392,8 +388,7 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
  * @param port Pointer to port structure.
  * @param baudrate Baud rate in bits per second.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_baudrate(struct sp_port *port, int baudrate);
 
@@ -403,8 +398,7 @@ enum sp_return sp_set_baudrate(struct sp_port *port, int baudrate);
  * @param port Pointer to port structure.
  * @param bits Number of data bits to use. Valid values are 5 to 8.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_bits(struct sp_port *port, int bits);
 
@@ -414,8 +408,7 @@ enum sp_return sp_set_bits(struct sp_port *port, int bits);
  * @param port Pointer to port structure.
  * @param parity Parity setting to use.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_parity(struct sp_port *port, enum sp_parity parity);
 
@@ -425,8 +418,7 @@ enum sp_return sp_set_parity(struct sp_port *port, enum sp_parity parity);
  * @param port Pointer to port structure.
  * @param stopbits Number of stop bits to use (1 or 2).
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_stopbits(struct sp_port *port, int stopbits);
 
@@ -441,8 +433,7 @@ enum sp_return sp_set_stopbits(struct sp_port *port, int stopbits);
  * @param port Pointer to port structure.
  * @param flowcontrol Flow control setting to use.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flowcontrol);
 
@@ -452,8 +443,7 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
  * @param port Pointer to port structure.
  * @param rts RTS pin mode.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_rts(struct sp_port *port, enum sp_rts rts);
 
@@ -463,8 +453,7 @@ enum sp_return sp_set_rts(struct sp_port *port, enum sp_rts rts);
  * @param port Pointer to port structure.
  * @param cts CTS pin mode.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_cts(struct sp_port *port, enum sp_cts cts);
 
@@ -474,8 +463,7 @@ enum sp_return sp_set_cts(struct sp_port *port, enum sp_cts cts);
  * @param port Pointer to port structure.
  * @param dtr DTR pin mode.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_dtr(struct sp_port *port, enum sp_dtr dtr);
 
@@ -485,8 +473,7 @@ enum sp_return sp_set_dtr(struct sp_port *port, enum sp_dtr dtr);
  * @param port Pointer to port structure.
  * @param dsr DSR pin mode.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_dsr(struct sp_port *port, enum sp_dsr dsr);
 
@@ -496,8 +483,7 @@ enum sp_return sp_set_dsr(struct sp_port *port, enum sp_dsr dsr);
  * @param port Pointer to port structure.
  * @param xon_xoff XON/XOFF flow control mode.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         for invalid arguments.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
 
@@ -518,8 +504,7 @@ enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
  * @param buf Buffer in which to store the bytes read.
  * @param count Maximum number of bytes to read.
  *
- * @return The number of bytes read, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG for invalid arguments.
+ * @return The number of bytes read on success, or a negative error code.
  */
 enum sp_return sp_read(struct sp_port *port, void *buf, size_t count);
 
@@ -534,8 +519,7 @@ enum sp_return sp_read(struct sp_port *port, void *buf, size_t count);
  * @param buf Buffer containing the bytes to write.
  * @param count Maximum number of bytes to write.
  *
- * @return The number of bytes written, SP_ERR_FAIL on failure,
- *         or SP_ERR_ARG for invalid arguments.
+ * @return The number of bytes written on success, or a negative error code.
  */
 enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count);
 
@@ -545,8 +529,7 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count);
  * @param port Pointer to port structure.
  * @param buffers Which buffer(s) to flush.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         if an invalid port is passed.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
 
@@ -555,8 +538,7 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
  *
  * @param port Pointer to port structure.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         if an invalid port is passed.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_drain(struct sp_port *port);
 
@@ -577,8 +559,7 @@ enum sp_return sp_drain(struct sp_port *port);
  * @param port Pointer to port structure.
  * @param signals Pointer to variable to receive result.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         if an an invalid port or pointer is passed.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals);
 
@@ -587,8 +568,7 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals);
  *
  * @param port Pointer to port structure.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         if an invalid port is passed.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_start_break(struct sp_port *port);
 
@@ -597,8 +577,7 @@ enum sp_return sp_start_break(struct sp_port *port);
  *
  * @param port Pointer to port structure.
  *
- * @return SP_OK on success, SP_ERR_FAIL on failure, or SP_ERR_ARG
- *         if an invalid port is passed.
+ * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_end_break(struct sp_port *port);
 
