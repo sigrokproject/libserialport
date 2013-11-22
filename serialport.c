@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdarg.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
@@ -100,6 +102,8 @@ const struct std_baudrate std_baudrates[] = {
 #endif
 #endif
 };
+
+void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
@@ -1423,4 +1427,20 @@ void sp_free_error_message(char *message)
 #else
 	(void)message;
 #endif
+}
+
+void sp_set_debug_handler(void (*handler)(const char *format, ...))
+{
+	sp_debug_handler = handler;
+}
+
+void sp_default_debug_handler(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	if (getenv("LIBSERIALPORT_DEBUG")) {
+		fputs("libserialport: ", stderr);
+		vfprintf(stderr, format, args);
+	}
+	va_end(args);
 }
