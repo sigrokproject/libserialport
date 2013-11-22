@@ -50,6 +50,10 @@
 #endif
 #endif
 
+#ifndef _WIN32
+#include "linux_termios.h"
+#endif
+
 #include "libserialport.h"
 
 struct port_data {
