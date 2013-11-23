@@ -159,6 +159,8 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 	if (!portname)
 		RETURN_ERROR(SP_ERR_ARG, "Null port name");
 
+	DEBUG("Building structure for port %s", portname);
+
 	if (!(port = malloc(sizeof(struct sp_port))))
 		RETURN_ERROR(SP_ERR_MEM, "Port structure malloc failed");
 
@@ -197,6 +199,8 @@ enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_pt
 	if (!port->name)
 		RETURN_ERROR(SP_ERR_ARG, "Null port name");
 
+	DEBUG("Copying port structure");
+
 	RETURN_VALUE("%p", sp_get_port_by_name(port->name, copy_ptr));
 }
 
@@ -209,6 +213,8 @@ void sp_free_port(struct sp_port *port)
 		DEBUG("Null port");
 		RETURN();
 	}
+
+	DEBUG("Freeing port structure");
 
 	if (port->name)
 		free(port->name);
@@ -244,6 +250,8 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 
 	TRACE("%p", list_ptr);
 
+	DEBUG("Enumerating ports");
+
 	if (!(list = malloc(sizeof(struct sp_port **))))
 		RETURN_ERROR(SP_ERR_MEM, "Port list malloc failed");
 
@@ -258,11 +266,13 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 	char *name;
 	int name_len;
 
+	DEBUG("Opening registry key");
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
 			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) {
 		SET_FAIL(ret, "RegOpenKeyEx() failed");
 		goto out_done;
 	}
+	DEBUG("Querying registry key value and data sizes");
 	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS) {
 		SET_FAIL(ret, "RegQueryInfoKey() failed");
@@ -277,6 +287,7 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 		SET_ERROR(ret, SP_ERR_MEM, "registry data malloc failed");
 		goto out_free_value;
 	}
+	DEBUG("Iterating over values");
 	while (
 		value_len = max_value_len + 1,
 		data_size = max_data_size,
@@ -325,11 +336,13 @@ out_done:
 	CFTypeRef cf_path;
 	Boolean result;
 
+	DEBUG("Getting IOKit master port");
 	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS) {
 		SET_FAIL(ret, "IOMasterPort() failed");
 		goto out_done;
 	}
 
+	DEBUG("Creating matching dictionary");
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue))) {
 		SET_FAIL(ret, "IOServiceMatching() failed");
 		goto out_done;
@@ -338,6 +351,7 @@ out_done:
 	CFDictionarySetValue(classes,
 			CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDAllTypes));
 
+	DEBUG("Getting matching services");
 	if (IOServiceGetMatchingServices(master, classes, &iter) != KERN_SUCCESS) {
 		SET_FAIL(ret, "IOServiceGetMatchingServices() failed");
 		goto out_done;
@@ -348,6 +362,7 @@ out_done:
 		goto out_release;
 	}
 
+	DEBUG("Iterating over results");
 	while ((port = IOIteratorNext(iter))) {
 		cf_path = IORegistryEntryCreateCFProperty(port,
 				CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
@@ -384,17 +399,21 @@ out_done:
 	int fd, ioctl_result;
 	struct serial_struct serial_info;
 
+	DEBUG("Enumerating tty devices");
 	ud = udev_new();
 	ud_enumerate = udev_enumerate_new(ud);
 	udev_enumerate_add_match_subsystem(ud_enumerate, "tty");
 	udev_enumerate_scan_devices(ud_enumerate);
 	ud_list = udev_enumerate_get_list_entry(ud_enumerate);
+	DEBUG("Iterating over results");
 	udev_list_entry_foreach(ud_entry, ud_list) {
 		path = udev_list_entry_get_name(ud_entry);
+		DEBUG("Found device %s", path);
 		ud_dev = udev_device_new_from_syspath(ud, path);
 		/* If there is no parent device, this is a virtual tty. */
 		ud_parent = udev_device_get_parent(ud_dev);
 		if (ud_parent == NULL) {
+			DEBUG("No parent device, assuming virtual tty");
 			udev_device_unref(ud_dev);
 			continue;
 		}
@@ -404,14 +423,21 @@ out_done:
 		 * is to try to open them and make an ioctl call. */
 		driver = udev_device_get_driver(ud_parent);
 		if (driver && !strcmp(driver, "serial8250")) {
-			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0)
+			DEBUG("serial8250 device, attempting to open");
+			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
+				DEBUG("open failed, skipping");
 				goto skip;
+			}
 			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
 			close(fd);
-			if (ioctl_result != 0)
+			if (ioctl_result != 0) {
+				DEBUG("ioctl failed, skipping");
 				goto skip;
-			if (serial_info.type == PORT_UNKNOWN)
+			}
+			if (serial_info.type == PORT_UNKNOWN) {
+				DEBUG("port type is unknown, skipping");
 				goto skip;
+			}
 		}
 		DEBUG("Found port %s", name);
 		list = list_append(list, name);
@@ -444,6 +470,8 @@ void sp_free_port_list(struct sp_port **list)
 
 	TRACE("%p", list);
 
+	DEBUG("Freeing port list");
+
 	for (i = 0; list[i]; i++)
 		sp_free_port(list[i]);
 	free(list);
@@ -473,6 +501,8 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	if (!port)
 		RETURN_ERROR(SP_ERR_ARG, "Null port");
+
+	DEBUG("Opening port %s", port->name);
 
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0;
@@ -554,6 +584,8 @@ enum sp_return sp_close(struct sp_port *port)
 
 	CHECK_PORT();
 
+	DEBUG("Closing port %s", port->name);
+
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (CloseHandle(port->hdl) == 0)
@@ -574,6 +606,10 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 	TRACE("%p, %x", port, buffers);
 
 	CHECK_PORT();
+
+	const char *buffer_names[] = {"input", "output", "both"};
+
+	DEBUG("Flushing %s buffers on port %s", buffer_names[buffers], port->name);
 
 #ifdef _WIN32
 	DWORD flags = 0;
@@ -607,6 +643,8 @@ enum sp_return sp_drain(struct sp_port *port)
 
 	CHECK_PORT();
 
+	DEBUG("Draining port %s", port->name);
+
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (FlushFileBuffers(port->hdl) == 0)
@@ -628,6 +666,8 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
+
+	DEBUG("Writing up to %d bytes to port %s", count, port->name);
 
 #ifdef _WIN32
 	DWORD written = 0;
@@ -656,6 +696,8 @@ enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
+	DEBUG("Reading up to %d bytes from port %s", count, port->name);
+
 #ifdef _WIN32
 	DWORD bytes_read = 0;
 
@@ -680,6 +722,8 @@ static enum sp_return get_baudrate(int fd, int *baudrate)
 
 	TRACE("%d, %p", fd, baudrate);
 
+	DEBUG("Getting baud rate");
+
 	if (!(data = malloc(get_termios_size())))
 		RETURN_ERROR(SP_ERR_MEM, "termios malloc failed");
 
@@ -701,6 +745,8 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 
 	TRACE("%d, %d", fd, baudrate);
 
+	DEBUG("Getting baud rate");
+
 	if (!(data = malloc(get_termios_size())))
 		RETURN_ERROR(SP_ERR_MEM, "termios malloc failed");
 
@@ -708,6 +754,8 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 		free(data);
 		RETURN_FAIL("getting termios failed");
 	}
+
+	DEBUG("Setting baud rate");
 
 	set_termios_speed(data, baudrate);
 
@@ -727,6 +775,8 @@ static enum sp_return get_flow(int fd, int *flow)
 	void *data;
 
 	TRACE("%d, %p", fd, flow);
+
+	DEBUG("Getting advanced flow control");
 
 	if (!(data = malloc(get_termiox_size())))
 		RETURN_ERROR(SP_ERR_MEM, "termiox malloc failed");
@@ -749,6 +799,8 @@ static enum sp_return set_flow(int fd, int flow)
 
 	TRACE("%d, %d", fd, flow);
 
+	DEBUG("Getting advanced flow control");
+
 	if (!(data = malloc(get_termiox_size())))
 		RETURN_ERROR(SP_ERR_MEM, "termiox malloc failed");
 
@@ -756,6 +808,8 @@ static enum sp_return set_flow(int fd, int flow)
 		free(data);
 		RETURN_FAIL("getting termiox failed");
 	}
+
+	DEBUG("Setting advanced flow control");
 
 	set_termiox_flow(data, flow);
 
@@ -777,6 +831,8 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	unsigned int i;
 
 	TRACE("%p, %p, %p", port, data, config);
+
+	DEBUG("Getting configuration for port %s", port->name);
 
 #ifdef _WIN32
 	if (!GetCommState(port->hdl, &data->dcb))
@@ -982,6 +1038,8 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 #endif
 
 	TRACE("%p, %p, %p", port, data, config);
+
+	DEBUG("Setting configuration for port %s", port->name);
 
 #ifdef _WIN32
 	if (config->baudrate >= 0) {
@@ -1415,6 +1473,8 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals)
 
 	if (!signals)
 		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
+
+	DEBUG("Getting control signals for port %s", port->name);
 
 	*signals = 0;
 #ifdef _WIN32
