@@ -108,8 +108,6 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
 
-#define TRY(x) do { int ret = x; if (ret != SP_OK) return ret; } while (0)
-
 /* Debug output macros. */
 #define DEBUG(fmt, ...) do { if (sp_debug_handler) sp_debug_handler(fmt ".\n", ##__VA_ARGS__); } while (0)
 #define DEBUG_ERROR(err, msg) DEBUG("%s returning " #err ": " msg, __func__)
@@ -136,6 +134,8 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 #define SET_ERROR(val, err, msg) do { DEBUG_ERROR(err, msg); val = err; } while (0)
 #define SET_FAIL(val, msg) do { DEBUG_FAIL(msg); val = err; } while (0)
 #define TRACE(fmt, ...) DEBUG("%s(" fmt ") called", __func__, ##__VA_ARGS__)
+
+#define TRY(x) do { int ret = x; if (ret != SP_OK) RETURN_CODEVAL(ret); } while (0)
 
 /* Helper functions. */
 static struct sp_port **list_append(struct sp_port **list, const char *portname);
