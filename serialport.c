@@ -58,6 +58,15 @@
 
 #include "libserialport.h"
 
+struct sp_port {
+	char *name;
+#ifdef _WIN32
+	HANDLE hdl;
+#else
+	int fd;
+#endif
+};
+
 struct port_data {
 #ifdef _WIN32
 	DCB dcb;
@@ -182,6 +191,16 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 	*port_ptr = port;
 
 	RETURN_OK();
+}
+
+char *sp_get_port_name(const struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	if (!port)
+		return NULL;
+
+	RETURN_VALUE("%s", port->name);
 }
 
 enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr)

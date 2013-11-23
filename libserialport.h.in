@@ -226,18 +226,7 @@ enum sp_signal {
 };
 
 /** A serial port. */
-struct sp_port {
-	/** Name used to open the port. */
-	char *name;
-/** @cond 0 */
-	/** OS-specific port handle. */
-#ifdef _WIN32
-	HANDLE hdl;
-#else
-	int fd;
-#endif
-/** @endcond */
-};
+struct sp_port;
 
 /** Configuration for a serial port. */
 struct sp_port_config {
@@ -280,6 +269,21 @@ struct sp_port_config {
  * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
+
+/**
+ * Get the name of a port.
+ *
+ * The name returned is whatever is normally used to refer to a port on the
+ * current operating system; e.g. for Windows it will usually be a "COMn"
+ * device name, and for Unix it will be a device path beginning with "/dev/".
+ *
+ * @param port Pointer to port structure.
+ *
+ * @return The port name, or NULL if an invalid port is passed. The name
+ * string is part of the port structure and may not be used after the
+ * port structure has been freed.
+ */
+char *sp_get_port_name(const struct sp_port *port);
 
 /**
  * Free a port structure obtained from sp_get_port_by_name() or sp_copy_port().
