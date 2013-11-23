@@ -67,6 +67,18 @@ struct sp_port {
 #endif
 };
 
+struct sp_port_config {
+	int baudrate;
+	int bits;
+	enum sp_parity parity;
+	int stopbits;
+	enum sp_rts rts;
+	enum sp_cts cts;
+	enum sp_dtr dtr;
+	enum sp_dsr dsr;
+	enum sp_xonxoff xon_xoff;
+};
+
 struct port_data {
 #ifdef _WIN32
 	DCB dcb;
@@ -1452,6 +1464,31 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	RETURN_OK();
 }
 
+enum sp_return sp_new_config(struct sp_port_config **config_ptr)
+{
+	TRACE("%p", config_ptr);
+
+	if (!config_ptr)
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
+
+	if (!(*config_ptr = malloc(sizeof(struct sp_port_config))))
+		RETURN_ERROR(SP_ERR_MEM, "config malloc failed");
+
+	RETURN_OK();
+}
+
+void sp_free_config(struct sp_port_config *config)
+{
+	TRACE("%p", config);
+
+	if (!config)
+		DEBUG("Null config");
+	else
+		free(config);
+
+	RETURN();
+}
+
 enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config)
 {
 	struct port_data data;
@@ -1461,7 +1498,7 @@ enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config
 	CHECK_OPEN_PORT();
 
 	if (!config)
-		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
+		RETURN_ERROR(SP_ERR_ARG, "Null config");
 
 	TRY(get_config(port, &data, config));
 
@@ -1486,7 +1523,8 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
 	RETURN_OK();
 }
 
-#define CREATE_SETTER(x, type) int sp_set_##x(struct sp_port *port, type x) { \
+#define CREATE_ACCESSORS(x, type) \
+enum sp_return sp_set_##x(struct sp_port *port, type x) { \
 	struct port_data data; \
 	struct sp_port_config config; \
 	TRACE("%p, %d", port, x); \
@@ -1495,17 +1533,65 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
 	config.x = x; \
 	TRY(set_config(port, &data, &config)); \
 	RETURN_OK(); \
+} \
+enum sp_return sp_get_config_##x(const struct sp_port_config *config, type *x) { \
+	TRACE("%p", config); \
+	if (!config) \
+		RETURN_ERROR(SP_ERR_ARG, "Null config"); \
+	*x = config->x; \
+	RETURN_OK(); \
+} \
+enum sp_return sp_set_config_##x(struct sp_port_config *config, type x) { \
+	TRACE("%p, %d", config, x); \
+	if (!config) \
+		RETURN_ERROR(SP_ERR_ARG, "Null config"); \
+	config->x = x; \
+	RETURN_OK(); \
 }
 
-CREATE_SETTER(baudrate, int)
-CREATE_SETTER(bits, int)
-CREATE_SETTER(parity, enum sp_parity)
-CREATE_SETTER(stopbits, int)
-CREATE_SETTER(rts, enum sp_rts)
-CREATE_SETTER(cts, enum sp_cts)
-CREATE_SETTER(dtr, enum sp_dtr)
-CREATE_SETTER(dsr, enum sp_dsr)
-CREATE_SETTER(xon_xoff, enum sp_xonxoff)
+CREATE_ACCESSORS(baudrate, int)
+CREATE_ACCESSORS(bits, int)
+CREATE_ACCESSORS(parity, enum sp_parity)
+CREATE_ACCESSORS(stopbits, int)
+CREATE_ACCESSORS(rts, enum sp_rts)
+CREATE_ACCESSORS(cts, enum sp_cts)
+CREATE_ACCESSORS(dtr, enum sp_dtr)
+CREATE_ACCESSORS(dsr, enum sp_dsr)
+CREATE_ACCESSORS(xon_xoff, enum sp_xonxoff)
+
+enum sp_return sp_set_config_flowcontrol(struct sp_port_config *config, enum sp_flowcontrol flowcontrol)
+{
+	if (!config)
+		RETURN_ERROR(SP_ERR_ARG, "Null configuration");
+
+	if (flowcontrol > SP_FLOWCONTROL_DTRDSR)
+		RETURN_ERROR(SP_ERR_ARG, "Invalid flow control setting");
+
+	if (flowcontrol == SP_FLOWCONTROL_XONXOFF)
+		config->xon_xoff = SP_XONXOFF_INOUT;
+	else
+		config->xon_xoff = SP_XONXOFF_DISABLED;
+
+	if (flowcontrol == SP_FLOWCONTROL_RTSCTS) {
+		config->rts = SP_RTS_FLOW_CONTROL;
+		config->cts = SP_CTS_FLOW_CONTROL;
+	} else {
+		if (config->rts == SP_RTS_FLOW_CONTROL)
+			config->rts = SP_RTS_ON;
+		config->cts = SP_CTS_IGNORE;
+	}
+
+	if (flowcontrol == SP_FLOWCONTROL_DTRDSR) {
+		config->dtr = SP_DTR_FLOW_CONTROL;
+		config->dsr = SP_DSR_FLOW_CONTROL;
+	} else {
+		if (config->dtr == SP_DTR_FLOW_CONTROL)
+			config->dtr = SP_DTR_ON;
+		config->dsr = SP_DSR_IGNORE;
+	}
+
+	RETURN_OK();
+}
 
 enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flowcontrol)
 {
@@ -1516,33 +1602,9 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 
 	CHECK_OPEN_PORT();
 
-	if (flowcontrol > SP_FLOWCONTROL_DTRDSR)
-		RETURN_ERROR(SP_ERR_ARG, "Invalid flow control setting");
-
 	TRY(get_config(port, &data, &config));
 
-	if (flowcontrol == SP_FLOWCONTROL_XONXOFF)
-		config.xon_xoff = SP_XONXOFF_INOUT;
-	else
-		config.xon_xoff = SP_XONXOFF_DISABLED;
-
-	if (flowcontrol == SP_FLOWCONTROL_RTSCTS) {
-		config.rts = SP_RTS_FLOW_CONTROL;
-		config.cts = SP_CTS_FLOW_CONTROL;
-	} else {
-		if (config.rts == SP_RTS_FLOW_CONTROL)
-			config.rts = SP_RTS_ON;
-		config.cts = SP_CTS_IGNORE;
-	}
-
-	if (flowcontrol == SP_FLOWCONTROL_DTRDSR) {
-		config.dtr = SP_DTR_FLOW_CONTROL;
-		config.dsr = SP_DSR_FLOW_CONTROL;
-	} else {
-		if (config.dtr == SP_DTR_FLOW_CONTROL)
-			config.dtr = SP_DTR_ON;
-		config.dsr = SP_DSR_IGNORE;
-	}
+	TRY(sp_set_config_flowcontrol(&config, flowcontrol));
 
 	TRY(set_config(port, &data, &config));
 

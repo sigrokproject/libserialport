@@ -232,26 +232,7 @@ enum sp_signal {
 struct sp_port;
 
 /** Configuration for a serial port. */
-struct sp_port_config {
-	/** Baud rate in bits per second. */
-	int baudrate;
-	/** Number of data bits to use. Valid values are 5 to 8. */
-	int bits;
-	/** Parity setting to use. */
-	enum sp_parity parity;
-	/** Number of stop bits to use (1 or 2). */
-	int stopbits;
-	/** RTS pin mode. */
-	enum sp_rts rts;
-	/** CTS pin mode. */
-	enum sp_cts cts;
-	/** DTR pin mode. */
-	enum sp_dtr dtr;
-	/** DSR pin mode. */
-	enum sp_dsr dsr;
-	/** XON/XOFF flow control mode. */
-	enum sp_xonxoff xon_xoff;
-};
+struct sp_port_config;
 
 /**
 @defgroup Enumeration Port enumeration
@@ -388,14 +369,41 @@ enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
  */
 
 /**
+ * Allocate a port configuration structure.
+ *
+ * The user should allocate a variable of type "struct sp_config *" and pass a
+ * pointer to this to receive the result. The variable will be updated to
+ * point to the new configuration structure. The structure is opaque and must
+ * be accessed via the functions provided.
+ *
+ * All parameters in the structure will be initialised to special values which
+ * are ignored by sp_set_config().
+ *
+ * The structure should be freed after use by calling sp_free_config().
+ *
+ * @param config_ptr Pointer to variable to receive result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_new_config(struct sp_port_config **config_ptr);
+
+/**
+ * Free a port configuration structure.
+ *
+ * @param config Pointer to configuration structure.
+ */
+void sp_free_config(struct sp_port_config *config);
+
+/**
  * Get the current configuration of the specified serial port.
  *
- * The user should allocate a struct sp_port_config, then pass a pointer to it
- * as the config parameter. The struct will be populated with the port
- * configuration.
+ * The user should allocate a configuration structure using sp_new_config()
+ * and pass this as the config parameter. The configuration structure will
+ * be updated with the port configuration.
  *
- * Any setting that is in a state not recognised or supported by
- * libserialport will have its value set to -1 in the struct.
+ * Any parameters that are configured with settings not recognised or
+ * supported by libserialport, will be set to special values that are
+ * ignored by sp_set_config().
  *
  * @return SP_OK upon success, a negative error code otherwise.
  */
@@ -404,10 +412,9 @@ enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config
 /**
  * Set the configuration for the specified serial port.
  *
- * The user should populate a struct sp_port_config, then pass a pointer to it
- * as the config parameter.
- *
- * To retain the current value of any setting, set that field to -1.
+ * For each parameter in the configuration, there is a special value (usually
+ * -1, but see the documentation for each field). These values will be ignored
+ * and the corresponding setting left unchanged on the port.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  */
@@ -424,52 +431,129 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
 enum sp_return sp_set_baudrate(struct sp_port *port, int baudrate);
 
 /**
- * Set the number of data bits for the specified serial port.
+ * Get the baud rate from a port configuration.
+ *
+ * The user should allocate a variable of type int and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param baudrate_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_baudrate(const struct sp_port_config *config, int *baudrate_ptr);
+
+/**
+ * Set the baud rate in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param baudrate Baud rate in bits per second, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_baudrate(struct sp_port_config *config, int baudrate);
+
+/**
+ * Set the data bits for the specified serial port.
  *
  * @param port Pointer to port structure.
- * @param bits Number of data bits to use. Valid values are 5 to 8.
+ * @param bits Number of data bits.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_bits(struct sp_port *port, int bits);
 
 /**
- * Set the parity for the specified serial port.
+ * Get the data bits from a port configuration.
+ *
+ * The user should allocate a variable of type int and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param bits_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_bits(const struct sp_port_config *config, int *bits_ptr);
+
+/**
+ * Set the data bits in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param bits Number of data bits, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_bits(struct sp_port_config *config, int bits);
+
+/**
+ * Set the parity setting for the specified serial port.
  *
  * @param port Pointer to port structure.
- * @param parity Parity setting to use.
+ * @param parity Parity setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_parity(struct sp_port *port, enum sp_parity parity);
 
 /**
- * Set the number of stop bits for the specified port.
+ * Get the parity setting from a port configuration.
+ *
+ * The user should allocate a variable of type enum sp_parity and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param parity_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_parity(const struct sp_port_config *config, enum sp_parity *parity_ptr);
+
+/**
+ * Set the parity setting in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param parity Parity setting, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_parity(struct sp_port_config *config, enum sp_parity parity);
+
+/**
+ * Set the stop bits for the specified serial port.
  *
  * @param port Pointer to port structure.
- * @param stopbits Number of stop bits to use (1 or 2).
+ * @param stopbits Number of stop bits.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_stopbits(struct sp_port *port, int stopbits);
 
 /**
- * Set the flow control type for the specified serial port.
+ * Get the stop bits from a port configuration.
  *
- * This function is a wrapper that sets the RTS, CTS, DTR, DSR and
- * XON/XOFF settings as necessary for the specified flow control
- * type. For more fine-grained control of these settings, use their
- * individual configuration functions or the sp_set_config() function.
+ * The user should allocate a variable of type int and pass a pointer to this
+ * to receive the result.
  *
- * @param port Pointer to port structure.
- * @param flowcontrol Flow control setting to use.
+ * @param config Pointer to configuration structure.
+ * @param stopbits_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  */
-enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flowcontrol);
+enum sp_return sp_get_config_stopbits(const struct sp_port_config *config, int *stopbits_ptr);
 
 /**
- * Set the RTS pin behaviour for the specified port.
+ * Set the stop bits in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param stopbits Number of stop bits, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_stopbits(struct sp_port_config *config, int stopbits);
+
+/**
+ * Set the RTS pin behaviour for the specified serial port.
  *
  * @param port Pointer to port structure.
  * @param rts RTS pin mode.
@@ -479,7 +563,30 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 enum sp_return sp_set_rts(struct sp_port *port, enum sp_rts rts);
 
 /**
- * Set the CTS pin behaviour for the specified port.
+ * Get the RTS pin behaviour from a port configuration.
+ *
+ * The user should allocate a variable of type enum sp_rts and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param rts_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_rts(const struct sp_port_config *config, enum sp_rts *rts_ptr);
+
+/**
+ * Set the RTS pin behaviour in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param rts RTS pin mode, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_rts(struct sp_port_config *config, enum sp_rts rts);
+
+/**
+ * Set the CTS pin behaviour for the specified serial port.
  *
  * @param port Pointer to port structure.
  * @param cts CTS pin mode.
@@ -489,7 +596,30 @@ enum sp_return sp_set_rts(struct sp_port *port, enum sp_rts rts);
 enum sp_return sp_set_cts(struct sp_port *port, enum sp_cts cts);
 
 /**
- * Set the DTR pin behaviour for the specified port.
+ * Get the CTS pin behaviour from a port configuration.
+ *
+ * The user should allocate a variable of type enum sp_cts and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param cts_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_cts(const struct sp_port_config *config, enum sp_cts *cts_ptr);
+
+/**
+ * Set the CTS pin behaviour in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param cts CTS pin mode, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_cts(struct sp_port_config *config, enum sp_cts cts);
+
+/**
+ * Set the DTR pin behaviour for the specified serial port.
  *
  * @param port Pointer to port structure.
  * @param dtr DTR pin mode.
@@ -499,7 +629,30 @@ enum sp_return sp_set_cts(struct sp_port *port, enum sp_cts cts);
 enum sp_return sp_set_dtr(struct sp_port *port, enum sp_dtr dtr);
 
 /**
- * Set the RTS pin behaviour for the specified port.
+ * Get the DTR pin behaviour from a port configuration.
+ *
+ * The user should allocate a variable of type enum sp_dtr and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param dtr_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_dtr(const struct sp_port_config *config, enum sp_dtr *dtr_ptr);
+
+/**
+ * Set the DTR pin behaviour in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param dtr DTR pin mode, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_dtr(struct sp_port_config *config, enum sp_dtr dtr);
+
+/**
+ * Set the DSR pin behaviour for the specified serial port.
  *
  * @param port Pointer to port structure.
  * @param dsr DSR pin mode.
@@ -509,14 +662,90 @@ enum sp_return sp_set_dtr(struct sp_port *port, enum sp_dtr dtr);
 enum sp_return sp_set_dsr(struct sp_port *port, enum sp_dsr dsr);
 
 /**
- * Configure XON/XOFF flow control for the specified port.
+ * Get the DSR pin behaviour from a port configuration.
+ *
+ * The user should allocate a variable of type enum sp_dsr and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param dsr_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_dsr(const struct sp_port_config *config, enum sp_dsr *dsr_ptr);
+
+/**
+ * Set the DSR pin behaviour in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param dsr DSR pin mode, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_dsr(struct sp_port_config *config, enum sp_dsr dsr);
+
+/**
+ * Set the XON/XOFF configuration for the specified serial port.
  *
  * @param port Pointer to port structure.
- * @param xon_xoff XON/XOFF flow control mode.
+ * @param xon_xoff XON/XOFF mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
+
+/**
+ * Get the XON/XOFF configuration from a port configuration.
+ *
+ * The user should allocate a variable of type enum sp_xonxoff and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param xon_xoff_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_xon_xoff(const struct sp_port_config *config, enum sp_xonxoff *xon_xoff_ptr);
+
+/**
+ * Set the XON/XOFF configuration in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param xon_xoff XON/XOFF mode, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_xon_xoff(struct sp_port_config *config, enum sp_xonxoff xon_xoff);
+
+/**
+ * Set the flow control type in a port configuration.
+ *
+ * This function is a wrapper that sets the RTS, CTS, DTR, DSR and
+ * XON/XOFF settings as necessary for the specified flow control
+ * type. For more fine-grained control of these settings, use their
+ * individual configuration functions.
+ *
+ * @param config Pointer to configuration structure.
+ * @param flowcontrol Flow control setting to use.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_flowcontrol(struct sp_port_config *config, enum sp_flowcontrol flowcontrol);
+
+/**
+ * Set the flow control type for the specified serial port.
+ *
+ * This function is a wrapper that sets the RTS, CTS, DTR, DSR and
+ * XON/XOFF settings as necessary for the specified flow control
+ * type. For more fine-grained control of these settings, use their
+ * individual configuration functions.
+ *
+ * @param port Pointer to port structure.
+ * @param flowcontrol Flow control setting to use.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flowcontrol);
 
 /**
  * @}
