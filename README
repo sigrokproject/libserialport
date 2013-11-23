@@ -25,8 +25,8 @@ The library should build and work on any Windows or Unix-based system. If it
 does not, please submit a bug.
 
 Enumeration is currently only implemented on Windows, Mac OS X and Linux. On
-other systems enumeration will return no results, but ports can still be opened
-by name and then used.
+other systems enumeration is not supported, but ports can still be opened by
+name and then used.
 
 If you know how to enumerate available ports on another OS, please submit a bug
 with this information, or better still a patch implementing it.

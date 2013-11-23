@@ -246,7 +246,7 @@ fail:
 enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 {
 	struct sp_port **list;
-	int ret = SP_OK;
+	int ret = SP_ERR_SUPP;
 
 	TRACE("%p", list_ptr);
 
@@ -268,6 +268,8 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 	DWORD type, index = 0;
 	char *name;
 	int name_len;
+
+	ret = SP_OK;
 
 	DEBUG("Opening registry key");
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
@@ -339,6 +341,8 @@ out_done:
 	CFTypeRef cf_path;
 	Boolean result;
 
+	ret = SP_OK;
+
 	DEBUG("Getting IOKit master port");
 	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS) {
 		SET_FAIL(ret, "IOMasterPort() failed");
@@ -402,6 +406,8 @@ out_done:
 	int fd, ioctl_result;
 	struct serial_struct serial_info;
 
+	ret = SP_OK;
+
 	DEBUG("Enumerating tty devices");
 	ud = udev_new();
 	ud_enumerate = udev_enumerate_new(ud);
@@ -456,10 +462,13 @@ out:
 	udev_unref(ud);
 #endif
 
-	if (ret == SP_OK) {
+	switch (ret) {
+	case SP_OK:
 		*list_ptr = list;
 		RETURN_OK();
-	} else {
+	case SP_ERR_SUPP:
+		DEBUG_ERROR(SP_ERR_SUPP, "Enumeration not supported on this platform.");
+	default:
 		if (list)
 			sp_free_port_list(list);
 		*list_ptr = NULL;
