@@ -34,6 +34,7 @@
  * - @ref Enumeration (obtaining a list of serial ports on the system)
  * - @ref Ports
  * - @ref Configuration (baud rate, parity, etc.)
+ * - @ref Signals (modem control lines, breaks, etc.)
  * - @ref Data
  * - @ref Errors
  *
@@ -49,7 +50,8 @@
  * port. These structures are always allocated and freed by the library, using
  * the functions in the @ref Enumeration "Enumeration" section.
  *
- * All functions can return only four possible error values:
+ * Most functions have return type @ref sp_return and can return only four
+ * possible error values:
  *
  * - @ref SP_ERR_ARG means that a function was called with invalid
  *   arguments. This implies a bug in the caller. The arguments passed would
@@ -69,8 +71,9 @@
  *
  * All of these error values are negative.
  *
- * Function calls that succeed return @ref SP_OK, which is equal to zero,
- * or where otherwise documented a positive value.
+ * Calls that succeed return @ref SP_OK, which is equal to zero. Some functions
+ * declared @ref sp_return can also return a positive value for a successful
+ * numeric result, e.g. sp_read() and sp_write().
  */
 
 #ifndef LIBSERIALPORT_LIBSERIALPORT_H
@@ -271,45 +274,6 @@ struct sp_port_config {
 enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
 
 /**
- * Get the name of a port.
- *
- * The name returned is whatever is normally used to refer to a port on the
- * current operating system; e.g. for Windows it will usually be a "COMn"
- * device name, and for Unix it will be a device path beginning with "/dev/".
- *
- * @param port Pointer to port structure.
- *
- * @return The port name, or NULL if an invalid port is passed. The name
- * string is part of the port structure and may not be used after the
- * port structure has been freed.
- */
-char *sp_get_port_name(const struct sp_port *port);
-
-/**
- * Get the operating system handle for a port.
- *
- * The type of the handle depends on the operating system. On Unix based
- * systems, the handle is a file descriptor of type "int". On Windows, the
- * handle is of type "HANDLE". The user should allocate a variable of the
- * appropriate type and pass a pointer to this to receive the result.
- *
- * To obtain a valid handle, the port must first be opened by calling
- * sp_open() using the same port structure.
- *
- * After the port is closed or the port structure freed, the handle may
- * no longer be valid.
- *
- * @warning This feature is provided so that programs may make use of
- *          OS-specific functionality where desired. Obviously this comes
- *          at a cost in portability, however it also cannot be guaranteed
- *          that direct usage of the OS handle will not conflict with the
- *          library's own usage of the port. Be careful.
- *
- * @return SP_OK upon success, a negative error code otherwise.
- */
-enum sp_return sp_get_port_handle(const struct sp_port *port, void *result);
-
-/**
  * Free a port structure obtained from sp_get_port_by_name() or sp_copy_port().
  */
 void sp_free_port(struct sp_port *port);
@@ -357,7 +321,7 @@ void sp_free_port_list(struct sp_port **ports);
 
 /**
  * @}
- * @defgroup Ports Opening and closing ports
+ * @defgroup Ports Opening, closing and querying ports
  * @{
  */
 
@@ -377,6 +341,45 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags);
  * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_close(struct sp_port *port);
+
+/**
+ * Get the name of a port.
+ *
+ * The name returned is whatever is normally used to refer to a port on the
+ * current operating system; e.g. for Windows it will usually be a "COMn"
+ * device name, and for Unix it will be a device path beginning with "/dev/".
+ *
+ * @param port Pointer to port structure.
+ *
+ * @return The port name, or NULL if an invalid port is passed. The name
+ * string is part of the port structure and may not be used after the
+ * port structure has been freed.
+ */
+char *sp_get_port_name(const struct sp_port *port);
+
+/**
+ * Get the operating system handle for a port.
+ *
+ * The type of the handle depends on the operating system. On Unix based
+ * systems, the handle is a file descriptor of type "int". On Windows, the
+ * handle is of type "HANDLE". The user should allocate a variable of the
+ * appropriate type and pass a pointer to this to receive the result.
+ *
+ * To obtain a valid handle, the port must first be opened by calling
+ * sp_open() using the same port structure.
+ *
+ * After the port is closed or the port structure freed, the handle may
+ * no longer be valid.
+ *
+ * @warning This feature is provided so that programs may make use of
+ *          OS-specific functionality where desired. Doing so obviously
+ *          comes at a cost in portability. It also cannot be guaranteed
+ *          that direct usage of the OS handle will not conflict with the
+ *          library's own usage of the port. Be careful.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
 
 /**
  * @}
@@ -572,7 +575,7 @@ enum sp_return sp_drain(struct sp_port *port);
 
 /**
  * @}
- * @defgroup Signal Port signalling operations
+ * @defgroup Signals Port signalling operations
  * @{
  */
 
