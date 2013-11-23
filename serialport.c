@@ -203,6 +203,24 @@ char *sp_get_port_name(const struct sp_port *port)
 	RETURN_VALUE("%s", port->name);
 }
 
+enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr)
+{
+	TRACE("%p", port);
+
+	if (!port)
+		RETURN_ERROR(SP_ERR_ARG, "Null port");
+
+#ifdef _WIN32
+	HANDLE *handle_ptr = result_ptr;
+	*handle_ptr = port->hdl;
+#else
+	int *fd_ptr = result_ptr;
+	*fd_ptr = port->fd;
+#endif
+
+	RETURN_OK();
+}
+
 enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr)
 {
 	TRACE("%p, %p", port, copy_ptr);

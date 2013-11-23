@@ -286,6 +286,30 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 char *sp_get_port_name(const struct sp_port *port);
 
 /**
+ * Get the operating system handle for a port.
+ *
+ * The type of the handle depends on the operating system. On Unix based
+ * systems, the handle is a file descriptor of type "int". On Windows, the
+ * handle is of type "HANDLE". The user should allocate a variable of the
+ * appropriate type and pass a pointer to this to receive the result.
+ *
+ * To obtain a valid handle, the port must first be opened by calling
+ * sp_open() using the same port structure.
+ *
+ * After the port is closed or the port structure freed, the handle may
+ * no longer be valid.
+ *
+ * @warning This feature is provided so that programs may make use of
+ *          OS-specific functionality where desired. Obviously this comes
+ *          at a cost in portability, however it also cannot be guaranteed
+ *          that direct usage of the OS handle will not conflict with the
+ *          library's own usage of the port. Be careful.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_port_handle(const struct sp_port *port, void *result);
+
+/**
  * Free a port structure obtained from sp_get_port_by_name() or sp_copy_port().
  */
 void sp_free_port(struct sp_port *port);
