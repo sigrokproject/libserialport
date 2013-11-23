@@ -138,7 +138,6 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 #define TRACE(fmt, ...) DEBUG("%s(" fmt ") called", __func__, ##__VA_ARGS__)
 
 /* Helper functions. */
-static enum sp_return validate_port(struct sp_port *port);
 static struct sp_port **list_append(struct sp_port **list, const char *portname);
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config);
@@ -150,22 +149,24 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 	struct sp_port *port;
 	int len;
 
+	TRACE("%s, %p", portname, port_ptr);
+
 	if (!port_ptr)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
 	*port_ptr = NULL;
 
 	if (!portname)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null port name");
 
 	if (!(port = malloc(sizeof(struct sp_port))))
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "Port structure malloc failed");
 
 	len = strlen(portname) + 1;
 
 	if (!(port->name = malloc(len))) {
 		free(port);
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "Port name malloc failed");
 	}
 
 	memcpy(port->name, portname, len);
@@ -178,31 +179,43 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 
 	*port_ptr = port;
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr)
 {
+	TRACE("%p, %p", port, copy_ptr);
+
 	if (!copy_ptr)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
 	*copy_ptr = NULL;
 
-	if (!port || !port->name)
-		return SP_ERR_ARG;
+	if (!port)
+		RETURN_ERROR(SP_ERR_ARG, "Null port");
 
-	return sp_get_port_by_name(port->name, copy_ptr);
+	if (!port->name)
+		RETURN_ERROR(SP_ERR_ARG, "Null port name");
+
+	RETURN_VALUE("%p", sp_get_port_by_name(port->name, copy_ptr));
 }
 
 void sp_free_port(struct sp_port *port)
 {
+	TRACE("%p", port);
+
 	if (!port)
-		return;
+	{
+		DEBUG("Null port");
+		RETURN();
+	}
 
 	if (port->name)
 		free(port->name);
 
 	free(port);
+
+	RETURN();
 }
 
 static struct sp_port **list_append(struct sp_port **list, const char *portname)
@@ -229,8 +242,10 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 	struct sp_port **list;
 	int ret = SP_OK;
 
+	TRACE("%p", list_ptr);
+
 	if (!(list = malloc(sizeof(struct sp_port **))))
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "Port list malloc failed");
 
 	list[0] = NULL;
 
@@ -245,21 +260,21 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
 			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) {
-		ret = SP_ERR_FAIL;
+		SET_FAIL(ret, "RegOpenKeyEx() failed");
 		goto out_done;
 	}
 	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS) {
-		ret = SP_ERR_FAIL;
+		SET_FAIL(ret, "RegQueryInfoKey() failed");
 		goto out_close;
 	}
 	max_data_len = max_data_size / sizeof(TCHAR);
 	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR)))) {
-		ret = SP_ERR_MEM;
+		SET_ERROR(ret, SP_ERR_MEM, "registry value malloc failed");
 		goto out_close;
 	}
 	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR)))) {
-		ret = SP_ERR_MEM;
+		SET_ERROR(ret, SP_ERR_MEM, "registry data malloc failed");
 		goto out_free_value;
 	}
 	while (
@@ -276,7 +291,7 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 		name_len = data_len + 1;
 #endif
 		if (!(name = malloc(name_len))) {
-			ret = SP_ERR_MEM;
+			SET_ERROR(ret, SP_ERR_MEM, "registry port name malloc failed");
 			goto out;
 		}
 #ifdef UNICODE
@@ -284,9 +299,12 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 #else
 		strcpy(name, data);
 #endif
-		if (type == REG_SZ && !(list = list_append(list, name))) {
-			ret = SP_ERR_MEM;
-			goto out;
+		if (type == REG_SZ) {
+			DEBUG("Found port %s", name);
+			if (!(list = list_append(list, name))) {
+				SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+				goto out;
+			}
 		}
 		index++;
 	}
@@ -308,12 +326,12 @@ out_done:
 	Boolean result;
 
 	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS) {
-		ret = SP_ERR_FAIL;
+		SET_FAIL(ret, "IOMasterPort() failed");
 		goto out_done;
 	}
 
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue))) {
-		ret = SP_ERR_FAIL;
+		SET_FAIL(ret, "IOServiceMatching() failed");
 		goto out_done;
 	}
 
@@ -321,12 +339,12 @@ out_done:
 			CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDAllTypes));
 
 	if (IOServiceGetMatchingServices(master, classes, &iter) != KERN_SUCCESS) {
-		ret = SP_ERR_FAIL;
+		SET_FAIL(ret, "IOServiceGetMatchingServices() failed");
 		goto out_done;
 	}
 
 	if (!(path = malloc(PATH_MAX))) {
-		ret = SP_ERR_MEM;
+		SET_ERROR(ret, SP_ERR_MEM, "device path malloc failed");
 		goto out_release;
 	}
 
@@ -337,10 +355,13 @@ out_done:
 			result = CFStringGetCString(cf_path,
 					path, PATH_MAX, kCFStringEncodingASCII);
 			CFRelease(cf_path);
-			if (result && !(list = list_append(list, path))) {
-				ret = SP_ERR_MEM;
-				IOObjectRelease(port);
-				goto out;
+			if (result) {
+				DEBUG("Found port %s", path);
+				if (!(list = list_append(list, path))) {
+					SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+					IOObjectRelease(port);
+					goto out;
+				}
 			}
 		}
 		IOObjectRelease(port);
@@ -392,11 +413,12 @@ out_done:
 			if (serial_info.type == PORT_UNKNOWN)
 				goto skip;
 		}
+		DEBUG("Found port %s", name);
 		list = list_append(list, name);
 skip:
 		udev_device_unref(ud_dev);
 		if (!list) {
-			ret = SP_ERR_MEM;
+			SET_ERROR(ret, SP_ERR_MEM, "list append failed");
 			goto out;
 		}
 	}
@@ -407,44 +429,50 @@ out:
 
 	if (ret == SP_OK) {
 		*list_ptr = list;
+		RETURN_OK();
 	} else {
 		if (list)
 			sp_free_port_list(list);
 		*list_ptr = NULL;
+		return ret;
 	}
-
-	return ret;
 }
 
 void sp_free_port_list(struct sp_port **list)
 {
 	unsigned int i;
 
+	TRACE("%p", list);
+
 	for (i = 0; list[i]; i++)
 		sp_free_port(list[i]);
 	free(list);
+
+	RETURN();
 }
 
-static enum sp_return validate_port(struct sp_port *port)
-{
-	if (port == NULL)
-		return 0;
 #ifdef _WIN32
-	if (port->hdl == INVALID_HANDLE_VALUE)
-		return 0;
+#define CHECK_PORT() do { \
+	if (port == NULL) \
+		RETURN_ERROR(SP_ERR_ARG, "Null port"); \
+	if (port->hdl == INVALID_HANDLE_VALUE) \
+		RETURN_ERROR(SP_ERR_ARG, "Invalid port handle"); \
+} while(0);
 #else
-	if (port->fd < 0)
-		return 0;
+#define CHECK_PORT() do { \
+	if (port == NULL) \
+		RETURN_ERROR(SP_ERR_ARG, "Null port"); \
+	if (port->fd < 0) \
+		RETURN_ERROR(SP_ERR_ARG, "Invalid port fd"); \
+} while(0);
 #endif
-	return 1;
-}
-
-#define CHECK_PORT() do { if (!validate_port(port)) return SP_ERR_ARG; } while (0)
 
 enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 {
+	TRACE("%p, %x", port, flags);
+
 	if (!port)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null port");
 
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0;
@@ -452,7 +480,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	/* Prefix port name with '\\.\' to work with ports above COM9. */
 	if (!(escaped_port_name = malloc(strlen(port->name + 5))))
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "Escaped port name malloc failed");
 	sprintf(escaped_port_name, "\\\\.\\%s", port->name);
 
 	/* Map 'flags' to the OS-specific settings. */
@@ -470,7 +498,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	free(escaped_port_name);
 
 	if (port->hdl == INVALID_HANDLE_VALUE)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("CreateFile() failed");
 #else
 	int flags_local = 0;
 	struct port_data data;
@@ -488,13 +516,13 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		flags_local |= O_NONBLOCK;
 
 	if ((port->fd = open(port->name, flags_local)) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("open() failed");
 
 	ret = get_config(port, &data, &config);
 
 	if (ret < 0) {
 		sp_close(port);
-		return ret;
+		RETURN_CODEVAL(ret);
 	}
 
 	/* Turn off all serial port cooking. */
@@ -513,34 +541,38 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	if (ret < 0) {
 		sp_close(port);
-		return ret;
+		RETURN_CODEVAL(ret);
 	}
 #endif
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_close(struct sp_port *port)
 {
+	TRACE("%p", port);
+
 	CHECK_PORT();
 
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (CloseHandle(port->hdl) == 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("CloseHandle() failed");
 	port->hdl = INVALID_HANDLE_VALUE;
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	if (close(port->fd) == -1)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("close() failed");
 	port->fd = -1;
 #endif
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 {
+	TRACE("%p, %x", port, buffers);
+
 	CHECK_PORT();
 
 #ifdef _WIN32
@@ -552,7 +584,7 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (PurgeComm(port->hdl, flags) == 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("PurgeComm() failed");
 #else
 	int flags = 0;
 	if (buffers & SP_BUF_BOTH)
@@ -564,74 +596,80 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 
 	/* Returns 0 upon success, -1 upon failure. */
 	if (tcflush(port->fd, flags) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("tcflush() failed");
 #endif
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_drain(struct sp_port *port)
 {
+	TRACE("%p", port);
+
 	CHECK_PORT();
 
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (FlushFileBuffers(port->hdl) == 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("FlushFileBuffers() failed");
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	if (tcdrain(port->fd) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("tcdrain() failed");
 #endif
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 {
+	TRACE("%p, %p, %d", port, buf, count);
+
 	CHECK_PORT();
 
 	if (!buf)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
 #ifdef _WIN32
 	DWORD written = 0;
 
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (WriteFile(port->hdl, buf, count, &written, NULL) == 0)
-		return SP_ERR_FAIL;
-	return written;
+		RETURN_FAIL("WriteFile() failed");
+	RETURN_VALUE("%d", written);
 #else
 	/* Returns the number of bytes written, or -1 upon failure. */
 	ssize_t written = write(port->fd, buf, count);
 
 	if (written < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("write() failed");
 	else
-		return written;
+		RETURN_VALUE("%d", written);
 #endif
 }
 
 enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
 {
+	TRACE("%p, %p, %d", port, buf, count);
+
 	CHECK_PORT();
 
 	if (!buf)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
 #ifdef _WIN32
 	DWORD bytes_read = 0;
 
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (ReadFile(port->hdl, buf, count, &bytes_read, NULL) == 0)
-		return SP_ERR_FAIL;
-	return bytes_read;
+		RETURN_FAIL("ReadFile() failed");
+	RETURN_VALUE("%d", bytes_read);
 #else
 	ssize_t bytes_read;
 
 	/* Returns the number of bytes read, or -1 upon failure. */
 	if ((bytes_read = read(port->fd, buf, count)) < 0)
-		return SP_ERR_FAIL;
-	return bytes_read;
+		RETURN_FAIL("read() failed");
+	RETURN_VALUE("%d", bytes_read);
 #endif
 }
 
@@ -640,43 +678,47 @@ static enum sp_return get_baudrate(int fd, int *baudrate)
 {
 	void *data;
 
+	TRACE("%d, %p", fd, baudrate);
+
 	if (!(data = malloc(get_termios_size())))
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "termios malloc failed");
 
 	if (ioctl(fd, get_termios_get_ioctl(), data) < 0) {
 		free(data);
-		return SP_ERR_FAIL;
+		RETURN_FAIL("getting termios failed");
 	}
 
 	*baudrate = get_termios_speed(data);
 
 	free(data);
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 static enum sp_return set_baudrate(int fd, int baudrate)
 {
 	void *data;
 
+	TRACE("%d, %d", fd, baudrate);
+
 	if (!(data = malloc(get_termios_size())))
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "termios malloc failed");
 
 	if (ioctl(fd, get_termios_get_ioctl(), data) < 0) {
 		free(data);
-		return SP_ERR_FAIL;
+		RETURN_FAIL("getting termios failed");
 	}
 
 	set_termios_speed(data, baudrate);
 
 	if (ioctl(fd, get_termios_set_ioctl(), data) < 0) {
 		free(data);
-		return SP_ERR_FAIL;
+		RETURN_FAIL("setting termios failed");
 	}
 
 	free(data);
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 #ifdef USE_TERMIOX
@@ -684,43 +726,47 @@ static enum sp_return get_flow(int fd, int *flow)
 {
 	void *data;
 
+	TRACE("%d, %p", fd, flow);
+
 	if (!(data = malloc(get_termiox_size())))
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "termiox malloc failed");
 
 	if (ioctl(fd, TCGETX, data) < 0) {
 		free(data);
-		return SP_ERR_FAIL;
+		RETURN_FAIL("getting termiox failed");
 	}
 
 	*flow = get_termiox_flow(data);
 
 	free(data);
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 static enum sp_return set_flow(int fd, int flow)
 {
 	void *data;
 
+	TRACE("%d, %d", fd, flow);
+
 	if (!(data = malloc(get_termiox_size())))
-		return SP_ERR_MEM;
+		RETURN_ERROR(SP_ERR_MEM, "termiox malloc failed");
 
 	if (ioctl(fd, TCGETX, data) < 0) {
 		free(data);
-		return SP_ERR_FAIL;
+		RETURN_FAIL("getting termiox failed");
 	}
 
 	set_termiox_flow(data, flow);
 
 	if (ioctl(fd, TCSETX, data) < 0) {
 		free(data);
-		return SP_ERR_FAIL;
+		RETURN_FAIL("setting termiox failed");
 	}
 
 	free(data);
 
-	return SP_OK;
+	RETURN_OK();
 }
 #endif /* USE_TERMIOX */
 #endif /* __linux__ */
@@ -730,9 +776,11 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 {
 	unsigned int i;
 
+	TRACE("%p, %p, %p", port, data, config);
+
 #ifdef _WIN32
 	if (!GetCommState(port->hdl, &data->dcb))
-		return SP_ERR_FAIL;
+		RETURN_FAIL("GetCommState() failed");
 
 	for (i = 0; i < NUM_STD_BAUDRATES; i++) {
 		if (data->dcb.BaudRate == std_baudrates[i].index) {
@@ -822,10 +870,10 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 #else // !_WIN32
 
 	if (tcgetattr(port->fd, &data->term) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("tcgetattr() failed");
 
 	if (ioctl(port->fd, TIOCMGET, &data->controlbits) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("TIOCMGET ioctl failed");
 
 #ifdef USE_TERMIOX
 	int ret = get_flow(port->fd, &data->flow);
@@ -833,7 +881,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	if (ret == SP_ERR_FAIL && errno == EINVAL)
 		data->termiox_supported = 0;
 	else if (ret < 0)
-		return ret;
+		RETURN_CODEVAL(ret);
 	else
 		data->termiox_supported = 1;
 #else
@@ -917,7 +965,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	}
 #endif
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
@@ -932,6 +980,8 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 #ifdef __linux__
 	int baud_nonstd = 0;
 #endif
+
+	TRACE("%p, %p, %p", port, data, config);
 
 #ifdef _WIN32
 	if (config->baudrate >= 0) {
@@ -962,7 +1012,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->dcb.Parity = ODDPARITY;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid parity setting");
 		}
 	}
 
@@ -976,7 +1026,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->dcb.StopBits = TWOSTOPBITS;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid stop bit setting");
 		}
 	}
 
@@ -992,7 +1042,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid RTS setting");
 		}
 	}
 
@@ -1005,7 +1055,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->dcb.fOutxCtsFlow = TRUE;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid CTS setting");
 		}
 	}
 
@@ -1021,7 +1071,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->dcb.fDtrControl = DTR_CONTROL_HANDSHAKE;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid DTR setting");
 		}
 	}
 
@@ -1034,7 +1084,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->dcb.fOutxDsrFlow = TRUE;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid DSR setting");
 		}
 	}
 
@@ -1057,12 +1107,12 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->dcb.fOutX = TRUE;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid XON/XOFF setting");
 		}
 	}
 
 	if (!SetCommState(port->hdl, &data->dcb))
-		return SP_ERR_FAIL;
+		RETURN_FAIL("SetCommState() failed");
 
 #else /* !_WIN32 */
 
@@ -1072,10 +1122,10 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		for (i = 0; i < NUM_STD_BAUDRATES; i++) {
 			if (config->baudrate == std_baudrates[i].value) {
 				if (cfsetospeed(&data->term, std_baudrates[i].index) < 0)
-					return SP_ERR_FAIL;
+					RETURN_FAIL("cfsetospeed() failed");
 
 				if (cfsetispeed(&data->term, std_baudrates[i].index) < 0)
-					return SP_ERR_FAIL;
+					RETURN_FAIL("cfsetispeed() failed");
 				break;
 			}
 		}
@@ -1085,12 +1135,12 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 #ifdef __APPLE__
 			/* Set "dummy" baud rate. */
 			if (cfsetspeed(&data->term, B9600) < 0)
-				return SP_ERR_FAIL;
+				RETURN_FAIL("cfsetspeed() failed");
 			baud_nonstd = config->baudrate;
 #elif defined(__linux__)
 			baud_nonstd = 1;
 #else
-			return SP_ERR_SUPP;
+			RETURN_ERROR(SP_ERR_SUPP, "Non-standard baudrate not supported");
 #endif
 		}
 	}
@@ -1111,7 +1161,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->term.c_cflag |= CS5;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid data bits setting");
 		}
 	}
 
@@ -1129,7 +1179,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->term.c_cflag |= PARENB | PARODD;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid parity setting");
 		}
 	}
 
@@ -1143,7 +1193,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->term.c_cflag |= CSTOPB;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid stop bits setting");
 		}
 	}
 
@@ -1155,7 +1205,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			case SP_RTS_ON:
 				controlbits = TIOCM_RTS;
 				if (ioctl(port->fd, config->rts == SP_RTS_ON ? TIOCMBIS : TIOCMBIC, &controlbits) < 0)
-					return SP_ERR_FAIL;
+					RETURN_FAIL("Setting RTS signal level failed");
 				break;
 			case SP_RTS_FLOW_CONTROL:
 				data->flow |= RTS_FLOW;
@@ -1176,17 +1226,17 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 				/* Flow control can only be disabled for both RTS & CTS together. */
 				if (config->rts >= 0 && config->rts != SP_RTS_FLOW_CONTROL) {
 					if (config->cts != SP_CTS_IGNORE)
-						return SP_ERR_SUPP;
+						RETURN_ERROR(SP_ERR_SUPP, "RTS & CTS flow control must be disabled together");
 				}
 				if (config->cts >= 0 && config->cts != SP_CTS_FLOW_CONTROL) {
 					if (config->rts <= 0 || config->rts == SP_RTS_FLOW_CONTROL)
-						return SP_ERR_SUPP;
+						RETURN_ERROR(SP_ERR_SUPP, "RTS & CTS flow control must be disabled together");
 				}
 			} else {
 				/* Flow control can only be enabled for both RTS & CTS together. */
 				if (((config->rts == SP_RTS_FLOW_CONTROL) && (config->cts != SP_CTS_FLOW_CONTROL)) ||
 					((config->cts == SP_CTS_FLOW_CONTROL) && (config->rts != SP_RTS_FLOW_CONTROL)))
-					return SP_ERR_SUPP;
+					RETURN_ERROR(SP_ERR_SUPP, "RTS & CTS flow control must be enabled together");
 			}
 
 			if (config->rts >= 0) {
@@ -1196,7 +1246,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 					controlbits = TIOCM_RTS;
 					if (ioctl(port->fd, config->rts == SP_RTS_ON ? TIOCMBIS : TIOCMBIC,
 							&controlbits) < 0)
-						return SP_ERR_FAIL;
+						RETURN_FAIL("Setting RTS signal level failed");
 				}
 			}
 		}
@@ -1210,7 +1260,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			case SP_DTR_ON:
 				controlbits = TIOCM_DTR;
 				if (ioctl(port->fd, config->dtr == SP_DTR_ON ? TIOCMBIS : TIOCMBIC, &controlbits) < 0)
-					return SP_ERR_FAIL;
+					RETURN_FAIL("Setting DTR signal level failed");
 				break;
 			case SP_DTR_FLOW_CONTROL:
 				data->flow |= DTR_FLOW;
@@ -1223,13 +1273,13 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		} else {
 			/* DTR/DSR flow control not supported. */
 			if (config->dtr == SP_DTR_FLOW_CONTROL || config->dsr == SP_DSR_FLOW_CONTROL)
-				return SP_ERR_SUPP;
+				RETURN_ERROR(SP_ERR_SUPP, "DTR/DSR flow control not supported");
 
 			if (config->dtr >= 0) {
 				controlbits = TIOCM_DTR;
 				if (ioctl(port->fd, config->dtr == SP_DTR_ON ? TIOCMBIS : TIOCMBIC,
 						&controlbits) < 0)
-					return SP_ERR_FAIL;
+					RETURN_FAIL("Setting DTR signal level failed");
 			}
 		}
 	}
@@ -1249,21 +1299,21 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->term.c_iflag |= IXON | IXOFF | IXANY;
 			break;
 		default:
-			return SP_ERR_ARG;
+			RETURN_ERROR(SP_ERR_ARG, "Invalid XON/XOFF setting");
 		}
 	}
 
 	if (tcsetattr(port->fd, TCSADRAIN, &data->term) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("tcsetattr() failed");
 
 #ifdef __APPLE__
 	if (baud_nonstd != B0) {
 		if (ioctl(port->fd, IOSSIOSPEED, &baud_nonstd) == -1)
-			return SP_ERR_FAIL;
+			RETURN_FAIL("IOSSIOSPEED ioctl failed");
 		/* Set baud rates in data->term to correct, but incompatible
 		 * with tcsetattr() value, same as delivered by tcgetattr(). */
 		if (cfsetspeed(&data->term, baud_nonstd) < 0)
-			return SP_ERR_FAIL;
+			RETURN_FAIL("cfsetspeed() failed");
 	}
 #elif defined(__linux__)
 	if (baud_nonstd)
@@ -1276,7 +1326,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 #endif /* !_WIN32 */
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *config)
@@ -1284,25 +1334,28 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
 	struct port_data data;
 	struct sp_port_config prev_config;
 
+	TRACE("%p, %p", port, config);
+
 	CHECK_PORT();
 
 	if (!config)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null config");
 
 	TRY(get_config(port, &data, &prev_config));
 	TRY(set_config(port, &data, config));
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 #define CREATE_SETTER(x, type) int sp_set_##x(struct sp_port *port, type x) { \
 	struct port_data data; \
 	struct sp_port_config config; \
+	TRACE("%p, %d", port, x); \
 	CHECK_PORT(); \
 	TRY(get_config(port, &data, &config)); \
 	config.x = x; \
 	TRY(set_config(port, &data, &config)); \
-	return SP_OK; \
+	RETURN_OK(); \
 }
 
 CREATE_SETTER(baudrate, int)
@@ -1319,6 +1372,8 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 {
 	struct port_data data;
 	struct sp_port_config config;
+
+	TRACE("%p, %d", port, flowcontrol);
 
 	CHECK_PORT();
 
@@ -1349,21 +1404,23 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 
 	TRY(set_config(port, &data, &config));
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals)
 {
+	TRACE("%p, %p", port, signals);
+
 	CHECK_PORT();
 
 	if (!signals)
-		return SP_ERR_ARG;
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
 	*signals = 0;
 #ifdef _WIN32
 	DWORD bits;
 	if (GetCommModemStatus(port->hdl, &bits) == 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("GetCommModemStatus() failed");
 	if (bits & MS_CTS_ON)
 		*signals |= SP_SIG_CTS;
 	if (bits & MS_DSR_ON)
@@ -1375,7 +1432,7 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals)
 #else
 	int bits;
 	if (ioctl(port->fd, TIOCMGET, &bits) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("TIOCMGET ioctl failed");
 	if (bits & TIOCM_CTS)
 		*signals |= SP_SIG_CTS;
 	if (bits & TIOCM_DSR)
@@ -1385,48 +1442,55 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals)
 	if (bits & TIOCM_RNG)
 		*signals |= SP_SIG_RI;
 #endif
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_start_break(struct sp_port *port)
 {
+	TRACE("%p", port);
+
 	CHECK_PORT();
 #ifdef _WIN32
 	if (SetCommBreak(port->hdl) == 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("SetCommBreak() failed");
 #else
 	if (ioctl(port->fd, TIOCSBRK, 1) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("TIOCSBRK ioctl failed");
 #endif
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 enum sp_return sp_end_break(struct sp_port *port)
 {
+	TRACE("%p", port);
+
 	CHECK_PORT();
 #ifdef _WIN32
 	if (ClearCommBreak(port->hdl) == 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("ClearCommBreak() failed");
 #else
 	if (ioctl(port->fd, TIOCCBRK, 1) < 0)
-		return SP_ERR_FAIL;
+		RETURN_FAIL("TIOCCBRK ioctl failed");
 #endif
 
-	return SP_OK;
+	RETURN_OK();
 }
 
 int sp_last_error_code(void)
 {
+	TRACE("");
 #ifdef _WIN32
-	return GetLastError();
+	RETURN_VALUE("%d", GetLastError());
 #else
-	return errno;
+	RETURN_VALUE("%d", errno);
 #endif
 }
 
 char *sp_last_error_message(void)
 {
+	TRACE("");
+
 #ifdef _WIN32
 	LPVOID message;
 	DWORD error = GetLastError();
@@ -1441,24 +1505,32 @@ char *sp_last_error_message(void)
 		(LPTSTR) &message,
 		0, NULL );
 
-	return message;
+	RETURN_VALUE("%s", message);
 #else
-	return strerror(errno);
+	RETURN_VALUE("%s", strerror(errno));
 #endif
 }
 
 void sp_free_error_message(char *message)
 {
+	TRACE("%s", message);
+
 #ifdef _WIN32
 	LocalFree(message);
 #else
 	(void)message;
 #endif
+
+	RETURN();
 }
 
 void sp_set_debug_handler(void (*handler)(const char *format, ...))
 {
+	TRACE("%p", handler);
+
 	sp_debug_handler = handler;
+
+	RETURN();
 }
 
 void sp_default_debug_handler(const char *format, ...)
