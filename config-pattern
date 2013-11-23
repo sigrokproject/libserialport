@@ -1,0 +1,32 @@
+/**
+ * Set the {2} for the specified serial port.
+ *
+ * @param port Pointer to port structure.
+ * @param {0} {3}.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_{0}(struct sp_port *port, {1} {0});
+
+/**
+ * Get the {2} from a port configuration.
+ *
+ * The user should allocate a variable of type {1} and pass a pointer to this
+ * to receive the result.
+ *
+ * @param config Pointer to configuration structure.
+ * @param {0}_ptr Pointer to variable to store result.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_get_config_{0}(const struct sp_port_config *config, {1} *{0}_ptr);
+
+/**
+ * Set the {2} in a port configuration.
+ *
+ * @param config Pointer to configuration structure.
+ * @param {0} {3}, or -1 to retain current setting.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_set_config_{0}(struct sp_port_config *config, {1} {0});
