@@ -250,6 +250,9 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 
 	TRACE("%p", list_ptr);
 
+	if (!list_ptr)
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
+
 	DEBUG("Enumerating ports");
 
 	if (!(list = malloc(sizeof(struct sp_port **))))
@@ -470,6 +473,11 @@ void sp_free_port_list(struct sp_port **list)
 
 	TRACE("%p", list);
 
+	if (!list) {
+		DEBUG("Null list");
+		RETURN();
+	}
+
 	DEBUG("Freeing port list");
 
 	for (i = 0; list[i]; i++)
@@ -479,28 +487,36 @@ void sp_free_port_list(struct sp_port **list)
 	RETURN();
 }
 
-#ifdef _WIN32
 #define CHECK_PORT() do { \
 	if (port == NULL) \
 		RETURN_ERROR(SP_ERR_ARG, "Null port"); \
+	if (port->name == NULL) \
+		RETURN_ERROR(SP_ERR_ARG, "Null port name"); \
+} while (0)
+#ifdef _WIN32
+#define CHECK_PORT_HANDLE() do { \
 	if (port->hdl == INVALID_HANDLE_VALUE) \
 		RETURN_ERROR(SP_ERR_ARG, "Invalid port handle"); \
-} while(0);
+} while (0)
 #else
-#define CHECK_PORT() do { \
-	if (port == NULL) \
-		RETURN_ERROR(SP_ERR_ARG, "Null port"); \
+#define CHECK_PORT_HANDLE() do { \
 	if (port->fd < 0) \
 		RETURN_ERROR(SP_ERR_ARG, "Invalid port fd"); \
-} while(0);
+} while (0)
 #endif
+#define CHECK_OPEN_PORT() do { \
+	CHECK_PORT(); \
+	CHECK_PORT_HANDLE(); \
+} while (0)
 
 enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 {
 	TRACE("%p, %x", port, flags);
 
-	if (!port)
-		RETURN_ERROR(SP_ERR_ARG, "Null port");
+	CHECK_PORT();
+
+	if (flags > (SP_MODE_READ | SP_MODE_WRITE | SP_MODE_NONBLOCK))
+		RETURN_ERROR(SP_ERR_ARG, "Invalid flags");
 
 	DEBUG("Opening port %s", port->name);
 
@@ -582,7 +598,7 @@ enum sp_return sp_close(struct sp_port *port)
 {
 	TRACE("%p", port);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 
 	DEBUG("Closing port %s", port->name);
 
@@ -605,7 +621,10 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 {
 	TRACE("%p, %x", port, buffers);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
+
+	if (buffers > SP_BUF_BOTH)
+		RETURN_ERROR(SP_ERR_ARG, "Invalid buffer selection");
 
 	const char *buffer_names[] = {"input", "output", "both"};
 
@@ -641,7 +660,7 @@ enum sp_return sp_drain(struct sp_port *port)
 {
 	TRACE("%p", port);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 
 	DEBUG("Draining port %s", port->name);
 
@@ -662,7 +681,7 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 {
 	TRACE("%p, %p, %d", port, buf, count);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
@@ -691,7 +710,7 @@ enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
 {
 	TRACE("%p, %p, %d", port, buf, count);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
@@ -1394,7 +1413,7 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
 
 	TRACE("%p, %p", port, config);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 
 	if (!config)
 		RETURN_ERROR(SP_ERR_ARG, "Null config");
@@ -1409,7 +1428,7 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
 	struct port_data data; \
 	struct sp_port_config config; \
 	TRACE("%p, %d", port, x); \
-	CHECK_PORT(); \
+	CHECK_OPEN_PORT(); \
 	TRY(get_config(port, &data, &config)); \
 	config.x = x; \
 	TRY(set_config(port, &data, &config)); \
@@ -1433,7 +1452,10 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 
 	TRACE("%p, %d", port, flowcontrol);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
+
+	if (flowcontrol > SP_FLOWCONTROL_DTRDSR)
+		RETURN_ERROR(SP_ERR_ARG, "Invalid flow control setting");
 
 	TRY(get_config(port, &data, &config));
 
@@ -1469,7 +1491,7 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals)
 {
 	TRACE("%p, %p", port, signals);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 
 	if (!signals)
 		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
@@ -1509,7 +1531,7 @@ enum sp_return sp_start_break(struct sp_port *port)
 {
 	TRACE("%p", port);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 #ifdef _WIN32
 	if (SetCommBreak(port->hdl) == 0)
 		RETURN_FAIL("SetCommBreak() failed");
@@ -1525,7 +1547,7 @@ enum sp_return sp_end_break(struct sp_port *port)
 {
 	TRACE("%p", port);
 
-	CHECK_PORT();
+	CHECK_OPEN_PORT();
 #ifdef _WIN32
 	if (ClearCommBreak(port->hdl) == 0)
 		RETURN_FAIL("ClearCommBreak() failed");
