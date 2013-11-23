@@ -1415,6 +1415,22 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	RETURN_OK();
 }
 
+enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config)
+{
+	struct port_data data;
+
+	TRACE("%p, %p", port, config);
+
+	CHECK_OPEN_PORT();
+
+	if (!config)
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
+
+	TRY(get_config(port, &data, config));
+
+	RETURN_OK();
+}
+
 enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *config)
 {
 	struct port_data data;
