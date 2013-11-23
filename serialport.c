@@ -1516,9 +1516,9 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals)
 		*signals |= SP_SIG_CTS;
 	if (bits & MS_DSR_ON)
 		*signals |= SP_SIG_DSR;
-	if (bits & MS_RING_ON)
-		*signals |= SP_SIG_DCD;
 	if (bits & MS_RLSD_ON)
+		*signals |= SP_SIG_DCD;
+	if (bits & MS_RING_ON)
 		*signals |= SP_SIG_RI;
 #else
 	int bits;
