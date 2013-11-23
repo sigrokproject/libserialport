@@ -1467,12 +1467,26 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 enum sp_return sp_new_config(struct sp_port_config **config_ptr)
 {
 	TRACE("%p", config_ptr);
+	struct sp_port_config *config;
 
 	if (!config_ptr)
 		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
-	if (!(*config_ptr = malloc(sizeof(struct sp_port_config))))
+	*config_ptr = NULL;
+
+	if (!(config = malloc(sizeof(struct sp_port_config))))
 		RETURN_ERROR(SP_ERR_MEM, "config malloc failed");
+
+	config->baudrate = -1;
+	config->bits = -1;
+	config->parity = -1;
+	config->stopbits = -1;
+	config->rts = -1;
+	config->cts = -1;
+	config->dtr = -1;
+	config->dsr = -1;
+
+	*config_ptr = config;
 
 	RETURN_OK();
 }
