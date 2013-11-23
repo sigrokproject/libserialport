@@ -684,7 +684,7 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 	if (buffers > SP_BUF_BOTH)
 		RETURN_ERROR(SP_ERR_ARG, "Invalid buffer selection");
 
-	const char *buffer_names[] = {"input", "output", "both"};
+	const char *buffer_names[] = {"no", "input", "output", "both"};
 
 	DEBUG("Flushing %s buffers on port %s", buffer_names[buffers], port->name);
 
