@@ -573,6 +573,10 @@ void sp_free_port_list(struct sp_port **list)
 
 enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 {
+	struct port_data data;
+	struct sp_port_config config;
+	enum sp_return ret;
+
 	TRACE("%p, %x", port, flags);
 
 	CHECK_PORT();
@@ -636,9 +640,6 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	}
 #else
 	int flags_local = 0;
-	struct port_data data;
-	struct sp_port_config config;
-	int ret;
 
 	/* Map 'flags' to the OS-specific settings. */
 	if (flags & (SP_MODE_READ | SP_MODE_WRITE))
@@ -652,6 +653,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	if ((port->fd = open(port->name, flags_local)) < 0)
 		RETURN_FAIL("open() failed");
+#endif
 
 	ret = get_config(port, &data, &config);
 
@@ -660,6 +662,14 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		RETURN_CODEVAL(ret);
 	}
 
+	/* Set sane port settings. */
+#ifdef _WIN32
+	data.dcb.fBinary = TRUE;
+	data.dcb.fDsrSensitivity = FALSE;
+	data.dcb.fErrorChar = FALSE;
+	data.dcb.fNull = FALSE;
+	data.dcb.fAbortOnError = TRUE;
+#else
 	/* Turn off all fancy termios tricks, give us a raw channel. */
 	data.term.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IUCLC|IMAXBEL);
 	data.term.c_oflag &= ~(OPOST|OLCUC|ONLCR|OCRNL|ONOCR|ONLRET|NLDLY|CRDLY|TABDLY|BSDLY|VTDLY|FFDLY);
@@ -672,6 +682,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	/* Ignore modem status lines; enable receiver; leave control lines alone on close. */
 	data.term.c_cflag |= (CLOCAL | CREAD | HUPCL);
+#endif
 
 	ret = set_config(port, &data, &config);
 
@@ -679,7 +690,6 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		sp_close(port);
 		RETURN_CODEVAL(ret);
 	}
-#endif
 
 	RETURN_OK();
 }
