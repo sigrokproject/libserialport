@@ -64,7 +64,7 @@ struct sp_port {
 #ifdef _WIN32
 	HANDLE hdl;
 	OVERLAPPED write_ovl;
-	BYTE *write_buf;
+	BYTE pending_byte;
 	BOOL writing;
 #else
 	int fd;
@@ -627,7 +627,6 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 			sp_close(port);
 			RETURN_FAIL("CreateEvent() failed");
 		}
-		port->write_buf = NULL;
 		port->writing = FALSE;
 	}
 
@@ -698,9 +697,6 @@ enum sp_return sp_close(struct sp_port *port)
 		RETURN_FAIL("CloseHandle() failed");
 	port->hdl = INVALID_HANDLE_VALUE;
 	if (port->nonblocking) {
-		if (port->writing)
-			/* Write should have been stopped by closing the port, so safe to free buffer. */
-			free(port->write_buf);
 		/* Close event handle created for overlapped writes. */
 		if (CloseHandle(port->write_ovl.hEvent) == 0)
 			RETURN_FAIL("CloseHandle() failed");
@@ -791,6 +787,7 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 
 #ifdef _WIN32
 	DWORD written = 0;
+	BYTE *ptr = (BYTE *) buf;
 
 	if (port->nonblocking) {
 		/* Non-blocking write. */
@@ -800,8 +797,6 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 			if (HasOverlappedIoCompleted(&port->write_ovl)) {
 				DEBUG("Previous write completed");
 				port->writing = 0;
-				free(port->write_buf);
-				port->write_buf = NULL;
 			} else {
 				DEBUG("Previous write not complete");
 				/* Can't take a new write until the previous one finishes. */
@@ -809,29 +804,31 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 			}
 		}
 
-		/* Copy user buffer. */
-		if (!(port->write_buf = malloc(count)))
-			RETURN_ERROR(SP_ERR_MEM, "buffer copy malloc failed");
-		memcpy(port->write_buf, buf, count);
+		/* Keep writing data until the OS has to actually start an async IO for it.
+		 * At that point we know the buffer is full. */
+		while (written < count)
+		{
+			/* Copy first byte of user buffer. */
+			port->pending_byte = *ptr++;
 
-		/* Start asynchronous write. */
-		if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl) == 0) {
-			if (GetLastError() == ERROR_IO_PENDING) {
-				DEBUG("Asynchronous write started");
-				port->writing = 1;
-				RETURN_VALUE("%d", count);
+			/* Start asynchronous write. */
+			if (WriteFile(port->hdl, &port->pending_byte, 1, NULL, &port->write_ovl) == 0) {
+				if (GetLastError() == ERROR_IO_PENDING) {
+					DEBUG("Asynchronous write started");
+					port->writing = 1;
+					RETURN_VALUE("%d", ++written);
+				} else {
+					/* Actual failure of some kind. */
+					RETURN_FAIL("WriteFile() failed");
+				}
 			} else {
-				free(port->write_buf);
-				port->write_buf = NULL;
-				/* Actual failure of some kind. */
-				RETURN_FAIL("WriteFile() failed");
+				DEBUG("Single byte written immediately.");
+				written++;
 			}
-		} else {
-			DEBUG("Write completed immediately");
-			free(port->write_buf);
-			port->write_buf = NULL;
-			RETURN_VALUE("%d", count);
 		}
+
+		DEBUG("All bytes written immediately.");
+
 	} else {
 		/* Blocking write. */
 		if (WriteFile(port->hdl, buf, count, &written, NULL) == 0) {
