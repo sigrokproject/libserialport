@@ -660,17 +660,18 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		RETURN_CODEVAL(ret);
 	}
 
-	/* Turn off all serial port cooking. */
-	data.term.c_iflag &= ~(ISTRIP | INLCR | ICRNL);
-	data.term.c_oflag &= ~(ONLCR | OCRNL | ONOCR);
-#if !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__NetBSD__)
+	/* Turn off all fancy termios tricks, give us a raw channel. */
+	data.term.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IUCLC|IMAXBEL);
+	data.term.c_oflag &= ~(OPOST|OLCUC|ONLCR|OCRNL|ONOCR|ONLRET|NLDLY|CRDLY|TABDLY|BSDLY|VTDLY|FFDLY);
+#ifdef OFILL
 	data.term.c_oflag &= ~OFILL;
 #endif
-	/* Disable canonical mode, and don't echo input characters. */
-	data.term.c_lflag &= ~(ICANON | ECHO);
+	data.term.c_lflag &= ~(ISIG|ICANON|ECHO|IEXTEN);
+	data.term.c_cc[VMIN] = 0;
+	data.term.c_cc[VTIME] = 0;
 
-	/* Ignore modem status lines; enable receiver */
-	data.term.c_cflag |= (CLOCAL | CREAD);
+	/* Ignore modem status lines; enable receiver; leave control lines alone on close. */
+	data.term.c_cflag |= (CLOCAL | CREAD | HUPCL);
 
 	ret = set_config(port, &data, &config);
 
