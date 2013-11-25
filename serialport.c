@@ -1024,11 +1024,17 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		case NOPARITY:
 			config->parity = SP_PARITY_NONE;
 			break;
+		case ODDPARITY:
+			config->parity = SP_PARITY_ODD;
+			break;
 		case EVENPARITY:
 			config->parity = SP_PARITY_EVEN;
 			break;
-		case ODDPARITY:
-			config->parity = SP_PARITY_ODD;
+		case MARKPARITY:
+			config->parity = SP_PARITY_MARK;
+			break;
+		case SPACEPARITY:
+			config->parity = SP_PARITY_SPACE;
 			break;
 		default:
 			config->parity = -1;
@@ -1150,6 +1156,8 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		config->parity = SP_PARITY_NONE;
 	else if (!(data->term.c_cflag & PARENB) || (data->term.c_iflag & IGNPAR))
 		config->parity = -1;
+	else if (data->term.c_cflag & CMSPAR)
+		config->parity = (data->term.c_cflag & PARODD) ? SP_PARITY_MARK : SP_PARITY_SPACE;
 	else
 		config->parity = (data->term.c_cflag & PARODD) ? SP_PARITY_ODD : SP_PARITY_EVEN;
 
@@ -1231,11 +1239,17 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		case SP_PARITY_NONE:
 			data->dcb.Parity = NOPARITY;
 			break;
+		case SP_PARITY_ODD:
+			data->dcb.Parity = ODDPARITY;
+			break;
 		case SP_PARITY_EVEN:
 			data->dcb.Parity = EVENPARITY;
 			break;
-		case SP_PARITY_ODD:
-			data->dcb.Parity = ODDPARITY;
+		case SP_PARITY_MARK:
+			data->dcb.Parity = MARKPARITY;
+			break;
+		case SP_PARITY_SPACE:
+			data->dcb.Parity = SPACEPARITY;
 			break;
 		default:
 			RETURN_ERROR(SP_ERR_ARG, "Invalid parity setting");
@@ -1393,7 +1407,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	if (config->parity >= 0) {
 		data->term.c_iflag &= ~IGNPAR;
-		data->term.c_cflag &= ~(PARENB | PARODD);
+		data->term.c_cflag &= ~(PARENB | PARODD | CMSPAR);
 		switch (config->parity) {
 		case SP_PARITY_NONE:
 			data->term.c_iflag |= IGNPAR;
@@ -1403,6 +1417,12 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			break;
 		case SP_PARITY_ODD:
 			data->term.c_cflag |= PARENB | PARODD;
+			break;
+		case SP_PARITY_MARK:
+			data->term.c_cflag |= PARENB | PARODD | CMSPAR;
+			break;
+		case SP_PARITY_SPACE:
+			data->term.c_cflag |= PARENB | CMSPAR;
 			break;
 		default:
 			RETURN_ERROR(SP_ERR_ARG, "Invalid parity setting");

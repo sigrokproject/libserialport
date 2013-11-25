@@ -144,6 +144,10 @@ enum sp_parity {
 	SP_PARITY_ODD = 1,
 	/** Even parity. */
 	SP_PARITY_EVEN = 2,
+	/** Mark parity. */
+	SP_PARITY_MARK = 3,
+	/** Space parity. */
+	SP_PARITY_SPACE = 4,
 };
 
 /** RTS pin behaviour. */
