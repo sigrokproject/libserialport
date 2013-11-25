@@ -60,6 +60,7 @@
 
 struct sp_port {
 	char *name;
+	int nonblocking;
 #ifdef _WIN32
 	HANDLE hdl;
 #else
@@ -578,6 +579,8 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	DEBUG("Opening port %s", port->name);
 
+	port->nonblocking = (flags & SP_MODE_NONBLOCK) ? 1 : 0;
+
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0;
 	char *escaped_port_name;
@@ -786,8 +789,14 @@ enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
 	ssize_t bytes_read;
 
 	/* Returns the number of bytes read, or -1 upon failure. */
-	if ((bytes_read = read(port->fd, buf, count)) < 0)
-		RETURN_FAIL("read() failed");
+	if ((bytes_read = read(port->fd, buf, count)) < 0) {
+		if (port->nonblocking && errno == EAGAIN)
+			/* Port is opened in nonblocking mode and there are no bytes available. */
+			bytes_read = 0;
+		else
+			/* This is an actual failure. */
+			RETURN_FAIL("read() failed");
+	}
 	RETURN_VALUE("%d", bytes_read);
 #endif
 }
