@@ -63,6 +63,9 @@ struct sp_port {
 	int nonblocking;
 #ifdef _WIN32
 	HANDLE hdl;
+	OVERLAPPED write_ovl;
+	BYTE *write_buf;
+	BOOL writing;
 #else
 	int fd;
 #endif
@@ -583,6 +586,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0;
+	COMMTIMEOUTS timeouts;
 	char *escaped_port_name;
 
 	/* Prefix port name with '\\.\' to work with ports above COM9. */
@@ -606,6 +610,31 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	if (port->hdl == INVALID_HANDLE_VALUE)
 		RETURN_FAIL("CreateFile() failed");
+
+	/* All timeouts disabled. */
+	timeouts.ReadIntervalTimeout = 0;
+	timeouts.ReadTotalTimeoutMultiplier = 0;
+	timeouts.ReadTotalTimeoutConstant = 0;
+	timeouts.WriteTotalTimeoutMultiplier = 0;
+	timeouts.WriteTotalTimeoutConstant = 0;
+
+	if (port->nonblocking) {
+		/* Set read timeout such that all reads return immediately. */
+		timeouts.ReadIntervalTimeout = MAXDWORD;
+		/* Prepare OVERLAPPED structure for non-blocking writes. */
+		memset(&port->write_ovl, 0, sizeof(port->write_ovl));
+		if (!(port->write_ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL))) {
+			sp_close(port);
+			RETURN_FAIL("CreateEvent() failed");
+		}
+		port->write_buf = NULL;
+		port->writing = FALSE;
+	}
+
+	if (SetCommTimeouts(port->hdl, &timeouts) == 0) {
+		sp_close(port);
+		RETURN_FAIL("SetCommTimeouts() failed");
+	}
 #else
 	int flags_local = 0;
 	struct port_data data;
@@ -668,6 +697,14 @@ enum sp_return sp_close(struct sp_port *port)
 	if (CloseHandle(port->hdl) == 0)
 		RETURN_FAIL("CloseHandle() failed");
 	port->hdl = INVALID_HANDLE_VALUE;
+	if (port->nonblocking) {
+		if (port->writing)
+			/* Write should have been stopped by closing the port, so safe to free buffer. */
+			free(port->write_buf);
+		/* Close event handle created for overlapped writes. */
+		if (CloseHandle(port->write_ovl.hEvent) == 0)
+			RETURN_FAIL("CloseHandle() failed");
+	}
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	if (close(port->fd) == -1)
@@ -749,12 +786,59 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 
 	DEBUG("Writing up to %d bytes to port %s", count, port->name);
 
+	if (count == 0)
+		RETURN_VALUE("0", 0);
+
 #ifdef _WIN32
 	DWORD written = 0;
 
-	/* Returns non-zero upon success, 0 upon failure. */
-	if (WriteFile(port->hdl, buf, count, &written, NULL) == 0)
-		RETURN_FAIL("WriteFile() failed");
+	if (port->nonblocking) {
+		/* Non-blocking write. */
+
+		/* Check whether previous write is complete. */
+		if (port->writing) {
+			if (HasOverlappedIoCompleted(&port->write_ovl)) {
+				DEBUG("Previous write completed");
+				port->writing = 0;
+				free(port->write_buf);
+				port->write_buf = NULL;
+			} else {
+				DEBUG("Previous write not complete");
+				/* Can't take a new write until the previous one finishes. */
+				RETURN_VALUE("0", 0);
+			}
+		}
+
+		/* Copy user buffer. */
+		if (!(port->write_buf = malloc(count)))
+			RETURN_ERROR(SP_ERR_MEM, "buffer copy malloc failed");
+		memcpy(port->write_buf, buf, count);
+
+		/* Start asynchronous write. */
+		if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl) == 0) {
+			if (GetLastError() == ERROR_IO_PENDING) {
+				DEBUG("Asynchronous write started");
+				port->writing = 1;
+				RETURN_VALUE("%d", count);
+			} else {
+				free(port->write_buf);
+				port->write_buf = NULL;
+				/* Actual failure of some kind. */
+				RETURN_FAIL("WriteFile() failed");
+			}
+		} else {
+			DEBUG("Write completed immediately");
+			free(port->write_buf);
+			port->write_buf = NULL;
+			RETURN_VALUE("%d", count);
+		}
+	} else {
+		/* Blocking write. */
+		if (WriteFile(port->hdl, buf, count, &written, NULL) == 0) {
+			RETURN_FAIL("WriteFile() failed");
+		}
+	}
+
 	RETURN_VALUE("%d", written);
 #else
 	/* Returns the number of bytes written, or -1 upon failure. */
