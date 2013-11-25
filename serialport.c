@@ -1549,7 +1549,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		}
 	}
 
-	if (tcsetattr(port->fd, TCSADRAIN, &data->term) < 0)
+	if (tcsetattr(port->fd, TCSANOW, &data->term) < 0)
 		RETURN_FAIL("tcsetattr() failed");
 
 #ifdef __APPLE__
