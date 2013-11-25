@@ -37,6 +37,8 @@
 #include <limits.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
+#include <limits.h>
 #endif
 #ifdef __APPLE__
 #include <IOKit/IOKitLib.h>
@@ -61,10 +63,11 @@
 
 struct sp_port {
 	char *name;
-	int nonblocking;
 #ifdef _WIN32
 	HANDLE hdl;
+	COMMTIMEOUTS timeouts;
 	OVERLAPPED write_ovl;
+	OVERLAPPED read_ovl;
 	BYTE pending_byte;
 	BOOL writing;
 #else
@@ -581,16 +584,13 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	CHECK_PORT();
 
-	if (flags > (SP_MODE_READ | SP_MODE_WRITE | SP_MODE_NONBLOCK))
+	if (flags > (SP_MODE_READ | SP_MODE_WRITE))
 		RETURN_ERROR(SP_ERR_ARG, "Invalid flags");
 
 	DEBUG("Opening port %s", port->name);
 
-	port->nonblocking = (flags & SP_MODE_NONBLOCK) ? 1 : 0;
-
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0;
-	COMMTIMEOUTS timeouts;
 	char *escaped_port_name;
 
 	/* Prefix port name with '\\.\' to work with ports above COM9. */
@@ -599,13 +599,11 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	sprintf(escaped_port_name, "\\\\.\\%s", port->name);
 
 	/* Map 'flags' to the OS-specific settings. */
-	flags_and_attributes = FILE_ATTRIBUTE_NORMAL;
+	flags_and_attributes = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED;
 	if (flags & SP_MODE_READ)
 		desired_access |= GENERIC_READ;
 	if (flags & SP_MODE_WRITE)
 		desired_access |= GENERIC_WRITE;
-	if (flags & SP_MODE_NONBLOCK)
-		flags_and_attributes |= FILE_FLAG_OVERLAPPED;
 
 	port->hdl = CreateFile(escaped_port_name, desired_access, 0, 0,
 			 OPEN_EXISTING, flags_and_attributes, 0);
@@ -613,33 +611,38 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	free(escaped_port_name);
 
 	if (port->hdl == INVALID_HANDLE_VALUE)
-		RETURN_FAIL("CreateFile() failed");
+		RETURN_FAIL("port CreateFile() failed");
 
-	/* All timeouts disabled. */
-	timeouts.ReadIntervalTimeout = 0;
-	timeouts.ReadTotalTimeoutMultiplier = 0;
-	timeouts.ReadTotalTimeoutConstant = 0;
-	timeouts.WriteTotalTimeoutMultiplier = 0;
-	timeouts.WriteTotalTimeoutConstant = 0;
+	/* All timeouts initially disabled. */
+	port->timeouts.ReadIntervalTimeout = 0;
+	port->timeouts.ReadTotalTimeoutMultiplier = 0;
+	port->timeouts.ReadTotalTimeoutConstant = 0;
+	port->timeouts.WriteTotalTimeoutMultiplier = 0;
+	port->timeouts.WriteTotalTimeoutConstant = 0;
 
-	if (port->nonblocking) {
-		/* Set read timeout such that all reads return immediately. */
-		timeouts.ReadIntervalTimeout = MAXDWORD;
-		/* Prepare OVERLAPPED structure for non-blocking writes. */
-		memset(&port->write_ovl, 0, sizeof(port->write_ovl));
-		if (!(port->write_ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL))) {
-			sp_close(port);
-			RETURN_FAIL("CreateEvent() failed");
-		}
-		port->writing = FALSE;
-	}
-
-	if (SetCommTimeouts(port->hdl, &timeouts) == 0) {
+	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0) {
 		sp_close(port);
 		RETURN_FAIL("SetCommTimeouts() failed");
 	}
+
+	/* Prepare OVERLAPPED structures. */
+	memset(&port->read_ovl, 0, sizeof(port->read_ovl));
+	memset(&port->write_ovl, 0, sizeof(port->write_ovl));
+	port->read_ovl.hEvent = INVALID_HANDLE_VALUE;
+	port->write_ovl.hEvent = INVALID_HANDLE_VALUE;
+	if ((port->read_ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL)) == INVALID_HANDLE_VALUE) {
+		sp_close(port);
+		RETURN_FAIL("read event CreateEvent() failed");
+	}
+	if ((port->write_ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL)) == INVALID_HANDLE_VALUE) {
+		sp_close(port);
+		RETURN_FAIL("write event CreateEvent() failed");
+	}
+
+	port->writing = FALSE;
+
 #else
-	int flags_local = 0;
+	int flags_local = O_NONBLOCK | O_NOCTTY;
 
 	/* Map 'flags' to the OS-specific settings. */
 	if (flags & (SP_MODE_READ | SP_MODE_WRITE))
@@ -648,8 +651,6 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		flags_local |= O_RDONLY;
 	else if (flags & SP_MODE_WRITE)
 		flags_local |= O_WRONLY;
-	if (flags & SP_MODE_NONBLOCK)
-		flags_local |= O_NONBLOCK;
 
 	if ((port->fd = open(port->name, flags_local)) < 0)
 		RETURN_FAIL("open() failed");
@@ -701,7 +702,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	data.term.c_oflag &= ~OFILL;
 #endif
 	data.term.c_lflag &= ~(ISIG | ICANON | ECHO | IEXTEN);
-	data.term.c_cc[VMIN] = 1;
+	data.term.c_cc[VMIN] = 0;
 	data.term.c_cc[VTIME] = 0;
 
 	/* Ignore modem status lines; enable receiver; leave control lines alone on close. */
@@ -729,13 +730,14 @@ enum sp_return sp_close(struct sp_port *port)
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (CloseHandle(port->hdl) == 0)
-		RETURN_FAIL("CloseHandle() failed");
+		RETURN_FAIL("port CloseHandle() failed");
 	port->hdl = INVALID_HANDLE_VALUE;
-	if (port->nonblocking) {
-		/* Close event handle created for overlapped writes. */
-		if (CloseHandle(port->write_ovl.hEvent) == 0)
-			RETURN_FAIL("CloseHandle() failed");
-	}
+	/* Close event handle created for overlapped reads. */
+	if (port->read_ovl.hEvent != INVALID_HANDLE_VALUE && CloseHandle(port->read_ovl.hEvent) == 0)
+		RETURN_FAIL("read event CloseHandle() failed");
+	/* Close event handle created for overlapped writes. */
+	if (port->write_ovl.hEvent != INVALID_HANDLE_VALUE && CloseHandle(port->write_ovl.hEvent) == 0)
+		RETURN_FAIL("write event CloseHandle() failed");
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	if (close(port->fd) == -1)
@@ -806,7 +808,116 @@ enum sp_return sp_drain(struct sp_port *port)
 	RETURN_OK();
 }
 
-enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
+enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t count, unsigned int timeout)
+{
+	TRACE("%p, %p, %d, %d", port, buf, count, timeout);
+
+	CHECK_OPEN_PORT();
+
+	if (!buf)
+		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
+
+	if (timeout)
+		DEBUG("Writing %d bytes to port %s, timeout %d ms", count, port->name, timeout);
+	else
+		DEBUG("Writing %d bytes to port %s, no timeout", count, port->name);
+
+	if (count == 0)
+		RETURN_VALUE("0", 0);
+
+#ifdef _WIN32
+	DWORD bytes_written = 0;
+	BOOL result;
+
+	/* Wait for previous non-blocking write to complete, if any. */
+	if (port->writing) {
+		DEBUG("Waiting for previous write to complete");
+		result = GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE);
+		port->writing = 0;
+		if (!result)
+			RETURN_FAIL("Previous write failed to complete");
+		DEBUG("Previous write completed");
+	}
+
+	/* Set timeout. */
+	port->timeouts.WriteTotalTimeoutConstant = timeout;
+	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+		RETURN_FAIL("SetCommTimeouts() failed");
+
+	/* Start write. */
+	if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl) == 0) {
+		if (GetLastError() == ERROR_IO_PENDING) {
+			DEBUG("Waiting for write to complete");
+			GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE);
+			DEBUG("Write completed, %d/%d bytes written", bytes_written, count);
+			RETURN_VALUE("%d", bytes_written);
+		} else {
+			RETURN_FAIL("WriteFile() failed");
+		}
+	} else {
+		DEBUG("Write completed immediately");
+		RETURN_VALUE("%d", count);
+	}
+#else
+	size_t bytes_written = 0;
+	unsigned char *ptr = (unsigned char *) buf;
+	struct timeval start, delta, now, end = {0, 0};
+	fd_set fds;
+	int result;
+
+	if (timeout) {
+		/* Get time at start of operation. */
+		gettimeofday(&start, NULL);
+		/* Define duration of timeout. */
+		delta.tv_sec = timeout / 1000;
+		delta.tv_usec = timeout % 1000;
+		/* Calculate time at which we should give up. */
+		timeradd(&start, &delta, &end);
+	}
+
+	/* Loop until we have written the requested number of bytes. */
+	while (bytes_written < count)
+	{
+		/* Wait until space is available. */
+		FD_ZERO(&fds);
+		FD_SET(port->fd, &fds);
+		if (timeout) {
+			gettimeofday(&now, NULL);
+			if (timercmp(&now, &end, >)) {
+				DEBUG("write timed out");
+				RETURN_VALUE("%d", bytes_written);
+			}
+			timersub(&end, &now, &delta);
+		}
+		result = select(port->fd + 1, NULL, &fds, NULL, timeout ? &delta : NULL);
+		if (result < 0)
+			RETURN_FAIL("select() failed");
+		if (result == 0) {
+			DEBUG("write timed out");
+			RETURN_VALUE("%d", bytes_written);
+		}
+
+		/* Do write. */
+		result = write(port->fd, ptr, count - bytes_written);
+
+		if (result < 0) {
+			if (errno == EAGAIN)
+				/* This shouldn't happen because we did a select() first, but handle anyway. */
+				continue;
+			else
+				/* This is an actual failure. */
+				RETURN_FAIL("write() failed");
+		}
+
+		bytes_written += result;
+		ptr += result;
+	}
+
+	RETURN_VALUE("%d", bytes_written);
+#endif
+}
+
+enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_t count)
 {
 	TRACE("%p, %p, %d", port, buf, count);
 
@@ -824,52 +935,47 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 	DWORD written = 0;
 	BYTE *ptr = (BYTE *) buf;
 
-	if (port->nonblocking) {
-		/* Non-blocking write. */
-
-		/* Check whether previous write is complete. */
-		if (port->writing) {
-			if (HasOverlappedIoCompleted(&port->write_ovl)) {
-				DEBUG("Previous write completed");
-				port->writing = 0;
-			} else {
-				DEBUG("Previous write not complete");
-				/* Can't take a new write until the previous one finishes. */
-				RETURN_VALUE("0", 0);
-			}
-		}
-
-		/* Keep writing data until the OS has to actually start an async IO for it.
-		 * At that point we know the buffer is full. */
-		while (written < count)
-		{
-			/* Copy first byte of user buffer. */
-			port->pending_byte = *ptr++;
-
-			/* Start asynchronous write. */
-			if (WriteFile(port->hdl, &port->pending_byte, 1, NULL, &port->write_ovl) == 0) {
-				if (GetLastError() == ERROR_IO_PENDING) {
-					DEBUG("Asynchronous write started");
-					port->writing = 1;
-					RETURN_VALUE("%d", ++written);
-				} else {
-					/* Actual failure of some kind. */
-					RETURN_FAIL("WriteFile() failed");
-				}
-			} else {
-				DEBUG("Single byte written immediately.");
-				written++;
-			}
-		}
-
-		DEBUG("All bytes written immediately.");
-
-	} else {
-		/* Blocking write. */
-		if (WriteFile(port->hdl, buf, count, &written, NULL) == 0) {
-			RETURN_FAIL("WriteFile() failed");
+	/* Check whether previous write is complete. */
+	if (port->writing) {
+		if (HasOverlappedIoCompleted(&port->write_ovl)) {
+			DEBUG("Previous write completed");
+			port->writing = 0;
+		} else {
+			DEBUG("Previous write not complete");
+			/* Can't take a new write until the previous one finishes. */
+			RETURN_VALUE("0", 0);
 		}
 	}
+
+	/* Set timeout. */
+	port->timeouts.WriteTotalTimeoutConstant = 0;
+	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+		RETURN_FAIL("SetCommTimeouts() failed");
+
+	/* Keep writing data until the OS has to actually start an async IO for it.
+	 * At that point we know the buffer is full. */
+	while (written < count)
+	{
+		/* Copy first byte of user buffer. */
+		port->pending_byte = *ptr++;
+
+		/* Start asynchronous write. */
+		if (WriteFile(port->hdl, &port->pending_byte, 1, NULL, &port->write_ovl) == 0) {
+			if (GetLastError() == ERROR_IO_PENDING) {
+				DEBUG("Asynchronous write started");
+				port->writing = 1;
+				RETURN_VALUE("%d", ++written);
+			} else {
+				/* Actual failure of some kind. */
+				RETURN_FAIL("WriteFile() failed");
+			}
+		} else {
+			DEBUG("Single byte written immediately.");
+			written++;
+		}
+	}
+
+	DEBUG("All bytes written immediately.");
 
 	RETURN_VALUE("%d", written);
 #else
@@ -883,7 +989,105 @@ enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count)
 #endif
 }
 
-enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
+enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, unsigned int timeout)
+{
+	TRACE("%p, %p, %d, %d", port, buf, count, timeout);
+
+	CHECK_OPEN_PORT();
+
+	if (!buf)
+		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
+
+	if (timeout)
+		DEBUG("Reading %d bytes from port %s, timeout %d ms", count, port->name, timeout);
+	else
+		DEBUG("Reading %d bytes from port %s, no timeout", count, port->name);
+
+	if (count == 0)
+		RETURN_VALUE("0", 0);
+
+#ifdef _WIN32
+	DWORD bytes_read = 0;
+
+	/* Set timeout. */
+	port->timeouts.ReadIntervalTimeout = 0;
+	port->timeouts.ReadTotalTimeoutConstant = timeout;
+	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+		RETURN_FAIL("SetCommTimeouts() failed");
+
+	/* Start read. */
+	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl) == 0) {
+		if (GetLastError() == ERROR_IO_PENDING) {
+			DEBUG("Waiting for read to complete");
+			GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE);
+			DEBUG("Read completed, %d/%d bytes read", bytes_read, count);
+			RETURN_VALUE("%d", bytes_read);
+		} else {
+			RETURN_FAIL("ReadFile() failed");
+		}
+	} else {
+		DEBUG("Read completed immediately");
+		RETURN_VALUE("%d", count);
+	}
+#else
+	size_t bytes_read = 0;
+	unsigned char *ptr = (unsigned char *) buf;
+	struct timeval start, delta, now, end = {0, 0};
+	fd_set fds;
+	int result;
+
+	if (timeout) {
+		/* Get time at start of operation. */
+		gettimeofday(&start, NULL);
+		/* Define duration of timeout. */
+		delta.tv_sec = timeout / 1000;
+		delta.tv_usec = timeout % 1000;
+		/* Calculate time at which we should give up. */
+		timeradd(&start, &delta, &end);
+	}
+
+	/* Loop until we have the requested number of bytes. */
+	while (bytes_read < count)
+	{
+		/* Wait until data is available. */
+		FD_ZERO(&fds);
+		FD_SET(port->fd, &fds);
+		if (timeout) {
+			gettimeofday(&now, NULL);
+			if (timercmp(&now, &end, >))
+				/* Timeout has expired. */
+				RETURN_VALUE("%d", bytes_read);
+			timersub(&end, &now, &delta);
+		}
+		result = select(port->fd + 1, &fds, NULL, NULL, timeout ? &delta : NULL);
+		if (result < 0)
+			RETURN_FAIL("select() failed");
+		if (result == 0) {
+			DEBUG("read timed out");
+			RETURN_VALUE("%d", bytes_read);
+		}
+
+		/* Do read. */
+		result = read(port->fd, ptr, count - bytes_read);
+
+		if (result < 0) {
+			if (errno == EAGAIN)
+				/* This shouldn't happen because we did a select() first, but handle anyway. */
+				continue;
+			else
+				/* This is an actual failure. */
+				RETURN_FAIL("read() failed");
+		}
+
+		bytes_read += result;
+		ptr += result;
+	}
+
+	RETURN_VALUE("%d", bytes_read);
+#endif
+}
+
+enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count)
 {
 	TRACE("%p, %p, %d", port, buf, count);
 
@@ -895,19 +1099,29 @@ enum sp_return sp_read(struct sp_port *port, void *buf, size_t count)
 	DEBUG("Reading up to %d bytes from port %s", count, port->name);
 
 #ifdef _WIN32
-	DWORD bytes_read = 0;
+	DWORD bytes_read;
 
-	/* Returns non-zero upon success, 0 upon failure. */
-	if (ReadFile(port->hdl, buf, count, &bytes_read, NULL) == 0)
+	/* Set timeout. */
+	port->timeouts.ReadIntervalTimeout = MAXDWORD;
+	port->timeouts.ReadTotalTimeoutConstant = 0;
+	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+		RETURN_FAIL("SetCommTimeouts() failed");
+
+	/* Do read. */
+	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl) == 0)
 		RETURN_FAIL("ReadFile() failed");
+
+	/* Get number of bytes read. */
+	GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE);
+
 	RETURN_VALUE("%d", bytes_read);
 #else
 	ssize_t bytes_read;
 
 	/* Returns the number of bytes read, or -1 upon failure. */
 	if ((bytes_read = read(port->fd, buf, count)) < 0) {
-		if (port->nonblocking && errno == EAGAIN)
-			/* Port is opened in nonblocking mode and there are no bytes available. */
+		if (errno == EAGAIN)
+			/* No bytes available. */
 			bytes_read = 0;
 		else
 			/* This is an actual failure. */

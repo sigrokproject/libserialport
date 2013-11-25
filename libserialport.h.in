@@ -120,8 +120,6 @@ enum sp_mode {
 	SP_MODE_READ = 1,
 	/** Open port for write access. */
 	SP_MODE_WRITE = 2,
-	/** Open port in non-blocking mode. */
-	SP_MODE_NONBLOCK = 4,
 };
 
 /** Buffer selection. */
@@ -758,34 +756,76 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 */
 
 /**
- * Read bytes from the specified serial port.
+ * Read bytes from the specified serial port, blocking until available.
  *
- * Note that this function may return after reading less than the specified
- * number of bytes; it is the user's responsibility to iterate as necessary
- * in this case.
+ * @param port Pointer to port structure.
+ * @param buf Buffer in which to store the bytes read.
+ * @param count Requested number of bytes to read.
+ * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
+ *
+ * @return The number of bytes read on success, or a negative error code. If
+ *         the number of bytes returned is less than that requested, the
+ *         timeout was reached before the requested number of bytes was
+ *         available. If timeout is zero, the function will always return
+ *         either the requested number of bytes or a negative error code.
+ */
+enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, unsigned int timeout);
+
+/**
+ * Read bytes from the specified serial port, without blocking.
  *
  * @param port Pointer to port structure.
  * @param buf Buffer in which to store the bytes read.
  * @param count Maximum number of bytes to read.
  *
- * @return The number of bytes read on success, or a negative error code.
+ * @return The number of bytes read on success, or a negative error code. The
+ *         number of bytes returned may be any number from zero to the maximum
+ *         that was requested.
  */
-enum sp_return sp_read(struct sp_port *port, void *buf, size_t count);
+enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count);
 
 /**
- * Write bytes to the specified serial port.
+ * Write bytes to the specified serial port, blocking until complete.
  *
- * Note that this function may return after writing less than the specified
- * number of bytes; it is the user's responsibility to iterate as necessary
- * in this case.
+ * Note that this function only ensures that the accepted bytes have been
+ * written to the OS; they may be held in driver or hardware buffers and not
+ * yet physically transmitted. To check whether all written bytes have actually
+ * been transmitted, use the sp_output_waiting() function. To wait until all
+ * written bytes have actually been transmitted, use the sp_drain() function.
+ *
+ * @param port Pointer to port structure.
+ * @param buf Buffer containing the bytes to write.
+ * @param count Requested number of bytes to write.
+ * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
+ *
+ * @return The number of bytes read on success, or a negative error code. If
+ *         the number of bytes returned is less than that requested, the
+ *         timeout was reached before the requested number of bytes was
+ *         sent. If timeout is zero, the function will always return
+ *         either the requested number of bytes or a negative error code. In
+ *         the event of an error there is no way to determine how many bytes
+ *         were sent before the error occured.
+ */
+enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t count, unsigned int timeout);
+
+/**
+ * Write bytes to the specified serial port, without blocking.
+ *
+ * Note that this function only ensures that the accepted bytes have been
+ * written to the OS; they may be held in driver or hardware buffers and not
+ * yet physically transmitted. To check whether all written bytes have actually
+ * been transmitted, use the sp_output_waiting() function. To wait until all
+ * written bytes have actually been transmitted, use the sp_drain() function.
  *
  * @param port Pointer to port structure.
  * @param buf Buffer containing the bytes to write.
  * @param count Maximum number of bytes to write.
  *
  * @return The number of bytes written on success, or a negative error code.
+ *         The number of bytes returned may be any number from zero to the
+ *         maximum that was requested.
  */
-enum sp_return sp_write(struct sp_port *port, const void *buf, size_t count);
+enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_t count);
 
 /**
  * Flush serial port buffers. Data in the selected buffer(s) is discarded.
