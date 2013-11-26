@@ -671,12 +671,36 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	data.dcb.fAbortOnError = TRUE;
 #else
 	/* Turn off all fancy termios tricks, give us a raw channel. */
-	data.term.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IUCLC|IMAXBEL);
-	data.term.c_oflag &= ~(OPOST|OLCUC|ONLCR|OCRNL|ONOCR|ONLRET|NLDLY|CRDLY|TABDLY|BSDLY|VTDLY|FFDLY);
+	data.term.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IMAXBEL);
+#ifdef IUCLC
+	data.term.c_iflag &= ~IUCLC;
+#endif
+	data.term.c_oflag &= ~(OPOST | ONLCR | OCRNL | ONOCR | ONLRET);
+#ifdef OLCUC
+	data.term.c_oflag &= ~OLCUC;
+#endif
+#ifdef NLDLY
+	data.term.c_oflag &= ~NLDLY;
+#endif
+#ifdef CRDLY
+	data.term.c_oflag &= ~CRDLY;
+#endif
+#ifdef TABDLY
+	data.term.c_oflag &= ~TABDLY;
+#endif
+#ifdef BSDLY
+	data.term.c_oflag &= ~BSDLY;
+#endif
+#ifdef VTDLY
+	data.term.c_oflag &= ~VTDLY;
+#endif
+#ifdef FFDLY
+	data.term.c_oflag &= ~FFDLY;
+#endif
 #ifdef OFILL
 	data.term.c_oflag &= ~OFILL;
 #endif
-	data.term.c_lflag &= ~(ISIG|ICANON|ECHO|IEXTEN);
+	data.term.c_lflag &= ~(ISIG | ICANON | ECHO | IEXTEN);
 	data.term.c_cc[VMIN] = 0;
 	data.term.c_cc[VTIME] = 0;
 
@@ -1166,8 +1190,10 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		config->parity = SP_PARITY_NONE;
 	else if (!(data->term.c_cflag & PARENB) || (data->term.c_iflag & IGNPAR))
 		config->parity = -1;
+#ifdef CMSPAR
 	else if (data->term.c_cflag & CMSPAR)
 		config->parity = (data->term.c_cflag & PARODD) ? SP_PARITY_MARK : SP_PARITY_SPACE;
+#endif
 	else
 		config->parity = (data->term.c_cflag & PARODD) ? SP_PARITY_ODD : SP_PARITY_EVEN;
 
@@ -1417,7 +1443,10 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	if (config->parity >= 0) {
 		data->term.c_iflag &= ~IGNPAR;
-		data->term.c_cflag &= ~(PARENB | PARODD | CMSPAR);
+		data->term.c_cflag &= ~(PARENB | PARODD);
+#ifdef CMSPAR
+		data->term.c_cflag &= ~CMSPAR;
+#endif
 		switch (config->parity) {
 		case SP_PARITY_NONE:
 			data->term.c_iflag |= IGNPAR;
@@ -1429,10 +1458,16 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			data->term.c_cflag |= PARENB | PARODD;
 			break;
 		case SP_PARITY_MARK:
-			data->term.c_cflag |= PARENB | PARODD | CMSPAR;
+			data->term.c_cflag |= PARENB | PARODD;
+#ifdef CMSPAR
+			data->term.c_cflag |= CMSPAR;
+#endif
 			break;
 		case SP_PARITY_SPACE:
-			data->term.c_cflag |= PARENB | CMSPAR;
+			data->term.c_cflag |= PARENB;
+#ifdef CMSPAR
+			data->term.c_cflag |= CMSPAR;
+#endif
 			break;
 		default:
 			RETURN_ERROR(SP_ERR_ARG, "Invalid parity setting");
