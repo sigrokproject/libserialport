@@ -1914,7 +1914,7 @@ void sp_default_debug_handler(const char *format, ...)
 	va_list args;
 	va_start(args, format);
 	if (getenv("LIBSERIALPORT_DEBUG")) {
-		fputs("libserialport: ", stderr);
+		fputs("sp: ", stderr);
 		vfprintf(stderr, format, args);
 	}
 	va_end(args);
