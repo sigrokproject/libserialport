@@ -221,7 +221,7 @@ char *sp_get_port_name(const struct sp_port *port)
 
 enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr)
 {
-	TRACE("%p", port);
+	TRACE("%p, %p", port, result_ptr);
 
 	if (!port)
 		RETURN_ERROR(SP_ERR_ARG, "Null port");
@@ -261,8 +261,7 @@ void sp_free_port(struct sp_port *port)
 {
 	TRACE("%p", port);
 
-	if (!port)
-	{
+	if (!port) {
 		DEBUG("Null port");
 		RETURN();
 	}
@@ -577,7 +576,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	struct sp_port_config config;
 	enum sp_return ret;
 
-	TRACE("%p, %x", port, flags);
+	TRACE("%p, 0x%x", port, flags);
 
 	CHECK_PORT();
 
@@ -748,7 +747,7 @@ enum sp_return sp_close(struct sp_port *port)
 
 enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 {
-	TRACE("%p, %x", port, buffers);
+	TRACE("%p, 0x%x", port, buffers);
 
 	CHECK_OPEN_PORT();
 
@@ -1622,8 +1621,9 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 enum sp_return sp_new_config(struct sp_port_config **config_ptr)
 {
-	TRACE("%p", config_ptr);
 	struct sp_port_config *config;
+
+	TRACE("%p", config_ptr);
 
 	if (!config_ptr)
 		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
@@ -1705,7 +1705,7 @@ enum sp_return sp_set_##x(struct sp_port *port, type x) { \
 	RETURN_OK(); \
 } \
 enum sp_return sp_get_config_##x(const struct sp_port_config *config, type *x) { \
-	TRACE("%p", config); \
+	TRACE("%p, %p", config, x); \
 	if (!config) \
 		RETURN_ERROR(SP_ERR_ARG, "Null config"); \
 	*x = config->x; \
