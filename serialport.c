@@ -1456,18 +1456,20 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		case SP_PARITY_ODD:
 			data->term.c_cflag |= PARENB | PARODD;
 			break;
+#ifdef CMSPAR
 		case SP_PARITY_MARK:
 			data->term.c_cflag |= PARENB | PARODD;
-#ifdef CMSPAR
 			data->term.c_cflag |= CMSPAR;
-#endif
 			break;
 		case SP_PARITY_SPACE:
 			data->term.c_cflag |= PARENB;
-#ifdef CMSPAR
 			data->term.c_cflag |= CMSPAR;
-#endif
 			break;
+#else
+		case SP_PARITY_MARK:
+		case SP_PARITY_SPACE:
+			RETURN_ERROR(SP_ERR_SUPP, "Mark/space parity not supported");
+#endif
 		default:
 			RETURN_ERROR(SP_ERR_ARG, "Invalid parity setting");
 		}
