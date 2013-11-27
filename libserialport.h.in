@@ -756,7 +756,17 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 */
 
 /**
- * Read bytes from the specified serial port, blocking until available.
+ * Read bytes from the specified serial port, blocking until complete.
+ *
+ * @warning If your program runs on Unix and makes use of signal handlers,
+ *          note that this function will repeat blocking system calls that
+ *          are interrupted by a signal and return with EINTR. If your program
+ *          needs to abort blocking reads when a signal is handled, you will
+ *          need to implement your own loop using sp_nonblocking_read()
+ *          together with a blocking method that makes sense for your program.
+ *          E.g. you can obtain the file descriptor for an open port using
+ *          sp_get_port_handle() and use this to call select() or pselect(),
+ *          with appropriate arrangements to return if a signal is received.
  *
  * @param port Pointer to port structure.
  * @param buf Buffer in which to store the bytes read.
@@ -792,6 +802,16 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
  * yet physically transmitted. To check whether all written bytes have actually
  * been transmitted, use the sp_output_waiting() function. To wait until all
  * written bytes have actually been transmitted, use the sp_drain() function.
+ *
+ * @warning If your program runs on Unix and makes use of signal handlers,
+ *          note that this function will repeat blocking system calls that
+ *          are interrupted by a signal and return with EINTR. If your program
+ *          needs to abort blocking reads when a signal is handled, you will
+ *          need to implement your own loop using sp_nonblocking_read()
+ *          together with a blocking method that makes sense for your program.
+ *          E.g. you can obtain the file descriptor for an open port using
+ *          sp_get_port_handle() and use this to call select() or pselect(),
+ *          with appropriate arrangements to return if a signal is received.
  *
  * @param port Pointer to port structure.
  * @param buf Buffer containing the bytes to write.
