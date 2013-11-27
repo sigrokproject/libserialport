@@ -878,6 +878,13 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
 /**
  * Wait for buffered data to be transmitted.
  *
+ * @warning If your program runs on Unix, defines its own signal handlers, and
+ *          needs to abort draining the output buffer when when these are
+ *          called, then you should not use this function. It repeats system
+ *          calls that return with EINTR. To be able to abort a drain from a
+ *          signal handler, you would need to implement your own blocking
+ *          drain by polling the result of sp_output_waiting().
+ *
  * @param port Pointer to port structure.
  *
  * @return SP_OK upon success, a negative error code otherwise.

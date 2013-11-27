@@ -799,13 +799,23 @@ enum sp_return sp_drain(struct sp_port *port)
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (FlushFileBuffers(port->hdl) == 0)
 		RETURN_FAIL("FlushFileBuffers() failed");
-#else
-	/* Returns 0 upon success, -1 upon failure. */
-	if (tcdrain(port->fd) < 0)
-		RETURN_FAIL("tcdrain() failed");
-#endif
-
 	RETURN_OK();
+#else
+	int result;
+	while (1) {
+		result = tcdrain(port->fd);
+		if (result < 0) {
+			if (errno == EINTR) {
+				DEBUG("tcdrain() was interrupted");
+				continue;
+			} else {
+				RETURN_FAIL("tcdrain() failed");
+			}
+		} else {
+			RETURN_OK();
+		}
+	}
+#endif
 }
 
 enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t count, unsigned int timeout)
