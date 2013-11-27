@@ -818,10 +818,10 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
  * @param count Requested number of bytes to write.
  * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
  *
- * @return The number of bytes read on success, or a negative error code. If
- *         the number of bytes returned is less than that requested, the
+ * @return The number of bytes written on success, or a negative error code.
+ *         If the number of bytes returned is less than that requested, the
  *         timeout was reached before the requested number of bytes was
- *         sent. If timeout is zero, the function will always return
+ *         written. If timeout is zero, the function will always return
  *         either the requested number of bytes or a negative error code. In
  *         the event of an error there is no way to determine how many bytes
  *         were sent before the error occured.
