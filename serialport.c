@@ -890,9 +890,14 @@ enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t c
 			timersub(&end, &now, &delta);
 		}
 		result = select(port->fd + 1, NULL, &fds, NULL, timeout ? &delta : NULL);
-		if (result < 0)
-			RETURN_FAIL("select() failed");
-		if (result == 0) {
+		if (result < 0) {
+			if (errno == EINTR) {
+				DEBUG("select() call was interrupted, repeating");
+				continue;
+			} else {
+				RETURN_FAIL("select() failed");
+			}
+		} else if (result == 0) {
 			DEBUG("write timed out");
 			RETURN_VALUE("%d", bytes_written);
 		}
@@ -1060,9 +1065,14 @@ enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, u
 			timersub(&end, &now, &delta);
 		}
 		result = select(port->fd + 1, &fds, NULL, NULL, timeout ? &delta : NULL);
-		if (result < 0)
-			RETURN_FAIL("select() failed");
-		if (result == 0) {
+		if (result < 0) {
+			if (errno == EINTR) {
+				DEBUG("select() call was interrupted, repeating");
+				continue;
+			} else {
+				RETURN_FAIL("select() failed");
+			}
+		} else if (result == 0) {
 			DEBUG("read timed out");
 			RETURN_VALUE("%d", bytes_read);
 		}
