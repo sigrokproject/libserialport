@@ -1131,6 +1131,52 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
 #endif
 }
 
+enum sp_return sp_input_waiting(struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	CHECK_OPEN_PORT();
+
+	DEBUG("Checking input bytes waiting on port %s", port->name);
+
+#ifdef _WIN32
+	DWORD errors;
+	COMSTAT comstat;
+
+	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
+		RETURN_FAIL("ClearComError() failed");
+	RETURN_VALUE("%d", comstat.cbInQue);
+#else
+	int bytes_waiting;
+	if (ioctl(port->fd, TIOCINQ, &bytes_waiting) < 0)
+		RETURN_FAIL("TIOCINQ ioctl failed");
+	RETURN_VALUE("%d", bytes_waiting);
+#endif
+}
+
+enum sp_return sp_output_waiting(struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	CHECK_OPEN_PORT();
+
+	DEBUG("Checking output bytes waiting on port %s", port->name);
+
+#ifdef _WIN32
+	DWORD errors;
+	COMSTAT comstat;
+
+	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
+		RETURN_FAIL("ClearComError() failed");
+	RETURN_VALUE("%d", comstat.cbOutQue);
+#else
+	int bytes_waiting;
+	if (ioctl(port->fd, TIOCOUTQ, &bytes_waiting) < 0)
+		RETURN_FAIL("TIOCOUTQ ioctl failed");
+	RETURN_VALUE("%d", bytes_waiting);
+#endif
+}
+
 #ifdef __linux__
 static enum sp_return get_baudrate(int fd, int *baudrate)
 {

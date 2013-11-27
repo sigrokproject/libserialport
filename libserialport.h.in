@@ -828,6 +828,24 @@ enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t c
 enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_t count);
 
 /**
+ * Gets the number of bytes waiting in the input buffer.
+ *
+ * @param port Pointer to port structure.
+ *
+ * @return Number of bytes waiting on success, a negative error code otherwise.
+ */
+enum sp_return sp_input_waiting(struct sp_port *port);
+
+/**
+ * Gets the number of bytes waiting in the output buffer.
+ *
+ * @param port Pointer to port structure.
+ *
+ * @return Number of bytes waiting on success, a negative error code otherwise.
+ */
+enum sp_return sp_output_waiting(struct sp_port *port);
+
+/**
  * Flush serial port buffers. Data in the selected buffer(s) is discarded.
  *
  * @param port Pointer to port structure.
