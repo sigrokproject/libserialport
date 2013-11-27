@@ -870,7 +870,7 @@ enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t c
 		gettimeofday(&start, NULL);
 		/* Define duration of timeout. */
 		delta.tv_sec = timeout / 1000;
-		delta.tv_usec = timeout % 1000;
+		delta.tv_usec = (timeout % 1000) * 1000;
 		/* Calculate time at which we should give up. */
 		timeradd(&start, &delta, &end);
 	}
@@ -1041,7 +1041,7 @@ enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, u
 		gettimeofday(&start, NULL);
 		/* Define duration of timeout. */
 		delta.tv_sec = timeout / 1000;
-		delta.tv_usec = timeout % 1000;
+		delta.tv_usec = (timeout % 1000) * 1000;
 		/* Calculate time at which we should give up. */
 		timeradd(&start, &delta, &end);
 	}
