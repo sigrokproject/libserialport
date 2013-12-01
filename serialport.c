@@ -50,9 +50,19 @@
 #include "libudev.h"
 #include "linux/serial.h"
 #include "linux_termios.h"
+
+/* TCGETX/TCSETX is not available everywhere. */
 #if defined(TCGETX) && defined(TCSETX) && defined(HAVE_TERMIOX)
 #define USE_TERMIOX
 #endif
+#endif
+
+/* TIOCINQ/TIOCOUTQ is not available everywhere. */
+#if !defined(TIOCINQ) && defined(FIONREAD)
+#define TIOCINQ FIONREAD
+#endif
+#if !defined(TIOCOUTQ) && defined(FIONWRITE)
+#define TIOCOUTQ FIONWRITE
 #endif
 
 #ifndef _WIN32
