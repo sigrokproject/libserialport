@@ -33,7 +33,7 @@
  * TCSETX/TCGETX ioctls used with struct termiox, others do not.
  */
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__ANDROID__)
 
 #include <linux/termios.h>
 #include "linux_termios.h"

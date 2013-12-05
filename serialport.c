@@ -50,7 +50,9 @@
 #ifdef HAVE_LIBUDEV
 #include "libudev.h"
 #endif
+#ifndef __ANDROID__
 #include "linux/serial.h"
+#endif
 #include "linux_termios.h"
 
 /* TCGETX/TCSETX is not available everywhere. */
@@ -815,7 +817,12 @@ enum sp_return sp_drain(struct sp_port *port)
 #else
 	int result;
 	while (1) {
+#ifdef __ANDROID__
+		int arg = 1;
+		result = ioctl(port->fd, TCSBRK, &arg);
+#else
 		result = tcdrain(port->fd);
+#endif
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("tcdrain() was interrupted");
