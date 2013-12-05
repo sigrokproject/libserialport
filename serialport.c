@@ -47,7 +47,9 @@
 #include <sys/syslimits.h>
 #endif
 #ifdef __linux__
+#ifdef HAVE_LIBUDEV
 #include "libudev.h"
+#endif
 #include "linux/serial.h"
 #include "linux_termios.h"
 
@@ -460,7 +462,7 @@ out_release:
 	IOObjectRelease(iter);
 out_done:
 #endif
-#ifdef __linux__
+#if defined(__linux__) && defined(HAVE_LIBUDEV)
 	struct udev *ud;
 	struct udev_enumerate *ud_enumerate;
 	struct udev_list_entry *ud_list;
