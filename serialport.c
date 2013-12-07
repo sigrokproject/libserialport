@@ -1155,7 +1155,8 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
 		RETURN_FAIL("ReadFile() failed");
 
 	/* Get number of bytes read. */
-	GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE);
+	if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
+		RETURN_FAIL("GetOverlappedResult() failed");
 
 	RETURN_VALUE("%d", bytes_read);
 #else
