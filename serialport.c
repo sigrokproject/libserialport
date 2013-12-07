@@ -173,7 +173,11 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 #define RETURN_OK() RETURN_CODE(SP_OK);
 #define RETURN_ERROR(err, msg) do { DEBUG_ERROR(err, msg); return err; } while (0)
 #define RETURN_FAIL(msg) do { DEBUG_FAIL(msg); return SP_ERR_FAIL; } while (0)
-#define RETURN_VALUE(fmt, x) do { DEBUG("%s returning " fmt, __func__, x); return x; } while (0)
+#define RETURN_VALUE(fmt, x) do { \
+	typeof(x) _x = x; \
+	DEBUG("%s returning " fmt, __func__, _x); \
+	return _x; \
+} while (0)
 #define SET_ERROR(val, err, msg) do { DEBUG_ERROR(err, msg); val = err; } while (0)
 #define SET_FAIL(val, msg) do { DEBUG_FAIL(msg); val = SP_ERR_FAIL; } while (0)
 #define TRACE(fmt, ...) DEBUG("%s(" fmt ") called", __func__, ##__VA_ARGS__)
