@@ -541,7 +541,7 @@ out:
 		*list_ptr = list;
 		RETURN_OK();
 	case SP_ERR_SUPP:
-		DEBUG_ERROR(SP_ERR_SUPP, "Enumeration not supported on this platform.");
+		DEBUG_ERROR(SP_ERR_SUPP, "Enumeration not supported on this platform");
 	default:
 		if (list)
 			sp_free_port_list(list);
@@ -1015,12 +1015,12 @@ enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_
 				RETURN_FAIL("WriteFile() failed");
 			}
 		} else {
-			DEBUG("Single byte written immediately.");
+			DEBUG("Single byte written immediately");
 			written++;
 		}
 	}
 
-	DEBUG("All bytes written immediately.");
+	DEBUG("All bytes written immediately");
 
 	RETURN_VALUE("%d", written);
 #else
