@@ -1000,9 +1000,16 @@ enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_
 		/* Start asynchronous write. */
 		if (WriteFile(port->hdl, &port->pending_byte, 1, NULL, &port->write_ovl) == 0) {
 			if (GetLastError() == ERROR_IO_PENDING) {
-				DEBUG("Asynchronous write started");
-				port->writing = 1;
-				RETURN_VALUE("%d", ++written);
+				if (HasOverlappedIoCompleted(&port->write_ovl)) {
+					DEBUG("Asynchronous write completed immediately");
+					port->writing = 0;
+					written++;
+					continue;
+				} else {
+					DEBUG("Asynchronous write running");
+					port->writing = 1;
+					RETURN_VALUE("%d", ++written);
+				}
 			} else {
 				/* Actual failure of some kind. */
 				RETURN_FAIL("WriteFile() failed");
