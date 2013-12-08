@@ -1582,7 +1582,6 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	if (config->parity >= 0) {
 		switch (config->parity) {
-		/* Note: There's also SPACEPARITY, MARKPARITY (unneeded so far). */
 		case SP_PARITY_NONE:
 			data->dcb.Parity = NOPARITY;
 			break;
