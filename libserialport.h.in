@@ -73,7 +73,7 @@
  *
  * Calls that succeed return @ref SP_OK, which is equal to zero. Some functions
  * declared @ref sp_return can also return a positive value for a successful
- * numeric result, e.g. sp_read() and sp_write().
+ * numeric result, e.g. sp_blocking_read() or sp_blocking_write().
  */
 
 #ifndef LIBSERIALPORT_LIBSERIALPORT_H
@@ -230,10 +230,16 @@ enum sp_signal {
 	SP_SIG_RI = 8,
 };
 
-/** A serial port. */
+/**
+ * @struct sp_port
+ * An opaque structure representing a serial port.
+ */
 struct sp_port;
 
-/** Configuration for a serial port. */
+/**
+ * @struct sp_port_config
+ * An opaque structure representing the configuration for a serial port.
+ */
 struct sp_port_config;
 
 /**
