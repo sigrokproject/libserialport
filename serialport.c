@@ -729,7 +729,8 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 #endif
 
 #ifdef _WIN32
-	ClearCommError(port->hdl, &errors, &status);
+	if (ClearCommError(port->hdl, &errors, &status) == 0)
+		RETURN_FAIL("ClearCommError() failed");
 #endif
 
 	ret = set_config(port, &data, &config);
@@ -1200,7 +1201,7 @@ enum sp_return sp_input_waiting(struct sp_port *port)
 	COMSTAT comstat;
 
 	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
-		RETURN_FAIL("ClearComError() failed");
+		RETURN_FAIL("ClearCommError() failed");
 	RETURN_VALUE("%d", comstat.cbInQue);
 #else
 	int bytes_waiting;
@@ -1223,7 +1224,7 @@ enum sp_return sp_output_waiting(struct sp_port *port)
 	COMSTAT comstat;
 
 	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
-		RETURN_FAIL("ClearComError() failed");
+		RETURN_FAIL("ClearCommError() failed");
 	RETURN_VALUE("%d", comstat.cbOutQue);
 #else
 	int bytes_waiting;
