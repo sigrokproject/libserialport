@@ -608,8 +608,9 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	DEBUG("Opening port %s", port->name);
 
 #ifdef _WIN32
-	DWORD desired_access = 0, flags_and_attributes = 0;
+	DWORD desired_access = 0, flags_and_attributes = 0, errors;
 	char *escaped_port_name;
+	COMSTAT status;
 
 	/* Prefix port name with '\\.\' to work with ports above COM9. */
 	if (!(escaped_port_name = malloc(strlen(port->name + 5))))
@@ -725,6 +726,10 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	/* Ignore modem status lines; enable receiver; leave control lines alone on close. */
 	data.term.c_cflag |= (CLOCAL | CREAD | HUPCL);
+#endif
+
+#ifdef _WIN32
+	ClearCommError(port->hdl, &errors, &status);
 #endif
 
 	ret = set_config(port, &data, &config);
