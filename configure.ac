@@ -39,10 +39,6 @@ AM_INIT_AUTOMAKE([1.11 -Wall -Werror])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
-AH_TOP([#ifndef SP_CONFIG_H
-#define SP_CONFIG_H    /* To stop multiple inclusions. */])
-AH_BOTTOM([#endif /* SP_CONFIG_H */])
-
 # Enable more compiler warnings via -Wall and -Wextra.
 CFLAGS="$CFLAGS -Wall -Wextra"
 
@@ -51,9 +47,6 @@ AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
-
-# Required for per-target flags or subdir-objects with C sources.
-AM_PROG_CC_C_O
 
 # Initialize libtool.
 LT_INIT
@@ -104,20 +97,12 @@ esac
 
 AC_SUBST(SP_PKGLIBS)
 
-# Checks for header files.
-# These are already checked: inttypes.h dlfcn.h memory.h stdint.h stdlib.h
-# string.h strings.h sys/types.h sys/stat.h unistd.h
-AC_CHECK_HEADERS([errno.h fcntl.h stddef.h sys/ioctl.h termios.h])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_C_INLINE
+# Define size_t if not defined as as standard.
 AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
+
+# Check for specific termios structures.
 AC_CHECK_TYPE([struct termios2],[AC_DEFINE(HAVE_TERMIOS2, 1)],[],[[#include <linux/termios.h>]])
 AC_CHECK_TYPE([struct termiox],[AC_DEFINE(HAVE_TERMIOX, 1)],[],[[#include <linux/termios.h>]])
-
-# Checks for library functions.
-AC_CHECK_FUNCS([strerror])
 
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
