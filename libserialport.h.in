@@ -36,6 +36,7 @@
  * - @ref Configuration (baud rate, parity, etc.)
  * - @ref Signals (modem control lines, breaks, etc.)
  * - @ref Data
+ * - @ref Waiting
  * - @ref Errors
  *
  * libserialport is an open source project released under the LGPL3+ license.
@@ -120,6 +121,16 @@ enum sp_mode {
 	SP_MODE_READ = 1,
 	/** Open port for write access. */
 	SP_MODE_WRITE = 2,
+};
+
+/** Port events. */
+enum sp_event {
+	/* Data received and ready to read. */
+	SP_EVENT_RX_READY = 1,
+	/* Ready to transmit new data. */
+	SP_EVENT_TX_READY = 2,
+	/* Error occured. */
+	SP_EVENT_ERROR = 4,
 };
 
 /** Buffer selection. */
@@ -241,6 +252,19 @@ struct sp_port;
  * An opaque structure representing the configuration for a serial port.
  */
 struct sp_port_config;
+
+/**
+ * @struct sp_event_set
+ * A set of handles to wait on for events.
+ */
+struct sp_event_set {
+	/** Array of OS-specific handles. */
+	void *handles;
+	/** Array of bitmasks indicating which events apply for each handle. */
+	enum sp_event *masks;
+	/** Number of handles. */
+	unsigned int count;
+};
 
 /**
 @defgroup Enumeration Port enumeration
@@ -896,6 +920,57 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
  * @return SP_OK upon success, a negative error code otherwise.
  */
 enum sp_return sp_drain(struct sp_port *port);
+
+/**
+ * @}
+ * @defgroup Waiting Waiting for events
+ * @{
+ */
+
+/**
+ * Allocate storage for a set of events.
+ *
+ * The user should allocate a variable of type struct sp_event_set *,
+ * then pass a pointer to this variable to receive the result.
+ *
+ * The result should be freed after use by calling sp_free_event_set().
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_new_event_set(struct sp_event_set **result_ptr);
+
+/**
+ * Add events to a struct sp_event_set for a given port.
+ *
+ * The port must first be opened by calling sp_open() using the same port
+ * structure.
+ *
+ * After the port is closed or the port structure freed, the results may
+ * no longer be valid.
+ *
+ * @param event_set Event set to update.
+ * @param port Pointer to port structure.
+ * @param mask Bitmask of events to be waited for.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_add_port_events(struct sp_event_set *event_set,
+	const struct sp_port *port, enum sp_event mask);
+
+/**
+ * Wait for any of a set of events to occur.
+ *
+ * @param handles Event set to wait on.
+ * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
+ *
+ * @return SP_OK upon success, a negative error code otherwise.
+ */
+enum sp_return sp_wait(struct sp_event_set *event_set, unsigned int timeout);
+
+/**
+ * Free a structure allocated by sp_new_event_set().
+ */
+void sp_free_event_set(struct sp_event_set *event_set);
 
 /**
  * @}

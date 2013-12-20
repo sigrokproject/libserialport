@@ -39,6 +39,7 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <limits.h>
+#include <poll.h>
 #endif
 #ifdef __APPLE__
 #include <IOKit/IOKitLib.h>
@@ -82,6 +83,8 @@ struct sp_port {
 	COMMTIMEOUTS timeouts;
 	OVERLAPPED write_ovl;
 	OVERLAPPED read_ovl;
+	OVERLAPPED wait_ovl;
+	DWORD events;
 	BYTE pending_byte;
 	BOOL writing;
 #else
@@ -111,6 +114,12 @@ struct port_data {
 	int flow;
 #endif
 };
+
+#ifdef _WIN32
+typedef HANDLE event_handle;
+#else
+typedef int event_handle;
+#endif
 
 /* Standard baud rates. */
 #ifdef _WIN32
@@ -645,17 +654,32 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	}
 
 	/* Prepare OVERLAPPED structures. */
-	memset(&port->read_ovl, 0, sizeof(port->read_ovl));
-	memset(&port->write_ovl, 0, sizeof(port->write_ovl));
-	port->read_ovl.hEvent = INVALID_HANDLE_VALUE;
-	port->write_ovl.hEvent = INVALID_HANDLE_VALUE;
-	if ((port->read_ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL)) == INVALID_HANDLE_VALUE) {
+#define INIT_OVERLAPPED(ovl) do { \
+	memset(&port->ovl, 0, sizeof(port->ovl)); \
+	port->ovl.hEvent = INVALID_HANDLE_VALUE; \
+	if ((port->ovl.hEvent = CreateEvent(NULL, TRUE, TRUE, NULL)) \
+			== INVALID_HANDLE_VALUE) { \
+		sp_close(port); \
+		RETURN_FAIL(#ovl "CreateEvent() failed"); \
+	} \
+} while (0)
+
+	INIT_OVERLAPPED(read_ovl);
+	INIT_OVERLAPPED(write_ovl);
+	INIT_OVERLAPPED(wait_ovl);
+
+	/* Set event mask for RX and error events. */
+	if (SetCommMask(port->hdl, EV_RXCHAR | EV_ERR) == 0) {
 		sp_close(port);
-		RETURN_FAIL("read event CreateEvent() failed");
+		RETURN_FAIL("SetCommMask() failed");
 	}
-	if ((port->write_ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL)) == INVALID_HANDLE_VALUE) {
-		sp_close(port);
-		RETURN_FAIL("write event CreateEvent() failed");
+
+	/* Start background operation for RX and error events. */
+	if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
+		if (GetLastError() != ERROR_IO_PENDING) {
+			sp_close(port);
+			RETURN_FAIL("WaitCommEvent() failed");
+		}
 	}
 
 	port->writing = FALSE;
@@ -756,12 +780,17 @@ enum sp_return sp_close(struct sp_port *port)
 	if (CloseHandle(port->hdl) == 0)
 		RETURN_FAIL("port CloseHandle() failed");
 	port->hdl = INVALID_HANDLE_VALUE;
-	/* Close event handle created for overlapped reads. */
-	if (port->read_ovl.hEvent != INVALID_HANDLE_VALUE && CloseHandle(port->read_ovl.hEvent) == 0)
-		RETURN_FAIL("read event CloseHandle() failed");
-	/* Close event handle created for overlapped writes. */
-	if (port->write_ovl.hEvent != INVALID_HANDLE_VALUE && CloseHandle(port->write_ovl.hEvent) == 0)
-		RETURN_FAIL("write event CloseHandle() failed");
+
+	/* Close event handles for overlapped structures. */
+#define CLOSE_OVERLAPPED(ovl) do { \
+	if (port->ovl.hEvent != INVALID_HANDLE_VALUE && \
+		CloseHandle(port->ovl.hEvent) == 0) \
+		RETURN_FAIL(# ovl "event CloseHandle() failed"); \
+} while (0)
+	CLOSE_OVERLAPPED(read_ovl);
+	CLOSE_OVERLAPPED(write_ovl);
+	CLOSE_OVERLAPPED(wait_ovl);
+
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	if (close(port->fd) == -1)
@@ -1072,14 +1101,22 @@ enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, u
 			DEBUG("Waiting for read to complete");
 			GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE);
 			DEBUG("Read completed, %d/%d bytes read", bytes_read, count);
-			RETURN_VALUE("%d", bytes_read);
 		} else {
 			RETURN_FAIL("ReadFile() failed");
 		}
 	} else {
 		DEBUG("Read completed immediately");
-		RETURN_VALUE("%d", count);
+		bytes_read = count;
 	}
+
+	/* Start background operation for subsequent events. */
+	if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
+		if (GetLastError() != ERROR_IO_PENDING)
+			RETURN_FAIL("WaitCommEvent() failed");
+	}
+
+	RETURN_VALUE("%d", bytes_read);
+
 #else
 	size_t bytes_read = 0;
 	unsigned char *ptr = (unsigned char *) buf;
@@ -1171,6 +1208,14 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
 	if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
 		RETURN_FAIL("GetOverlappedResult() failed");
 
+	if (bytes_read > 0) {
+		/* Start background operation for subsequent events. */
+		if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
+			if (GetLastError() != ERROR_IO_PENDING)
+				RETURN_FAIL("WaitCommEvent() failed");
+		}
+	}
+
 	RETURN_VALUE("%d", bytes_read);
 #else
 	ssize_t bytes_read;
@@ -1231,6 +1276,186 @@ enum sp_return sp_output_waiting(struct sp_port *port)
 	if (ioctl(port->fd, TIOCOUTQ, &bytes_waiting) < 0)
 		RETURN_FAIL("TIOCOUTQ ioctl failed");
 	RETURN_VALUE("%d", bytes_waiting);
+#endif
+}
+
+enum sp_return sp_new_event_set(struct sp_event_set **result_ptr)
+{
+	struct sp_event_set *result;
+
+	TRACE("%p", result_ptr);
+
+	if (!result_ptr)
+		RETURN_ERROR(SP_ERR_ARG, "Null result");
+
+	*result_ptr = NULL;
+
+	if (!(result = malloc(sizeof(struct sp_event_set))))
+		RETURN_ERROR(SP_ERR_MEM, "sp_event_set malloc() failed");
+
+	memset(result, 0, sizeof(struct sp_event_set));
+
+	*result_ptr = result;
+
+	RETURN_OK();
+}
+
+static enum sp_return add_handle(struct sp_event_set *event_set,
+		event_handle handle, enum sp_event mask)
+{
+	void *new_handles;
+	enum sp_event *new_masks;
+
+	TRACE("%p, %d, %d", event_set, handle, mask);
+
+	if (!(new_handles = realloc(event_set->handles,
+			sizeof(event_handle) * (event_set->count + 1))))
+		RETURN_ERROR(SP_ERR_MEM, "handle array realloc() failed");
+
+	if (!(new_masks = realloc(event_set->masks,
+			sizeof(enum sp_event) * (event_set->count + 1))))
+		RETURN_ERROR(SP_ERR_MEM, "mask array realloc() failed");
+
+	event_set->handles = new_handles;
+	event_set->masks = new_masks;
+
+	((event_handle *) event_set->handles)[event_set->count] = handle;
+	event_set->masks[event_set->count] = mask;
+
+	event_set->count++;
+
+	RETURN_OK();
+}
+
+enum sp_return sp_add_port_events(struct sp_event_set *event_set,
+	const struct sp_port *port, enum sp_event mask)
+{
+	TRACE("%p, %p, %d", event_set, port, mask);
+
+	if (!event_set)
+		RETURN_ERROR(SP_ERR_ARG, "Null event set");
+
+	if (!port)
+		RETURN_ERROR(SP_ERR_ARG, "Null port");
+
+	if (mask > (SP_EVENT_RX_READY | SP_EVENT_TX_READY | SP_EVENT_ERROR))
+		RETURN_ERROR(SP_ERR_ARG, "Invalid event mask");
+
+	if (!mask)
+		RETURN_OK();
+
+#ifdef _WIN32
+	enum sp_event handle_mask;
+	if ((handle_mask = mask & SP_EVENT_TX_READY))
+		TRY(add_handle(event_set, port->write_ovl.hEvent, handle_mask));
+	if ((handle_mask = mask & (SP_EVENT_RX_READY | SP_EVENT_ERROR)))
+		TRY(add_handle(event_set, port->wait_ovl.hEvent, handle_mask));
+#else
+	TRY(add_handle(event_set, port->fd, mask));
+#endif
+
+	RETURN_OK();
+}
+
+void sp_free_event_set(struct sp_event_set *event_set)
+{
+	TRACE("%p", event_set);
+
+	if (!event_set) {
+		DEBUG("Null event set");
+		RETURN();
+	}
+
+	DEBUG("Freeing event set");
+
+	if (event_set->handles)
+		free(event_set->handles);
+	if (event_set->masks)
+		free(event_set->masks);
+
+	free(event_set);
+
+	RETURN();
+}
+
+enum sp_return sp_wait(struct sp_event_set *event_set, unsigned int timeout)
+{
+	TRACE("%p, %d", event_set, timeout);
+
+	if (!event_set)
+		RETURN_ERROR(SP_ERR_ARG, "Null event set");
+
+#ifdef _WIN32
+	if (WaitForMultipleObjects(event_set->count, event_set->handles, FALSE,
+			timeout ? timeout : INFINITE) == WAIT_FAILED)
+		RETURN_FAIL("WaitForMultipleObjects() failed");
+
+	RETURN_OK();
+#else
+	struct timeval start, delta, now, end = {0, 0};
+	int result, timeout_remaining;
+	struct pollfd *pollfds;
+	unsigned int i;
+
+	if (!(pollfds = malloc(sizeof(struct pollfd) * event_set->count)))
+		RETURN_ERROR(SP_ERR_MEM, "pollfds malloc() failed");
+
+	for (i = 0; i < event_set->count; i++) {
+		pollfds[i].fd = ((int *) event_set->handles)[i];
+		pollfds[i].events = 0;
+		pollfds[i].revents = 0;
+		if (event_set->masks[i] & SP_EVENT_RX_READY)
+			pollfds[i].events |= POLLIN;
+		if (event_set->masks[i] & SP_EVENT_TX_READY)
+			pollfds[i].events |= POLLOUT;
+		if (event_set->masks[i] & SP_EVENT_ERROR)
+			pollfds[i].events |= POLLERR;
+	}
+
+	if (timeout) {
+		/* Get time at start of operation. */
+		gettimeofday(&start, NULL);
+		/* Define duration of timeout. */
+		delta.tv_sec = timeout / 1000;
+		delta.tv_usec = (timeout % 1000) * 1000;
+		/* Calculate time at which we should give up. */
+		timeradd(&start, &delta, &end);
+	}
+
+	/* Loop until an event occurs. */
+	while (1)
+	{
+		if (timeout) {
+			gettimeofday(&now, NULL);
+			if (timercmp(&now, &end, >)) {
+				DEBUG("wait timed out");
+				break;
+			}
+			timersub(&end, &now, &delta);
+			timeout_remaining = delta.tv_sec * 1000 + delta.tv_usec / 1000;
+		}
+
+		result = poll(pollfds, event_set->count, timeout ? timeout_remaining : -1);
+
+		if (result < 0) {
+			if (errno == EINTR) {
+				DEBUG("poll() call was interrupted, repeating");
+				continue;
+			} else {
+				free(pollfds);
+				RETURN_FAIL("poll() failed");
+			}
+		} else if (result == 0) {
+			DEBUG("poll() timed out");
+			break;
+		} else {
+			DEBUG("poll() completed");
+			break;
+		}
+	}
+
+	free(pollfds);
+	RETURN_OK();
 #endif
 }
 
