@@ -36,6 +36,8 @@ library_include_HEADERS = libserialport.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libserialport.pc
 
+EXTRA_DIST = Doxyfile
+
 MAINTAINERCLEANFILES = ChangeLog
 
 .PHONY: ChangeLog
