@@ -960,7 +960,7 @@ enum sp_return sp_add_port_events(struct sp_event_set *event_set,
 /**
  * Wait for any of a set of events to occur.
  *
- * @param handles Event set to wait on.
+ * @param event_set Event set to wait on.
  * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return SP_OK upon success, a negative error code otherwise.
