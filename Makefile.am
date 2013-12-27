@@ -44,5 +44,5 @@ ChangeLog:
 
 dist-hook: ChangeLog
 
-doc: $(library_include_HEADERS) Doxyfile
-	doxygen
+doc: $(library_include_HEADERS) $(top_srcdir)/Doxyfile
+	doxygen $(top_srcdir)/Doxyfile
