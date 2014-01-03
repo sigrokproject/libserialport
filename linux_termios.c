@@ -63,7 +63,7 @@ int get_termios_size(void)
 #endif
 }
 
-#ifdef USE_TERMIOS_SPEED
+#if defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)
 int get_termios_speed(void *data)
 {
 #ifdef HAVE_TERMIOS2
