@@ -33,8 +33,6 @@
  * TCSETX/TCGETX ioctls used with struct termiox, others do not.
  */
 
-#if defined(__linux__) && !defined(__ANDROID__)
-
 #include <linux/termios.h>
 #include "linux_termios.h"
 
@@ -65,6 +63,7 @@ int get_termios_size(void)
 #endif
 }
 
+#ifdef USE_TERMIOS_SPEED
 int get_termios_speed(void *data)
 {
 #ifdef HAVE_TERMIOS2
@@ -89,6 +88,7 @@ void set_termios_speed(void *data, int speed)
 	term->c_cflag |= BOTHER;
 	term->c_ispeed = term->c_ospeed = speed;
 }
+#endif
 
 #ifdef HAVE_TERMIOX
 int get_termiox_size(void)
@@ -124,6 +124,4 @@ void set_termiox_flow(void *data, int rts, int cts, int dtr, int dsr)
 	if (dsr)
 		termx->x_cflag |= DSRXON;
 }
-#endif
-
 #endif

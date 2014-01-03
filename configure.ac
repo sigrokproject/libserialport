@@ -107,6 +107,10 @@ AC_TYPE_SIZE_T
 # Check for specific termios structures.
 AC_CHECK_TYPE([struct termios2], [AC_DEFINE(HAVE_TERMIOS2, 1)], [], [[#include <linux/termios.h>]])
 AC_CHECK_TYPE([struct termiox], [AC_DEFINE(HAVE_TERMIOX, 1)], [], [[#include <linux/termios.h>]])
+AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed],
+	[AC_DEFINE(HAVE_TERMIOS_SPEED, 1)], [], [[#include <linux/termios.h>]])
+AC_CHECK_MEMBERS([struct termios2.c_ispeed, struct termios2.c_ospeed],
+	[AC_DEFINE(HAVE_TERMIOS2_SPEED, 1)], [], [[#include <linux/termios.h>]])
 
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')

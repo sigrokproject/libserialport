@@ -70,6 +70,11 @@
 #define TIOCOUTQ FIONWRITE
 #endif
 
+/* Non-standard baudrates are not available everywhere. */
+#if defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)
+#define USE_TERMIOS_SPEED
+#endif
+
 #include "libserialport.h"
 
 struct sp_port {
@@ -1458,7 +1463,7 @@ enum sp_return sp_wait(struct sp_event_set *event_set, unsigned int timeout)
 #endif
 }
 
-#ifdef __linux__
+#ifdef USE_TERMIOS_SPEED
 static enum sp_return get_baudrate(int fd, int *baudrate)
 {
 	void *data;
@@ -1511,6 +1516,7 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 
 	RETURN_OK();
 }
+#endif /* USE_TERMIOS_SPEED */
 
 #ifdef USE_TERMIOX
 static enum sp_return get_flow(int fd, struct port_data *data)
@@ -1568,7 +1574,6 @@ static enum sp_return set_flow(int fd, struct port_data *data)
 	RETURN_OK();
 }
 #endif /* USE_TERMIOX */
-#endif /* __linux__ */
 
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config)
@@ -1705,7 +1710,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	if (i == NUM_STD_BAUDRATES) {
 #ifdef __APPLE__
 		config->baudrate = (int)data->term.c_ispeed;
-#elif defined(__linux__)
+#elif defined(USE_TERMIOS_SPEED)
 		TRY(get_baudrate(port->fd, &config->baudrate));
 #else
 		config->baudrate = -1;
@@ -1788,7 +1793,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	baud_nonstd = B0;
 #endif
-#ifdef __linux__
+#ifdef USE_TERMIOS_SPEED
 	int baud_nonstd = 0;
 #endif
 
@@ -1955,7 +1960,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			if (cfsetspeed(&data->term, B9600) < 0)
 				RETURN_FAIL("cfsetspeed() failed");
 			baud_nonstd = config->baudrate;
-#elif defined(__linux__)
+#elif defined(USE_TERMIOS_SPEED)
 			baud_nonstd = 1;
 #else
 			RETURN_ERROR(SP_ERR_SUPP, "Non-standard baudrate not supported");
@@ -2151,8 +2156,10 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			RETURN_FAIL("cfsetspeed() failed");
 	}
 #elif defined(__linux__)
+#ifdef USE_TERMIOS_SPEED
 	if (baud_nonstd)
 		TRY(set_baudrate(port->fd, config->baudrate));
+#endif
 #ifdef USE_TERMIOX
 	if (data->termiox_supported)
 		TRY(set_flow(port->fd, data));
