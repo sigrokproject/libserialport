@@ -70,10 +70,6 @@
 #define TIOCOUTQ FIONWRITE
 #endif
 
-#ifndef _WIN32
-#include "linux_termios.h"
-#endif
-
 #include "libserialport.h"
 
 struct sp_port {
@@ -111,7 +107,10 @@ struct port_data {
 	struct termios term;
 	int controlbits;
 	int termiox_supported;
-	int flow;
+	int rts_flow;
+	int cts_flow;
+	int dtr_flow;
+	int dsr_flow;
 #endif
 };
 
@@ -1514,55 +1513,57 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 }
 
 #ifdef USE_TERMIOX
-static enum sp_return get_flow(int fd, int *flow)
+static enum sp_return get_flow(int fd, struct port_data *data)
 {
-	void *data;
+	void *termx;
 
-	TRACE("%d, %p", fd, flow);
+	TRACE("%d, %p", fd, data);
 
 	DEBUG("Getting advanced flow control");
 
-	if (!(data = malloc(get_termiox_size())))
+	if (!(termx = malloc(get_termiox_size())))
 		RETURN_ERROR(SP_ERR_MEM, "termiox malloc failed");
 
-	if (ioctl(fd, TCGETX, data) < 0) {
-		free(data);
+	if (ioctl(fd, TCGETX, termx) < 0) {
+		free(termx);
 		RETURN_FAIL("getting termiox failed");
 	}
 
-	*flow = get_termiox_flow(data);
+	get_termiox_flow(termx, &data->rts_flow, &data->cts_flow,
+			&data->dtr_flow, &data->dsr_flow);
 
-	free(data);
+	free(termx);
 
 	RETURN_OK();
 }
 
-static enum sp_return set_flow(int fd, int flow)
+static enum sp_return set_flow(int fd, struct port_data *data)
 {
-	void *data;
+	void *termx;
 
-	TRACE("%d, %d", fd, flow);
+	TRACE("%d, %p", fd, data);
 
 	DEBUG("Getting advanced flow control");
 
-	if (!(data = malloc(get_termiox_size())))
+	if (!(termx = malloc(get_termiox_size())))
 		RETURN_ERROR(SP_ERR_MEM, "termiox malloc failed");
 
-	if (ioctl(fd, TCGETX, data) < 0) {
-		free(data);
+	if (ioctl(fd, TCGETX, termx) < 0) {
+		free(termx);
 		RETURN_FAIL("getting termiox failed");
 	}
 
 	DEBUG("Setting advanced flow control");
 
-	set_termiox_flow(data, flow);
+	set_termiox_flow(termx, data->rts_flow, data->cts_flow,
+			data->dtr_flow, data->dsr_flow);
 
-	if (ioctl(fd, TCSETX, data) < 0) {
-		free(data);
+	if (ioctl(fd, TCSETX, termx) < 0) {
+		free(termx);
 		RETURN_FAIL("setting termiox failed");
 	}
 
-	free(data);
+	free(termx);
 
 	RETURN_OK();
 }
@@ -1682,7 +1683,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		RETURN_FAIL("TIOCMGET ioctl failed");
 
 #ifdef USE_TERMIOX
-	int ret = get_flow(port->fd, &data->flow);
+	int ret = get_flow(port->fd, data);
 
 	if (ret == SP_ERR_FAIL && errno == EINVAL)
 		data->termiox_supported = 0;
@@ -1745,21 +1746,21 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		config->rts = SP_RTS_FLOW_CONTROL;
 		config->cts = SP_CTS_FLOW_CONTROL;
 	} else {
-		if (data->termiox_supported && data->flow & RTS_FLOW)
+		if (data->termiox_supported && data->rts_flow)
 			config->rts = SP_RTS_FLOW_CONTROL;
 		else
 			config->rts = (data->controlbits & TIOCM_RTS) ? SP_RTS_ON : SP_RTS_OFF;
 
-		config->cts = (data->termiox_supported && data->flow & CTS_FLOW) ?
+		config->cts = (data->termiox_supported && data->cts_flow) ?
 			SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE;
 	}
 
-	if (data->termiox_supported && data->flow & DTR_FLOW)
+	if (data->termiox_supported && data->dtr_flow)
 		config->dtr = SP_DTR_FLOW_CONTROL;
 	else
 		config->dtr = (data->controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
 
-	config->dsr = (data->termiox_supported && data->flow & DSR_FLOW) ?
+	config->dsr = (data->termiox_supported && data->dsr_flow) ?
 		SP_DSR_FLOW_CONTROL : SP_DSR_IGNORE;
 
 	if (data->term.c_iflag & IXOFF) {
@@ -2033,7 +2034,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	if (config->rts >= 0 || config->cts >= 0) {
 		if (data->termiox_supported) {
-			data->flow &= ~(RTS_FLOW | CTS_FLOW);
+			data->rts_flow = data->cts_flow = 0;
 			switch (config->rts) {
 			case SP_RTS_OFF:
 			case SP_RTS_ON:
@@ -2042,15 +2043,15 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 					RETURN_FAIL("Setting RTS signal level failed");
 				break;
 			case SP_RTS_FLOW_CONTROL:
-				data->flow |= RTS_FLOW;
+				data->rts_flow = 1;
 				break;
 			default:
 				break;
 			}
 			if (config->cts == SP_CTS_FLOW_CONTROL)
-				data->flow |= CTS_FLOW;
+				data->cts_flow = 1;
 
-			if (data->flow & (RTS_FLOW | CTS_FLOW))
+			if (data->rts_flow && data->cts_flow)
 				data->term.c_iflag |= CRTSCTS;
 			else
 				data->term.c_iflag &= ~CRTSCTS;
@@ -2088,7 +2089,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	if (config->dtr >= 0 || config->dsr >= 0) {
 		if (data->termiox_supported) {
-			data->flow &= ~(DTR_FLOW | DSR_FLOW);
+			data->dtr_flow = data->dsr_flow = 0;
 			switch (config->dtr) {
 			case SP_DTR_OFF:
 			case SP_DTR_ON:
@@ -2097,13 +2098,13 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 					RETURN_FAIL("Setting DTR signal level failed");
 				break;
 			case SP_DTR_FLOW_CONTROL:
-				data->flow |= DTR_FLOW;
+				data->dtr_flow = 1;
 				break;
 			default:
 				break;
 			}
 			if (config->dsr == SP_DSR_FLOW_CONTROL)
-				data->flow |= DSR_FLOW;
+				data->dsr_flow = 1;
 		} else {
 			/* DTR/DSR flow control not supported. */
 			if (config->dtr == SP_DTR_FLOW_CONTROL || config->dsr == SP_DSR_FLOW_CONTROL)
@@ -2154,7 +2155,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 		TRY(set_baudrate(port->fd, config->baudrate));
 #ifdef USE_TERMIOX
 	if (data->termiox_supported)
-		TRY(set_flow(port->fd, data->flow));
+		TRY(set_flow(port->fd, data));
 #endif
 #endif
 

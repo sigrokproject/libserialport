@@ -96,36 +96,32 @@ int get_termiox_size(void)
 	return sizeof(struct termiox);
 }
 
-int get_termiox_flow(void *data)
+int get_termiox_flow(void *data, int *rts, int *cts, int *dtr, int *dsr)
 {
 	struct termiox *termx = (struct termiox *) data;
 	int flags = 0;
 
-	if (termx->x_cflag & RTSXOFF)
-		flags |= RTS_FLOW;
-	if (termx->x_cflag & CTSXON)
-		flags |= CTS_FLOW;
-	if (termx->x_cflag & DTRXOFF)
-		flags |= DTR_FLOW;
-	if (termx->x_cflag & DSRXON)
-		flags |= DSR_FLOW;
+	*rts = (termx->x_cflag & RTSXOFF);
+	*cts = (termx->x_cflag & CTSXON);
+	*dtr = (termx->x_cflag & DTRXOFF);
+	*dsr = (termx->x_cflag & DSRXON);
 
 	return flags;
 }
 
-void set_termiox_flow(void *data, int flags)
+void set_termiox_flow(void *data, int rts, int cts, int dtr, int dsr)
 {
 	struct termiox *termx = (struct termiox *) data;
 
 	termx->x_cflag &= ~(RTSXOFF | CTSXON | DTRXOFF | DSRXON);
 
-	if (flags & RTS_FLOW)
+	if (rts)
 		termx->x_cflag |= RTSXOFF;
-	if (flags & CTS_FLOW)
+	if (cts)
 		termx->x_cflag |= CTSXON;
-	if (flags & DTR_FLOW)
+	if (dtr)
 		termx->x_cflag |= DTRXOFF;
-	if (flags & DSR_FLOW)
+	if (dsr)
 		termx->x_cflag |= DSRXON;
 }
 #endif
