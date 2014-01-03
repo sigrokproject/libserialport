@@ -79,6 +79,7 @@ SP_PKGLIBS=""
 
 case $target_os in
 *linux*)
+	AM_CONDITIONAL([LINUX], true)
 	# On Linux libudev is currently required for enumeration.
 	AC_ARG_WITH([libudev],
             [AS_HELP_STRING([--with-libudev],
@@ -90,9 +91,12 @@ case $target_os in
 		SP_PKGLIBS="$SP_PKGLIBS libudev"; AC_DEFINE(HAVE_LIBUDEV)])], [])
 	;;
 *darwin*)
+	AM_CONDITIONAL([LINUX], false)
 	LDFLAGS="$LDFLAGS -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation"
 	AC_CHECK_HEADER(IOKit/IOKitLib.h, [], [AC_MSG_ERROR([IOKit/IOKitLib.h not found])])
 	;;
+*)
+	AM_CONDITIONAL([LINUX], false)
 esac
 
 AC_SUBST(SP_PKGLIBS)
