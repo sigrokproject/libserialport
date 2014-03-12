@@ -89,18 +89,6 @@ extern "C" {
 #include <windows.h>
 #endif
 
-/* Package version macros (e.g. for conditional compilation). */
-#define SP_PACKAGE_VERSION_MAJOR @SP_PACKAGE_VERSION_MAJOR@
-#define SP_PACKAGE_VERSION_MINOR @SP_PACKAGE_VERSION_MINOR@
-#define SP_PACKAGE_VERSION_MICRO @SP_PACKAGE_VERSION_MICRO@
-#define SP_PACKAGE_VERSION_STRING "@SP_PACKAGE_VERSION@"
-
-/* Library/libtool version macros (e.g. for conditional compilation). */
-#define SP_LIB_VERSION_CURRENT @SP_LIB_VERSION_CURRENT@
-#define SP_LIB_VERSION_REVISION @SP_LIB_VERSION_REVISION@
-#define SP_LIB_VERSION_AGE @SP_LIB_VERSION_AGE@
-#define SP_LIB_VERSION_STRING "@SP_LIB_VERSION@"
-
 /** Return values. */
 enum sp_return {
 	/** Operation completed successfully. */
@@ -1067,6 +1055,132 @@ void sp_set_debug_handler(void (*handler)(const char *format, ...));
  * ignored.
  */
 void sp_default_debug_handler(const char *format, ...);
+
+/** @} */
+
+/**
+ * @defgroup Versions Version number querying functions, definitions, and macros
+ *
+ * This set of API calls returns two different version numbers related
+ * to libserialport. The "package version" is the release version number of the
+ * libserialport tarball in the usual "major.minor.micro" format, e.g. "0.1.0".
+ *
+ * The "library version" is independent of that; it is the libtool version
+ * number in the "current:revision:age" format, e.g. "2:0:0".
+ * See http://www.gnu.org/software/libtool/manual/libtool.html#Libtool-versioning for details.
+ *
+ * Both version numbers (and/or individual components of them) can be
+ * retrieved via the API calls at runtime, and/or they can be checked at
+ * compile/preprocessor time using the respective macros.
+ *
+ * @{
+ */
+
+/*
+ * Package version macros (can be used for conditional compilation).
+ */
+
+/** The libserialport package 'major' version number. */
+#define SP_PACKAGE_VERSION_MAJOR @SP_PACKAGE_VERSION_MAJOR@
+
+/** The libserialport package 'minor' version number. */
+#define SP_PACKAGE_VERSION_MINOR @SP_PACKAGE_VERSION_MINOR@
+
+/** The libserialport package 'micro' version number. */
+#define SP_PACKAGE_VERSION_MICRO @SP_PACKAGE_VERSION_MICRO@
+
+/** The libserialport package version ("major.minor.micro") as string. */
+#define SP_PACKAGE_VERSION_STRING "@SP_PACKAGE_VERSION@"
+
+/*
+ * Library/libtool version macros (can be used for conditional compilation).
+ */
+
+/** The libserialport libtool 'current' version number. */
+#define SP_LIB_VERSION_CURRENT @SP_LIB_VERSION_CURRENT@
+
+/** The libserialport libtool 'revision' version number. */
+#define SP_LIB_VERSION_REVISION @SP_LIB_VERSION_REVISION@
+
+/** The libserialport libtool 'age' version number. */
+#define SP_LIB_VERSION_AGE @SP_LIB_VERSION_AGE@
+
+/** The libserialport libtool version ("current:revision:age") as string. */
+#define SP_LIB_VERSION_STRING "@SP_LIB_VERSION@"
+
+/**
+ * Get the major libserialport package version number.
+ *
+ * @return The major package version number.
+ *
+ * @since 0.1.0
+ */
+int sp_get_major_package_version(void);
+
+/**
+ * Get the minor libserialport package version number.
+ *
+ * @return The minor package version number.
+ *
+ * @since 0.1.0
+ */
+int sp_get_minor_package_version(void);
+
+/**
+ * Get the micro libserialport package version number.
+ *
+ * @return The micro package version number.
+ *
+ * @since 0.1.0
+ */
+int sp_get_micro_package_version(void);
+
+/**
+ * Get the libserialport package version number as a string.
+ *
+ * @return The package version number string. The returned string is
+ *         static and thus should NOT be free'd by the caller.
+ *
+ * @since 0.1.0
+ */
+const char *sp_get_package_version_string(void);
+
+/**
+ * Get the "current" part of the libserialport library version number.
+ *
+ * @return The "current" library version number.
+ *
+ * @since 0.1.0
+ */
+int sp_get_current_lib_version(void);
+
+/**
+ * Get the "revision" part of the libserialport library version number.
+ *
+ * @return The "revision" library version number.
+ *
+ * @since 0.1.0
+ */
+int sp_get_revision_lib_version(void);
+
+/**
+ * Get the "age" part of the libserialport library version number.
+ *
+ * @return The "age" library version number.
+ *
+ * @since 0.1.0
+ */
+int sp_get_age_lib_version(void);
+
+/**
+ * Get the libserialport library version number as a string.
+ *
+ * @return The library version number string. The returned string is
+ *         static and thus should NOT be free'd by the caller.
+ *
+ * @since 0.1.0
+ */
+const char *sp_get_lib_version_string(void);
 
 /** @} */
 

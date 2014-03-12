@@ -2471,3 +2471,45 @@ void sp_default_debug_handler(const char *format, ...)
 	}
 	va_end(args);
 }
+
+int sp_get_major_package_version(void)
+{
+	return SP_PACKAGE_VERSION_MAJOR;
+}
+
+int sp_get_minor_package_version(void)
+{
+	return SP_PACKAGE_VERSION_MINOR;
+}
+
+int sp_get_micro_package_version(void)
+{
+	return SP_PACKAGE_VERSION_MICRO;
+}
+
+const char *sp_get_package_version_string(void)
+{
+	return SP_PACKAGE_VERSION_STRING;
+}
+
+int sp_get_current_lib_version(void)
+{
+	return SP_LIB_VERSION_CURRENT;
+}
+
+int sp_get_revision_lib_version(void)
+{
+	return SP_LIB_VERSION_REVISION;
+}
+
+int sp_get_age_lib_version(void)
+{
+	return SP_LIB_VERSION_AGE;
+}
+
+const char *sp_get_lib_version_string(void)
+{
+	return SP_LIB_VERSION_STRING;
+}
+
+/** @} */
