@@ -389,7 +389,7 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 		data_len = data_size / sizeof(TCHAR);
 		data[data_len] = '\0';
 #ifdef UNICODE
-		name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL)
+		name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL);
 #else
 		name_len = data_len + 1;
 #endif
