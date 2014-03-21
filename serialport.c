@@ -626,7 +626,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	COMSTAT status;
 
 	/* Prefix port name with '\\.\' to work with ports above COM9. */
-	if (!(escaped_port_name = malloc(strlen(port->name + 5))))
+	if (!(escaped_port_name = malloc(strlen(port->name) + 5)))
 		RETURN_ERROR(SP_ERR_MEM, "Escaped port name malloc failed");
 	sprintf(escaped_port_name, "\\\\.\\%s", port->name);
 
