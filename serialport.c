@@ -389,7 +389,7 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 		data_len = data_size / sizeof(TCHAR);
 		data[data_len] = '\0';
 #ifdef UNICODE
-		name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL)
+		name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL);
 #else
 		name_len = data_len + 1;
 #endif
@@ -626,7 +626,7 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	COMSTAT status;
 
 	/* Prefix port name with '\\.\' to work with ports above COM9. */
-	if (!(escaped_port_name = malloc(strlen(port->name + 5))))
+	if (!(escaped_port_name = malloc(strlen(port->name) + 5)))
 		RETURN_ERROR(SP_ERR_MEM, "Escaped port name malloc failed");
 	sprintf(escaped_port_name, "\\\\.\\%s", port->name);
 
