@@ -271,11 +271,15 @@ struct sp_event_set {
  * to NULL. Otherwise, it will be set to point to the newly allocated port.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr);
 
 /**
  * Free a port structure obtained from sp_get_port_by_name() or sp_copy_port().
+ *
+ * @since 0.1.0
  */
 void sp_free_port(struct sp_port *port);
 
@@ -294,6 +298,8 @@ void sp_free_port(struct sp_port *port);
  * to NULL. Otherwise, it will be set to point to the newly allocated array.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_list_ports(struct sp_port ***list_ptr);
 
@@ -309,6 +315,8 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr);
  * to NULL. Otherwise, it will be set to point to the newly allocated copy.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_ptr);
 
@@ -317,6 +325,8 @@ enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_pt
  *
  * This will also free all the sp_port structures referred to from the list;
  * any that are to be retained must be copied first using sp_copy_port().
+ *
+ * @since 0.1.0
  */
 void sp_free_port_list(struct sp_port **ports);
 
@@ -333,6 +343,8 @@ void sp_free_port_list(struct sp_port **ports);
  * @param flags Flags to use when opening the serial port.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_open(struct sp_port *port, enum sp_mode flags);
 
@@ -340,6 +352,8 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags);
  * Close the specified serial port.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_close(struct sp_port *port);
 
@@ -355,6 +369,8 @@ enum sp_return sp_close(struct sp_port *port);
  * @return The port name, or NULL if an invalid port is passed. The name
  * string is part of the port structure and may not be used after the
  * port structure has been freed.
+ *
+ * @since 0.1.0
  */
 char *sp_get_port_name(const struct sp_port *port);
 
@@ -379,6 +395,8 @@ char *sp_get_port_name(const struct sp_port *port);
  *          library's own usage of the port. Be careful.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
 
@@ -404,6 +422,8 @@ enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
  * @param config_ptr Pointer to variable to receive result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_new_config(struct sp_port_config **config_ptr);
 
@@ -411,6 +431,8 @@ enum sp_return sp_new_config(struct sp_port_config **config_ptr);
  * Free a port configuration structure.
  *
  * @param config Pointer to configuration structure.
+ *
+ * @since 0.1.0
  */
 void sp_free_config(struct sp_port_config *config);
 
@@ -426,6 +448,8 @@ void sp_free_config(struct sp_port_config *config);
  * ignored by sp_set_config().
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config);
 
@@ -437,6 +461,8 @@ enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config
  * and the corresponding setting left unchanged on the port.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *config);
 
@@ -447,6 +473,8 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
  * @param baudrate Baud rate in bits per second.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_baudrate(struct sp_port *port, int baudrate);
 
@@ -460,6 +488,8 @@ enum sp_return sp_set_baudrate(struct sp_port *port, int baudrate);
  * @param baudrate_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_baudrate(const struct sp_port_config *config, int *baudrate_ptr);
 
@@ -470,6 +500,8 @@ enum sp_return sp_get_config_baudrate(const struct sp_port_config *config, int *
  * @param baudrate Baud rate in bits per second, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_baudrate(struct sp_port_config *config, int baudrate);
 
@@ -480,6 +512,8 @@ enum sp_return sp_set_config_baudrate(struct sp_port_config *config, int baudrat
  * @param bits Number of data bits.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_bits(struct sp_port *port, int bits);
 
@@ -493,6 +527,8 @@ enum sp_return sp_set_bits(struct sp_port *port, int bits);
  * @param bits_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_bits(const struct sp_port_config *config, int *bits_ptr);
 
@@ -503,6 +539,8 @@ enum sp_return sp_get_config_bits(const struct sp_port_config *config, int *bits
  * @param bits Number of data bits, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_bits(struct sp_port_config *config, int bits);
 
@@ -513,6 +551,8 @@ enum sp_return sp_set_config_bits(struct sp_port_config *config, int bits);
  * @param parity Parity setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_parity(struct sp_port *port, enum sp_parity parity);
 
@@ -526,6 +566,8 @@ enum sp_return sp_set_parity(struct sp_port *port, enum sp_parity parity);
  * @param parity_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_parity(const struct sp_port_config *config, enum sp_parity *parity_ptr);
 
@@ -536,6 +578,8 @@ enum sp_return sp_get_config_parity(const struct sp_port_config *config, enum sp
  * @param parity Parity setting, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_parity(struct sp_port_config *config, enum sp_parity parity);
 
@@ -546,6 +590,8 @@ enum sp_return sp_set_config_parity(struct sp_port_config *config, enum sp_parit
  * @param stopbits Number of stop bits.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_stopbits(struct sp_port *port, int stopbits);
 
@@ -559,6 +605,8 @@ enum sp_return sp_set_stopbits(struct sp_port *port, int stopbits);
  * @param stopbits_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_stopbits(const struct sp_port_config *config, int *stopbits_ptr);
 
@@ -569,6 +617,8 @@ enum sp_return sp_get_config_stopbits(const struct sp_port_config *config, int *
  * @param stopbits Number of stop bits, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_stopbits(struct sp_port_config *config, int stopbits);
 
@@ -579,6 +629,8 @@ enum sp_return sp_set_config_stopbits(struct sp_port_config *config, int stopbit
  * @param rts RTS pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_rts(struct sp_port *port, enum sp_rts rts);
 
@@ -592,6 +644,8 @@ enum sp_return sp_set_rts(struct sp_port *port, enum sp_rts rts);
  * @param rts_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_rts(const struct sp_port_config *config, enum sp_rts *rts_ptr);
 
@@ -602,6 +656,8 @@ enum sp_return sp_get_config_rts(const struct sp_port_config *config, enum sp_rt
  * @param rts RTS pin mode, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_rts(struct sp_port_config *config, enum sp_rts rts);
 
@@ -612,6 +668,8 @@ enum sp_return sp_set_config_rts(struct sp_port_config *config, enum sp_rts rts)
  * @param cts CTS pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_cts(struct sp_port *port, enum sp_cts cts);
 
@@ -625,6 +683,8 @@ enum sp_return sp_set_cts(struct sp_port *port, enum sp_cts cts);
  * @param cts_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_cts(const struct sp_port_config *config, enum sp_cts *cts_ptr);
 
@@ -635,6 +695,8 @@ enum sp_return sp_get_config_cts(const struct sp_port_config *config, enum sp_ct
  * @param cts CTS pin mode, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_cts(struct sp_port_config *config, enum sp_cts cts);
 
@@ -645,6 +707,8 @@ enum sp_return sp_set_config_cts(struct sp_port_config *config, enum sp_cts cts)
  * @param dtr DTR pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_dtr(struct sp_port *port, enum sp_dtr dtr);
 
@@ -658,6 +722,8 @@ enum sp_return sp_set_dtr(struct sp_port *port, enum sp_dtr dtr);
  * @param dtr_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_dtr(const struct sp_port_config *config, enum sp_dtr *dtr_ptr);
 
@@ -668,6 +734,8 @@ enum sp_return sp_get_config_dtr(const struct sp_port_config *config, enum sp_dt
  * @param dtr DTR pin mode, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_dtr(struct sp_port_config *config, enum sp_dtr dtr);
 
@@ -678,6 +746,8 @@ enum sp_return sp_set_config_dtr(struct sp_port_config *config, enum sp_dtr dtr)
  * @param dsr DSR pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_dsr(struct sp_port *port, enum sp_dsr dsr);
 
@@ -691,6 +761,8 @@ enum sp_return sp_set_dsr(struct sp_port *port, enum sp_dsr dsr);
  * @param dsr_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_dsr(const struct sp_port_config *config, enum sp_dsr *dsr_ptr);
 
@@ -701,6 +773,8 @@ enum sp_return sp_get_config_dsr(const struct sp_port_config *config, enum sp_ds
  * @param dsr DSR pin mode, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_dsr(struct sp_port_config *config, enum sp_dsr dsr);
 
@@ -711,6 +785,8 @@ enum sp_return sp_set_config_dsr(struct sp_port_config *config, enum sp_dsr dsr)
  * @param xon_xoff XON/XOFF mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
 
@@ -724,6 +800,8 @@ enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
  * @param xon_xoff_ptr Pointer to variable to store result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_config_xon_xoff(const struct sp_port_config *config, enum sp_xonxoff *xon_xoff_ptr);
 
@@ -734,6 +812,8 @@ enum sp_return sp_get_config_xon_xoff(const struct sp_port_config *config, enum 
  * @param xon_xoff XON/XOFF mode, or -1 to retain current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_xon_xoff(struct sp_port_config *config, enum sp_xonxoff xon_xoff);
 
@@ -749,6 +829,8 @@ enum sp_return sp_set_config_xon_xoff(struct sp_port_config *config, enum sp_xon
  * @param flowcontrol Flow control setting to use.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_config_flowcontrol(struct sp_port_config *config, enum sp_flowcontrol flowcontrol);
 
@@ -764,6 +846,8 @@ enum sp_return sp_set_config_flowcontrol(struct sp_port_config *config, enum sp_
  * @param flowcontrol Flow control setting to use.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flowcontrol);
 
@@ -796,6 +880,8 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
  *         timeout was reached before the requested number of bytes was
  *         available. If timeout is zero, the function will always return
  *         either the requested number of bytes or a negative error code.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, unsigned int timeout);
 
@@ -809,6 +895,8 @@ enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, u
  * @return The number of bytes read on success, or a negative error code. The
  *         number of bytes returned may be any number from zero to the maximum
  *         that was requested.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count);
 
@@ -843,6 +931,8 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
  *         either the requested number of bytes or a negative error code. In
  *         the event of an error there is no way to determine how many bytes
  *         were sent before the error occured.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t count, unsigned int timeout);
 
@@ -862,6 +952,8 @@ enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t c
  * @return The number of bytes written on success, or a negative error code.
  *         The number of bytes returned may be any number from zero to the
  *         maximum that was requested.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_t count);
 
@@ -871,6 +963,8 @@ enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_
  * @param port Pointer to port structure.
  *
  * @return Number of bytes waiting on success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_input_waiting(struct sp_port *port);
 
@@ -880,6 +974,8 @@ enum sp_return sp_input_waiting(struct sp_port *port);
  * @param port Pointer to port structure.
  *
  * @return Number of bytes waiting on success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_output_waiting(struct sp_port *port);
 
@@ -890,6 +986,8 @@ enum sp_return sp_output_waiting(struct sp_port *port);
  * @param buffers Which buffer(s) to flush.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
 
@@ -906,6 +1004,8 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
  * @param port Pointer to port structure.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_drain(struct sp_port *port);
 
@@ -924,6 +1024,8 @@ enum sp_return sp_drain(struct sp_port *port);
  * The result should be freed after use by calling sp_free_event_set().
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_new_event_set(struct sp_event_set **result_ptr);
 
@@ -941,6 +1043,8 @@ enum sp_return sp_new_event_set(struct sp_event_set **result_ptr);
  * @param mask Bitmask of events to be waited for.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_add_port_events(struct sp_event_set *event_set,
 	const struct sp_port *port, enum sp_event mask);
@@ -952,11 +1056,15 @@ enum sp_return sp_add_port_events(struct sp_event_set *event_set,
  * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_wait(struct sp_event_set *event_set, unsigned int timeout);
 
 /**
  * Free a structure allocated by sp_new_event_set().
+ *
+ * @since 0.1.0
  */
 void sp_free_event_set(struct sp_event_set *event_set);
 
@@ -978,6 +1086,8 @@ void sp_free_event_set(struct sp_event_set *event_set);
  * @param signals Pointer to variable to receive result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals);
 
@@ -987,6 +1097,8 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals);
  * @param port Pointer to port structure.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_start_break(struct sp_port *port);
 
@@ -996,6 +1108,8 @@ enum sp_return sp_start_break(struct sp_port *port);
  * @param port Pointer to port structure.
  *
  * @return SP_OK upon success, a negative error code otherwise.
+ *
+ * @since 0.1.0
  */
 enum sp_return sp_end_break(struct sp_port *port);
 
@@ -1013,6 +1127,8 @@ enum sp_return sp_end_break(struct sp_port *port);
  *
  * @return The system's numeric code for the error that caused the last
  *         operation to fail.
+ *
+ * @since 0.1.0
  */
 int sp_last_error_code(void);
 
@@ -1025,11 +1141,15 @@ int sp_last_error_code(void);
  * @return The system's message for the error that caused the last
  *         operation to fail. This string may be allocated by the function,
  *         and should be freed after use by calling sp_free_error_message().
+ *
+ * @since 0.1.0
  */
 char *sp_last_error_message(void);
 
 /**
  * Free an error message returned by sp_last_error_message().
+ *
+ * @since 0.1.0
  */
 void sp_free_error_message(char *message);
 
@@ -1044,6 +1164,8 @@ void sp_free_error_message(char *message);
  * argument list, in the same manner as e.g. printf().
  *
  * The default handler is sp_default_debug_handler().
+ *
+ * @since 0.1.0
  */
 void sp_set_debug_handler(void (*handler)(const char *format, ...));
 
@@ -1053,6 +1175,8 @@ void sp_set_debug_handler(void (*handler)(const char *format, ...));
  * This function prints debug messages to the standard error stream if the
  * environment variable LIBSERIALPORT_DEBUG is set. Otherwise, they are
  * ignored.
+ *
+ * @since 0.1.0
  */
 void sp_default_debug_handler(const char *format, ...);
 
