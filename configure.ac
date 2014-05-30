@@ -76,6 +76,7 @@ AC_SUBST(SP_LIB_LDFLAGS)
 # It is then used to construct the "Requires.private:" field in the
 # libserialport.pc file.
 SP_PKGLIBS=""
+SP_LIBS=""
 
 case $target_os in
 *linux*)
@@ -86,11 +87,16 @@ case $target_os in
 	LDFLAGS="$LDFLAGS -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation"
 	AC_CHECK_HEADER(IOKit/IOKitLib.h, [], [AC_MSG_ERROR([IOKit/IOKitLib.h not found])])
 	;;
+mingw* | cygwin*)
+	AM_CONDITIONAL([LINUX], false)
+	SP_LIBS="-lsetupapi -luuid"
+	;;
 *)
 	AM_CONDITIONAL([LINUX], false)
 esac
 
 AC_SUBST(SP_PKGLIBS)
+AC_SUBST(SP_LIBS)
 
 # Define size_t if not defined as standard.
 AC_TYPE_SIZE_T

@@ -1,3 +1,11 @@
+next
+------------------
+
+ * New API to obtain a user friendly port description: sp_get_port_description().
+ * New API to obtain the underlying transport type: sp_get_port_description().
+ * New API to obtain USB descriptor details: sp_get_port_usb_*().
+ * New API to obtain bluetooth address: sp_get_port_bluetooth_address().
+
 0.1.0 (2014-05-06)
 ------------------
 

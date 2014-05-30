@@ -5,6 +5,7 @@
  * Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2013 Martin Ling <martin-libserialport@earth.li>
  * Copyright (C) 2013 Matthias Heidbrink <m-sigrok@heidbrink.biz>
+ * Copyright (C) 2014 Aurelien Jacobs <aurel@gnuage.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -31,6 +32,9 @@
 #include <stdarg.h>
 #ifdef _WIN32
 #include <windows.h>
+#include <setupapi.h>
+#include <cfgmgr32.h>
+#include <usbioctl.h>
 #include <tchar.h>
 #else
 #include <limits.h>
@@ -41,6 +45,7 @@
 #include <poll.h>
 #endif
 #ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/serial/IOSerialKeys.h>
 #include <IOKit/serial/ioss.h>
@@ -76,7 +81,18 @@
 
 struct sp_port {
 	char *name;
+	char *description;
+	enum sp_transport transport;
+	int usb_bus;
+	int usb_address;
+	int usb_vid;
+	int usb_pid;
+	char *usb_manufacturer;
+	char *usb_product;
+	char *usb_serial;
+	char *bluetooth_address;
 #ifdef _WIN32
+	char *usb_path;
 	HANDLE hdl;
 	COMMTIMEOUTS timeouts;
 	OVERLAPPED write_ovl;
@@ -200,9 +216,738 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config);
 
+#ifdef _WIN32
+
+/* USB path is a string of at most 8 decimal numbers < 128 separated by dots */
+#define MAX_USB_PATH  (8*3 + 7*1 + 1)
+
+static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
+{
+	WCHAR wc_str[size/sizeof(WCHAR)+1];
+	char *utf8_str;
+
+	/* zero terminate the wide char string */
+	memcpy(wc_str, wc_buffer, size);
+	wc_str[sizeof(wc_str)-1] = 0;
+
+	/* compute the size of the utf8 converted string */
+	if (!(size = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
+	                                 NULL, 0, NULL, NULL)))
+		return NULL;
+
+	/* allocate utf8 output buffer */
+	if (!(utf8_str = malloc(size)))
+		return NULL;
+
+	/* actually converted to utf8 */
+	if (!WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
+	                         utf8_str, size, NULL, NULL)) {
+		free(utf8_str);
+		return NULL;
+	}
+
+	return utf8_str;
+}
+
+static char *get_root_hub_name(HANDLE host_controller)
+{
+	USB_ROOT_HUB_NAME  root_hub_name;
+	PUSB_ROOT_HUB_NAME root_hub_name_wc;
+	char *root_hub_name_utf8;
+	ULONG size = 0;
+
+	/* compute the size of the root hub name string */
+	if (!DeviceIoControl(host_controller, IOCTL_USB_GET_ROOT_HUB_NAME, 0, 0,
+	                     &root_hub_name, sizeof(root_hub_name), &size, NULL))
+		return NULL;
+
+	/* allocate wide char root hub name string */
+	size = root_hub_name.ActualLength;
+	if (!(root_hub_name_wc = malloc(size)))
+		return NULL;
+
+	/* actually get the root hub name string */
+	if (!DeviceIoControl(host_controller, IOCTL_USB_GET_ROOT_HUB_NAME,
+	                     NULL, 0, root_hub_name_wc, size, &size, NULL)) {
+		free(root_hub_name_wc);
+		return NULL;
+	}
+
+	/* convert the root hub name string to utf8 */
+	root_hub_name_utf8 = wc_to_utf8(root_hub_name_wc->RootHubName, size);
+	free(root_hub_name_wc);
+	return root_hub_name_utf8;
+}
+
+static char *get_external_hub_name(HANDLE hub, ULONG connection_index)
+{
+	USB_NODE_CONNECTION_NAME  ext_hub_name;
+	PUSB_NODE_CONNECTION_NAME ext_hub_name_wc;
+	char *ext_hub_name_utf8;
+	ULONG size;
+
+	/* compute the size of the external hub name string */
+	ext_hub_name.ConnectionIndex = connection_index;
+	if (!DeviceIoControl(hub, IOCTL_USB_GET_NODE_CONNECTION_NAME,
+	                     &ext_hub_name, sizeof(ext_hub_name),
+	                     &ext_hub_name, sizeof(ext_hub_name), &size, NULL))
+		return NULL;
+
+	/* allocate wide char external hub name string */
+	size = ext_hub_name.ActualLength;
+	if (size <= sizeof(ext_hub_name)
+	    || !(ext_hub_name_wc = malloc(size)))
+		return NULL;
+
+	/* get the name of the external hub attached to the specified port */
+	ext_hub_name_wc->ConnectionIndex = connection_index;
+	if (!DeviceIoControl(hub, IOCTL_USB_GET_NODE_CONNECTION_NAME,
+	                     ext_hub_name_wc, size,
+	                     ext_hub_name_wc, size, &size, NULL)) {
+		free(ext_hub_name_wc);
+		return NULL;
+	}
+
+	/* convert the external hub name string to utf8 */
+	ext_hub_name_utf8 = wc_to_utf8(ext_hub_name_wc->NodeName, size);
+	free(ext_hub_name_wc);
+	return ext_hub_name_utf8;
+}
+
+static char *get_string_descriptor(HANDLE hub_device, ULONG connection_index,
+                                   UCHAR descriptor_index)
+{
+	char desc_req_buf[sizeof(USB_DESCRIPTOR_REQUEST) +
+	                  MAXIMUM_USB_STRING_LENGTH] = { 0 };
+	PUSB_DESCRIPTOR_REQUEST desc_req = (void *) desc_req_buf;
+	PUSB_STRING_DESCRIPTOR  desc     = (void *) (desc_req + 1);
+	ULONG size = sizeof(desc_req_buf);
+
+	desc_req->ConnectionIndex     = connection_index;
+	desc_req->SetupPacket.wValue  = (USB_STRING_DESCRIPTOR_TYPE << 8)
+	                                | descriptor_index;
+	desc_req->SetupPacket.wIndex  = 0;
+	desc_req->SetupPacket.wLength = size - sizeof(*desc_req);
+
+	if (!DeviceIoControl(hub_device,
+	                     IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION,
+	                     desc_req, size, desc_req, size, &size, NULL)
+	    || size < 2
+	    || desc->bDescriptorType != USB_STRING_DESCRIPTOR_TYPE
+	    || desc->bLength != size - sizeof(*desc_req)
+	    || desc->bLength % 2)
+		return NULL;
+
+	return wc_to_utf8(desc->bString, desc->bLength);
+}
+
+static void enumerate_hub(struct sp_port *port, char *hub_name,
+                          char *parent_path);
+
+static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
+                                ULONG nb_ports, char *parent_path)
+{
+	char path[MAX_USB_PATH];
+	ULONG index = 0;
+
+	for (index = 1; index <= nb_ports; index++) {
+		PUSB_NODE_CONNECTION_INFORMATION_EX connection_info_ex;
+		ULONG size = sizeof(*connection_info_ex) + 30*sizeof(USB_PIPE_INFO);
+
+		if (!(connection_info_ex = malloc(size)))
+			break;
+
+		connection_info_ex->ConnectionIndex = index;
+		if (!DeviceIoControl(hub_device,
+		                     IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX,
+		                     connection_info_ex, size,
+		                     connection_info_ex, size, &size, NULL)) {
+			/* try to get CONNECTION_INFORMATION if CONNECTION_INFORMATION_EX
+			   did not work */
+			PUSB_NODE_CONNECTION_INFORMATION connection_info;
+
+			size = sizeof(*connection_info) + 30*sizeof(USB_PIPE_INFO);
+			if (!(connection_info = malloc(size))) {
+				free(connection_info_ex);
+				continue;
+			}
+			connection_info->ConnectionIndex = index;
+			if (!DeviceIoControl(hub_device,
+			                     IOCTL_USB_GET_NODE_CONNECTION_INFORMATION,
+			                     connection_info, size,
+			                     connection_info, size, &size, NULL)) {
+				free(connection_info);
+				free(connection_info_ex);
+				continue;
+			}
+
+			connection_info_ex->ConnectionIndex = connection_info->ConnectionIndex;
+			connection_info_ex->DeviceDescriptor = connection_info->DeviceDescriptor;
+			connection_info_ex->DeviceIsHub = connection_info->DeviceIsHub;
+			connection_info_ex->DeviceAddress = connection_info->DeviceAddress;
+			free(connection_info);
+		}
+
+		if (connection_info_ex->DeviceIsHub) {
+			/* recursively enumerate external hub */
+			PCHAR ext_hub_name;
+			if ((ext_hub_name = get_external_hub_name(hub_device, index))) {
+				snprintf(path, sizeof(path), "%s%d.",
+				         parent_path, connection_info_ex->ConnectionIndex);
+				enumerate_hub(port, ext_hub_name, path);
+			}
+			free(connection_info_ex);
+		} else {
+			snprintf(path, sizeof(path), "%s%d",
+			         parent_path, connection_info_ex->ConnectionIndex);
+
+			/* check if this device is the one we search for */
+			if (strcmp(path, port->usb_path)) {
+				free(connection_info_ex);
+				continue;
+			}
+
+			/* finally grab detailed informations regarding the device */
+			port->usb_address = connection_info_ex->DeviceAddress + 1;
+			port->usb_vid = connection_info_ex->DeviceDescriptor.idVendor;
+			port->usb_pid = connection_info_ex->DeviceDescriptor.idProduct;
+
+			if (connection_info_ex->DeviceDescriptor.iManufacturer)
+				port->usb_manufacturer = get_string_descriptor(hub_device,index,
+				           connection_info_ex->DeviceDescriptor.iManufacturer);
+			if (connection_info_ex->DeviceDescriptor.iProduct)
+				port->usb_product = get_string_descriptor(hub_device, index,
+				           connection_info_ex->DeviceDescriptor.iProduct);
+			if (connection_info_ex->DeviceDescriptor.iSerialNumber)
+				port->usb_serial = get_string_descriptor(hub_device, index,
+				           connection_info_ex->DeviceDescriptor.iSerialNumber);
+
+			free(connection_info_ex);
+			break;
+		}
+	}
+}
+
+static void enumerate_hub(struct sp_port *port, char *hub_name,
+                          char *parent_path)
+{
+	USB_NODE_INFORMATION hub_info;
+	HANDLE hub_device;
+	ULONG size = sizeof(hub_info);
+	char *device_name;
+
+	/* open the hub with its full name */
+	if (!(device_name = malloc(strlen("\\\\.\\") + strlen(hub_name) + 1)))
+		return;
+	strcpy(device_name, "\\\\.\\");
+	strcat(device_name, hub_name);
+	hub_device = CreateFile(device_name, GENERIC_WRITE, FILE_SHARE_WRITE,
+	                        NULL, OPEN_EXISTING, 0, NULL);
+	free(device_name);
+	if (hub_device == INVALID_HANDLE_VALUE)
+		return;
+
+	/* get the number of ports of the hub */
+	if (DeviceIoControl(hub_device, IOCTL_USB_GET_NODE_INFORMATION,
+	                    &hub_info, size, &hub_info, size, &size, NULL))
+		/* enumarate the ports of the hub */
+		enumerate_hub_ports(port, hub_device,
+		   hub_info.u.HubInformation.HubDescriptor.bNumberOfPorts, parent_path);
+
+	CloseHandle(hub_device);
+}
+
+static void enumerate_host_controller(struct sp_port *port,
+                                      HANDLE host_controller_device)
+{
+	char *root_hub_name;
+
+	if ((root_hub_name = get_root_hub_name(host_controller_device))) {
+		enumerate_hub(port, root_hub_name, "");
+		free(root_hub_name);
+	}
+}
+
+static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
+{
+	HDEVINFO device_info;
+	SP_DEVINFO_DATA device_info_data;
+	ULONG i, size = 0;
+
+	device_info = SetupDiGetClassDevs(&GUID_CLASS_USB_HOST_CONTROLLER,NULL,NULL,
+	                                  DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+	device_info_data.cbSize = sizeof(device_info_data);
+
+	for (i=0; SetupDiEnumDeviceInfo(device_info, i, &device_info_data); i++) {
+		SP_DEVICE_INTERFACE_DATA device_interface_data;
+		PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data;
+		DEVINST dev_inst = dev_inst_match;
+		HANDLE host_controller_device;
+
+		device_interface_data.cbSize = sizeof(device_interface_data);
+		if (!SetupDiEnumDeviceInterfaces(device_info, 0,
+		                                 &GUID_CLASS_USB_HOST_CONTROLLER,
+		                                 i, &device_interface_data))
+			continue;
+
+		if (!SetupDiGetDeviceInterfaceDetail(device_info,&device_interface_data,
+		                                     NULL, 0, &size, NULL)
+		    && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+			continue;
+
+		if (!(device_detail_data = malloc(size)))
+			continue;
+		device_detail_data->cbSize = sizeof(*device_detail_data);
+		if (!SetupDiGetDeviceInterfaceDetail(device_info,&device_interface_data,
+		                                     device_detail_data, size, &size,
+		                                     NULL)) {
+			free(device_detail_data);
+			continue;
+		}
+
+		while (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS
+		       && dev_inst != device_info_data.DevInst) { }
+		if (dev_inst != device_info_data.DevInst) {
+			free(device_detail_data);
+			continue;
+		}
+
+		port->usb_bus = i + 1;
+
+		host_controller_device = CreateFile(device_detail_data->DevicePath,
+		                                    GENERIC_WRITE, FILE_SHARE_WRITE,
+		                                    NULL, OPEN_EXISTING, 0, NULL);
+		if (host_controller_device != INVALID_HANDLE_VALUE) {
+			enumerate_host_controller(port, host_controller_device);
+			CloseHandle(host_controller_device);
+		}
+		free(device_detail_data);
+	}
+
+	SetupDiDestroyDeviceInfoList(device_info);
+	return;
+}
+
+#endif /* _WIN32 */
+
+static enum sp_return sp_get_port_details(struct sp_port *port)
+{
+	/* Description limited to 127 char,
+	   anything longer would not be user friendly anyway */
+	char description[128];
+#ifndef _WIN32
+	int bus, address, vid, pid = -1;
+	char manufacturer[128], product[128], serial[128];
+	char baddr[32];
+#endif
+
+	port->description = NULL;
+	port->transport = SP_TRANSPORT_NATIVE;
+	port->usb_bus = -1;
+	port->usb_address = -1;
+	port->usb_vid = -1;
+	port->usb_pid = -1;
+	port->usb_manufacturer = NULL;
+	port->usb_product = NULL;
+	port->usb_serial = NULL;
+	port->bluetooth_address = NULL;
+
+#ifdef _WIN32
+	SP_DEVINFO_DATA device_info_data = { .cbSize = sizeof(device_info_data) };
+	HDEVINFO device_info;
+	int i;
+
+	device_info = SetupDiGetClassDevs(NULL, 0, 0,
+	                                  DIGCF_PRESENT | DIGCF_ALLCLASSES);
+	if (device_info == INVALID_HANDLE_VALUE)
+		RETURN_FAIL("SetupDiGetClassDevs() failed");
+
+	for (i=0; SetupDiEnumDeviceInfo(device_info, i, &device_info_data); i++) {
+		HKEY device_key;
+		DEVINST dev_inst;
+		char value[8], class[16];
+		DWORD size, type;
+		CONFIGRET cr;
+
+		/* check if this is the device we are looking for */
+		if (!(device_key = SetupDiOpenDevRegKey(device_info, &device_info_data,
+		                                        DICS_FLAG_GLOBAL, 0,
+		                                        DIREG_DEV, KEY_QUERY_VALUE)))
+			continue;
+		size = sizeof(value);
+		if (RegQueryValueExA(device_key, "PortName", NULL, &type, (LPBYTE)value,
+		                     &size) != ERROR_SUCCESS || type != REG_SZ)
+			continue;
+		RegCloseKey(device_key);
+		value[sizeof(value)-1] = 0;
+		if (strcmp(value, port->name))
+			continue;
+
+		/* check port transport type */
+		dev_inst = device_info_data.DevInst;
+		size = sizeof(class);
+		cr = CR_FAILURE;
+		while (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS &&
+		       (cr = CM_Get_DevNode_Registry_PropertyA(dev_inst,
+		                 CM_DRP_CLASS, 0, class, &size, 0)) != CR_SUCCESS) { }
+		if (cr == CR_SUCCESS) {
+			if (!strcmp(class, "USB"))
+				port->transport = SP_TRANSPORT_USB;
+		}
+
+		/* get port description (friendly name) */
+		dev_inst = device_info_data.DevInst;
+		size = sizeof(description);
+		while ((cr = CM_Get_DevNode_Registry_PropertyA(dev_inst,
+		          CM_DRP_FRIENDLYNAME, 0, description, &size, 0)) != CR_SUCCESS
+		       && CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS) { }
+		if (cr == CR_SUCCESS)
+			port->description = strdup(description);
+
+		/* get more informations for USB connected ports */
+		if (port->transport == SP_TRANSPORT_USB) {
+			char usb_path[MAX_USB_PATH] = "", tmp[MAX_USB_PATH];
+			char device_id[MAX_DEVICE_ID_LEN];
+
+			/* recurse over parents to build the USB device path */
+			dev_inst = device_info_data.DevInst;
+			do {
+				/* verify that this layer of the tree is USB related */
+				if (CM_Get_Device_IDA(dev_inst, device_id,
+				                      sizeof(device_id), 0) != CR_SUCCESS
+				    || strncmp(device_id, "USB\\", 4))
+					continue;
+
+				/* discard one layer for composite devices */
+				char compat_ids[512], *p = compat_ids;
+				size = sizeof(compat_ids);
+				if (CM_Get_DevNode_Registry_PropertyA(dev_inst,
+				                                      CM_DRP_COMPATIBLEIDS, 0,
+				                                      &compat_ids,
+				                                      &size, 0) == CR_SUCCESS) {
+					while (*p) {
+						if (!strncmp(p, "USB\\COMPOSITE", 13))
+							break;
+						p += strlen(p) + 1;
+					}
+					if (*p)
+						continue;
+				}
+
+				/* stop the recursion when reaching the USB root */
+				if (!strncmp(device_id, "USB\\ROOT", 8))
+					break;
+
+				/* prepend the address of current USB layer to the USB path */
+				DWORD address;
+				size = sizeof(address);
+				if (CM_Get_DevNode_Registry_PropertyA(dev_inst, CM_DRP_ADDRESS,
+				                        0, &address, &size, 0) == CR_SUCCESS) {
+					strcpy(tmp, usb_path);
+					snprintf(usb_path, sizeof(usb_path), "%d%s%s",
+					         (int)address, *tmp ? "." : "", tmp);
+				}
+			} while (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS);
+
+			port->usb_path = strdup(usb_path);
+
+			/* wake up the USB device to be able to read string descriptor */
+			char *escaped_port_name;
+			HANDLE handle;
+			if (!(escaped_port_name = malloc(strlen(port->name) + 5)))
+				RETURN_ERROR(SP_ERR_MEM, "Escaped port name malloc failed");
+			sprintf(escaped_port_name, "\\\\.\\%s", port->name);
+			handle = CreateFile(escaped_port_name, GENERIC_READ, 0, 0,
+			                    OPEN_EXISTING,
+			                    FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OVERLAPPED, 0);
+			free(escaped_port_name);
+			CloseHandle(handle);
+
+			/* retrive USB device details from the device descriptor */
+			get_usb_details(port, device_info_data.DevInst);
+		}
+		break;
+	}
+#elif defined(__APPLE__)
+	CFMutableDictionaryRef classes;
+	io_iterator_t iter;
+	io_object_t ioport;
+	CFTypeRef cf_property, cf_bus, cf_address, cf_vendor, cf_product;
+	Boolean result;
+	char path[PATH_MAX];
+
+	DEBUG("Getting serial port list");
+	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
+		RETURN_FAIL("IOServiceMatching() failed");
+
+	if (IOServiceGetMatchingServices(kIOMasterPortDefault, classes,
+	                                 &iter) != KERN_SUCCESS)
+		RETURN_FAIL("IOServiceGetMatchingServices() failed");
+
+	DEBUG("Iterating over results");
+	while ((ioport = IOIteratorNext(iter))) {
+		if (!(cf_property = IORegistryEntryCreateCFProperty(ioport,
+		            CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0))) {
+			IOObjectRelease(ioport);
+			continue;
+		}
+		result = CFStringGetCString(cf_property, path, sizeof(path),
+		                            kCFStringEncodingASCII);
+		CFRelease(cf_property);
+		if (!result || strcmp(path, port->name)) {
+			IOObjectRelease(ioport);
+			continue;
+		}
+		DEBUG("Found port %s", path);
+
+		IORegistryEntryGetParentEntry(ioport, kIOServicePlane, &ioparent);
+		if ((cf_property=IORegistryEntrySearchCFProperty(ioparent,kIOServicePlane,
+		           CFSTR("IOProviderClass"), kCFAllocatorDefault,
+		           kIORegistryIterateRecursively | kIORegistryIterateParents))) {
+			if (CFStringGetCString(cf_property, class, sizeof(class),
+			                       kCFStringEncodingASCII) &&
+			    strstr(class, "USB")) {
+				DEBUG("Found USB class device");
+				port->transport = SP_TRANSPORT_USB;
+			}
+			CFRelease(cf_property);
+		}
+		IOObjectRelease(ioparent);
+
+		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+		         CFSTR("USB Interface Name"), kCFAllocatorDefault,
+		         kIORegistryIterateRecursively | kIORegistryIterateParents)) ||
+		    (cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+		         CFSTR("USB Product Name"), kCFAllocatorDefault,
+		         kIORegistryIterateRecursively | kIORegistryIterateParents)) ||
+		    (cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+		         CFSTR("Product Name"), kCFAllocatorDefault,
+		         kIORegistryIterateRecursively | kIORegistryIterateParents)) ||
+		    (cf_property = IORegistryEntryCreateCFProperty(ioport,
+		         CFSTR(kIOTTYDeviceKey), kCFAllocatorDefault, 0))) {
+			if (CFStringGetCString(cf_property, description, sizeof(description),
+			                       kCFStringEncodingASCII)) {
+				DEBUG("Found description %s", description);
+				port->description = strdup(description);
+			}
+			CFRelease(cf_property);
+		} else {
+			DEBUG("No description for this device");
+		}
+
+		cf_bus = IORegistryEntrySearchCFProperty(ioport, kIOServicePlane,
+		                                         CFSTR("USBBusNumber"),
+		                                         kCFAllocatorDefault,
+		                                         kIORegistryIterateRecursively
+		                                         | kIORegistryIterateParents);
+		cf_address = IORegistryEntrySearchCFProperty(ioport, kIOServicePlane,
+		                                         CFSTR("USB Address"),
+		                                         kCFAllocatorDefault,
+		                                         kIORegistryIterateRecursively
+		                                         | kIORegistryIterateParents);
+		if (cf_bus && cf_address &&
+		    CFNumberGetValue(cf_bus    , kCFNumberIntType, &bus) &&
+		    CFNumberGetValue(cf_address, kCFNumberIntType, &address)) {
+			DEBUG("Found matching USB bus:address %03d:%03d", bus, address);
+			port->usb_bus = bus;
+			port->usb_address = address;
+		}
+		if (cf_bus    )  CFRelease(cf_bus);
+		if (cf_address)  CFRelease(cf_address);
+
+		cf_vendor = IORegistryEntrySearchCFProperty(ioport, kIOServicePlane,
+		                                         CFSTR("idVendor"),
+		                                         kCFAllocatorDefault,
+		                                         kIORegistryIterateRecursively
+		                                         | kIORegistryIterateParents);
+		cf_product = IORegistryEntrySearchCFProperty(ioport, kIOServicePlane,
+		                                         CFSTR("idProduct"),
+		                                         kCFAllocatorDefault,
+		                                         kIORegistryIterateRecursively
+		                                         | kIORegistryIterateParents);
+		if (cf_vendor && cf_product &&
+		    CFNumberGetValue(cf_vendor , kCFNumberIntType, &vid) &&
+		    CFNumberGetValue(cf_product, kCFNumberIntType, &pid)) {
+			DEBUG("Found matching USB vid:pid %04X:%04X", vid, pid);
+			port->usb_vid = vid;
+			port->usb_pid = pid;
+		}
+		if (cf_vendor )  CFRelease(cf_vendor);
+		if (cf_product)  CFRelease(cf_product);
+
+		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+		         CFSTR("USB Vendor Name"), kCFAllocatorDefault,
+		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
+			if (CFStringGetCString(cf_property, manufacturer, sizeof(manufacturer),
+			                       kCFStringEncodingASCII)) {
+				DEBUG("Found manufacturer %s", manufacturer);
+				port->usb_manufacturer = strdup(manufacturer);
+			}
+			CFRelease(cf_property);
+		}
+
+		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+		         CFSTR("USB Product Name"), kCFAllocatorDefault,
+		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
+			if (CFStringGetCString(cf_property, product, sizeof(product),
+			                       kCFStringEncodingASCII)) {
+				DEBUG("Found product name %s", product);
+				port->usb_product = strdup(product);
+			}
+			CFRelease(cf_property);
+		}
+
+		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+		         CFSTR("USB Serial Number"), kCFAllocatorDefault,
+		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
+			if (CFStringGetCString(cf_property, serial, sizeof(serial),
+			                       kCFStringEncodingASCII)) {
+				DEBUG("Found serial number %s", serial);
+				port->usb_serial = strdup(serial);
+			}
+			CFRelease(cf_property);
+		}
+
+		IOObjectRelease(ioport);
+		break;
+	}
+	IOObjectRelease(iter);
+#elif defined(__linux__)
+	const char dir_name[] = "/sys/class/tty/%s/device/%s%s";
+	char sub_dir[32] = "", file_name[PATH_MAX];
+	char *ptr, *dev = port->name + 5;
+	FILE *file;
+	int i, count;
+
+	if (strncmp(port->name, "/dev/", 5))
+		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized (%s)", port->name);
+
+	snprintf(file_name, sizeof(file_name), "/sys/class/tty/%s", dev);
+	count = readlink(file_name, file_name, sizeof(file_name));
+	if (count <= 0 || count >= (int) sizeof(file_name)-1)
+		RETURN_ERROR(SP_ERR_ARG, "Device not found (%s)", port->name);
+	file_name[count] = 0;
+	if (strstr(file_name, "bluetooth"))
+		port->transport = SP_TRANSPORT_BLUETOOTH;
+	else if (strstr(file_name, "usb"))
+		port->transport = SP_TRANSPORT_USB;
+
+	if (port->transport == SP_TRANSPORT_USB) {
+		for (i=0; i<5; i++) {
+			strcat(sub_dir, "../");
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"busnum");
+			if (!(file = fopen(file_name, "r")))
+				continue;
+			count = fscanf(file, "%d", &bus);
+			fclose(file);
+			if (count != 1)
+				continue;
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"devnum");
+			if (!(file = fopen(file_name, "r")))
+				continue;
+			count = fscanf(file, "%d", &address);
+			fclose(file);
+			if (count != 1)
+				continue;
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"idVendor");
+			if (!(file = fopen(file_name, "r")))
+				continue;
+			count = fscanf(file, "%4x", &vid);
+			fclose(file);
+			if (count != 1)
+				continue;
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"idProduct");
+			if (!(file = fopen(file_name, "r")))
+				continue;
+			count = fscanf(file, "%4x", &pid);
+			fclose(file);
+			if (count != 1)
+				continue;
+
+			port->usb_bus = bus;
+			port->usb_address = address;
+			port->usb_vid = vid;
+			port->usb_pid = pid;
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"product");
+			if ((file = fopen(file_name, "r"))) {
+				if ((ptr = fgets(description, sizeof(description), file))) {
+					ptr = description + strlen(description) - 1;
+					if (ptr >= description && *ptr == '\n')
+						*ptr = 0;
+					port->description = strdup(description);
+				}
+				fclose(file);
+			}
+			if (!file || !ptr)
+				port->description = strdup(dev);
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"manufacturer");
+			if ((file = fopen(file_name, "r"))) {
+				if ((ptr = fgets(manufacturer, sizeof(manufacturer), file))) {
+					ptr = manufacturer + strlen(manufacturer) - 1;
+					if (ptr >= manufacturer && *ptr == '\n')
+						*ptr = 0;
+					port->usb_manufacturer = strdup(manufacturer);
+				}
+				fclose(file);
+			}
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"product");
+			if ((file = fopen(file_name, "r"))) {
+				if ((ptr = fgets(product, sizeof(product), file))) {
+					ptr = product + strlen(product) - 1;
+					if (ptr >= product && *ptr == '\n')
+						*ptr = 0;
+					port->usb_product = strdup(product);
+				}
+				fclose(file);
+			}
+
+			snprintf(file_name,sizeof(file_name),dir_name,dev,sub_dir,"serial");
+			if ((file = fopen(file_name, "r"))) {
+				if ((ptr = fgets(serial, sizeof(serial), file))) {
+					ptr = serial + strlen(serial) - 1;
+					if (ptr >= serial && *ptr == '\n')
+						*ptr = 0;
+					port->usb_serial = strdup(serial);
+				}
+				fclose(file);
+			}
+
+			break;
+		}
+	} else {
+		port->description = strdup(dev);
+
+		if (port->transport == SP_TRANSPORT_BLUETOOTH) {
+			snprintf(file_name, sizeof(file_name), dir_name, dev, "", "address");
+			if ((file = fopen(file_name, "r"))) {
+				if ((ptr = fgets(baddr, sizeof(baddr), file))) {
+					ptr = baddr + strlen(baddr) - 1;
+					if (ptr >= baddr && *ptr == '\n')
+						*ptr = 0;
+					port->bluetooth_address = strdup(baddr);
+				}
+				fclose(file);
+			}
+		}
+	}
+#else
+	DEBUG("Port details not supported on this platform");
+#endif
+
+	RETURN_OK();
+}
+
 enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
 	struct sp_port *port;
+	enum sp_return ret;
 	int len;
 
 	TRACE("%s, %p", portname, port_ptr);
@@ -235,6 +980,11 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 	port->fd = -1;
 #endif
 
+	if ((ret = sp_get_port_details(port)) != SP_OK) {
+		sp_free_port(port);
+		return ret;
+	}
+
 	*port_ptr = port;
 
 	RETURN_OK();
@@ -248,6 +998,99 @@ char *sp_get_port_name(const struct sp_port *port)
 		return NULL;
 
 	RETURN_VALUE("%s", port->name);
+}
+
+char *sp_get_port_description(struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	if (!port || !port->description)
+		return NULL;
+
+	RETURN_VALUE("%s", port->description);
+}
+
+enum sp_transport sp_get_port_transport(struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	if (!port)
+		RETURN_ERROR(SP_ERR_ARG, "Null port");
+
+	RETURN_VALUE("%d", port->transport);
+}
+
+enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
+                                           int *usb_bus, int *usb_address)
+{
+	TRACE("%p", port);
+
+	if (!port)
+		RETURN_ERROR(SP_ERR_ARG, "Null port");
+	if (port->transport != SP_TRANSPORT_USB)
+		RETURN_ERROR(SP_ERR_ARG, "Port does not use USB transport");
+
+	if (usb_bus)      *usb_bus     = port->usb_bus;
+	if (usb_address)  *usb_address = port->usb_address;
+
+	RETURN_OK();
+}
+
+enum sp_return sp_get_port_usb_vid_pid(const struct sp_port *port,
+                                       int *usb_vid, int *usb_pid)
+{
+	TRACE("%p", port);
+
+	if (!port)
+		RETURN_ERROR(SP_ERR_ARG, "Null port");
+	if (port->transport != SP_TRANSPORT_USB)
+		RETURN_ERROR(SP_ERR_ARG, "Port does not use USB transport");
+
+	if (usb_vid)  *usb_vid = port->usb_vid;
+	if (usb_pid)  *usb_pid = port->usb_pid;
+
+	RETURN_OK();
+}
+
+char *sp_get_port_usb_manufacturer(const struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	if (!port || port->transport != SP_TRANSPORT_USB || !port->usb_manufacturer)
+		return NULL;
+
+	RETURN_VALUE("%s", port->usb_manufacturer);
+}
+
+char *sp_get_port_usb_product(const struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	if (!port || port->transport != SP_TRANSPORT_USB || !port->usb_product)
+		return NULL;
+
+	RETURN_VALUE("%s", port->usb_product);
+}
+
+char *sp_get_port_usb_serial(const struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	if (!port || port->transport != SP_TRANSPORT_USB || !port->usb_serial)
+		return NULL;
+
+	RETURN_VALUE("%s", port->usb_serial);
+}
+
+char *sp_get_port_bluetooth_address(const struct sp_port *port)
+{
+	TRACE("%p", port);
+
+	if (!port || port->transport != SP_TRANSPORT_BLUETOOTH
+	    || !port->bluetooth_address)
+		return NULL;
+
+	RETURN_VALUE("%s", port->bluetooth_address);
 }
 
 enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr)
@@ -301,6 +1144,20 @@ void sp_free_port(struct sp_port *port)
 
 	if (port->name)
 		free(port->name);
+	if (port->description)
+		free(port->description);
+	if (port->usb_manufacturer)
+		free(port->usb_manufacturer);
+	if (port->usb_product)
+		free(port->usb_product);
+	if (port->usb_serial)
+		free(port->usb_serial);
+	if (port->bluetooth_address)
+		free(port->bluetooth_address);
+#ifdef _WIN32
+	if (port->usb_path)
+		free(port->usb_path);
+#endif
 
 	free(port);
 

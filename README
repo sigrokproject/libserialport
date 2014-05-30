@@ -11,6 +11,7 @@ transparently on any platform supported by the library.
 The operations that are supported are:
 
 - Port enumeration (obtaining a list of serial ports on the system).
+- Obtaining port metadata (USB VID:PID, manufacturer and product name, etc).
 - Opening and closing ports.
 - Setting port parameters (baud rate, parity, etc).
 - Reading, writing and flushing data.
@@ -30,12 +31,6 @@ name and then used.
 
 If you know how to enumerate available ports on another OS, please submit a bug
 with this information, or better still a patch implementing it.
-
-Future
-======
-
-Future versions will add additional API calls for obtaining metadata about a
-port, e.g. for USB devices the USB VID and PID of the underlying device.
 
 Dependencies
 ============
