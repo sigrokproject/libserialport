@@ -418,21 +418,14 @@ out_close:
 out_done:
 #endif
 #ifdef __APPLE__
-	mach_port_t master;
 	CFMutableDictionaryRef classes;
 	io_iterator_t iter;
-	char *path;
+	char path[PATH_MAX];
 	io_object_t port;
 	CFTypeRef cf_path;
 	Boolean result;
 
 	ret = SP_OK;
-
-	DEBUG("Getting IOKit master port");
-	if (IOMasterPort(MACH_PORT_NULL, &master) != KERN_SUCCESS) {
-		SET_FAIL(ret, "IOMasterPort() failed");
-		goto out_done;
-	}
 
 	DEBUG("Creating matching dictionary");
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue))) {
@@ -440,18 +433,11 @@ out_done:
 		goto out_done;
 	}
 
-	CFDictionarySetValue(classes,
-			CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDAllTypes));
-
 	DEBUG("Getting matching services");
-	if (IOServiceGetMatchingServices(master, classes, &iter) != KERN_SUCCESS) {
+	if (IOServiceGetMatchingServices(kIOMasterPortDefault, classes,
+	                                 &iter) != KERN_SUCCESS) {
 		SET_FAIL(ret, "IOServiceGetMatchingServices() failed");
 		goto out_done;
-	}
-
-	if (!(path = malloc(PATH_MAX))) {
-		SET_ERROR(ret, SP_ERR_MEM, "device path malloc failed");
-		goto out_release;
 	}
 
 	DEBUG("Iterating over results");
@@ -459,8 +445,8 @@ out_done:
 		cf_path = IORegistryEntryCreateCFProperty(port,
 				CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
 		if (cf_path) {
-			result = CFStringGetCString(cf_path,
-					path, PATH_MAX, kCFStringEncodingASCII);
+			result = CFStringGetCString(cf_path, path, sizeof(path),
+			                            kCFStringEncodingASCII);
 			CFRelease(cf_path);
 			if (result) {
 				DEBUG("Found port %s", path);
@@ -474,8 +460,6 @@ out_done:
 		IOObjectRelease(port);
 	}
 out:
-	free(path);
-out_release:
 	IOObjectRelease(iter);
 out_done:
 #endif
