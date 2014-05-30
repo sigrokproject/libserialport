@@ -47,9 +47,7 @@
 #include <sys/syslimits.h>
 #endif
 #ifdef __linux__
-#ifdef HAVE_LIBUDEV
-#include "libudev.h"
-#endif
+#include <dirent.h>
 #ifndef __ANDROID__
 #include "linux/serial.h"
 #endif
@@ -463,72 +461,57 @@ out:
 	IOObjectRelease(iter);
 out_done:
 #endif
-#if defined(__linux__) && defined(HAVE_LIBUDEV)
-	struct udev *ud;
-	struct udev_enumerate *ud_enumerate;
-	struct udev_list_entry *ud_list;
-	struct udev_list_entry *ud_entry;
-	const char *path;
-	struct udev_device *ud_dev, *ud_parent;
-	const char *name;
-	const char *driver;
-	int fd, ioctl_result;
+#ifdef __linux__
+	char name[PATH_MAX], target[PATH_MAX];
+	struct dirent entry, *result;
 	struct serial_struct serial_info;
+	int len, fd, ioctl_result;
+	DIR *dir;
 
 	ret = SP_OK;
 
 	DEBUG("Enumerating tty devices");
-	ud = udev_new();
-	ud_enumerate = udev_enumerate_new(ud);
-	udev_enumerate_add_match_subsystem(ud_enumerate, "tty");
-	udev_enumerate_scan_devices(ud_enumerate);
-	ud_list = udev_enumerate_get_list_entry(ud_enumerate);
+	if (!(dir = opendir("/sys/class/tty")))
+		RETURN_FAIL("could not open /sys/class/tty");
+
 	DEBUG("Iterating over results");
-	udev_list_entry_foreach(ud_entry, ud_list) {
-		path = udev_list_entry_get_name(ud_entry);
-		DEBUG("Found device %s", path);
-		ud_dev = udev_device_new_from_syspath(ud, path);
-		/* If there is no parent device, this is a virtual tty. */
-		ud_parent = udev_device_get_parent(ud_dev);
-		if (ud_parent == NULL) {
-			DEBUG("No parent device, assuming virtual tty");
-			udev_device_unref(ud_dev);
+	while (!readdir_r(dir, &entry, &result) && result) {
+		len = readlinkat(dirfd(dir), entry.d_name, target, sizeof(target));
+		if (len <= 0 || len >= (int) sizeof(target)-1)
 			continue;
-		}
-		name = udev_device_get_devnode(ud_dev);
-		/* The serial8250 driver has a hardcoded number of ports.
-		 * The only way to tell which actually exist on a given system
-		 * is to try to open them and make an ioctl call. */
-		driver = udev_device_get_driver(ud_parent);
-		if (driver && !strcmp(driver, "serial8250")) {
+		target[len] = 0;
+		if (strstr(target, "virtual"))
+			continue;
+		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
+		DEBUG("Found device %s", name);
+		if (strstr(target, "serial8250")) {
+			/* The serial8250 driver has a hardcoded number of ports.
+			 * The only way to tell which actually exist on a given system
+			 * is to try to open them and make an ioctl call. */
 			DEBUG("serial8250 device, attempting to open");
 			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
 				DEBUG("open failed, skipping");
-				goto skip;
+				continue;
 			}
 			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
 			close(fd);
 			if (ioctl_result != 0) {
 				DEBUG("ioctl failed, skipping");
-				goto skip;
+				continue;
 			}
 			if (serial_info.type == PORT_UNKNOWN) {
 				DEBUG("port type is unknown, skipping");
-				goto skip;
+				continue;
 			}
 		}
 		DEBUG("Found port %s", name);
 		list = list_append(list, name);
-skip:
-		udev_device_unref(ud_dev);
 		if (!list) {
 			SET_ERROR(ret, SP_ERR_MEM, "list append failed");
-			goto out;
+			break;
 		}
 	}
-out:
-	udev_enumerate_unref(ud_enumerate);
-	udev_unref(ud);
+	closedir(dir);
 #endif
 
 	switch (ret) {

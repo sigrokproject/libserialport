@@ -80,15 +80,6 @@ SP_PKGLIBS=""
 case $target_os in
 *linux*)
 	AM_CONDITIONAL([LINUX], true)
-	# On Linux libudev is currently required for enumeration.
-	AC_ARG_WITH([libudev],
-            [AS_HELP_STRING([--with-libudev],
-            [use libudev for serial port enumeration @<:@default=check@:>@])],
-            [], [with_libudev=check])
-	AS_IF([test "x$with_libudev" != xno], [
-	PKG_CHECK_MODULES([libudev], [libudev >= 0],
-		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
-		SP_PKGLIBS="$SP_PKGLIBS libudev"; AC_DEFINE(HAVE_LIBUDEV)])], [])
 	;;
 *darwin*)
 	AM_CONDITIONAL([LINUX], false)

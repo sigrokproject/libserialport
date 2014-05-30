@@ -40,11 +40,7 @@ port, e.g. for USB devices the USB VID and PID of the underlying device.
 Dependencies
 ============
 
-On Linux, libudev is required. On other systems no other libraries are required.
-
-The libudev dependency could be eliminated in favour of direct sysfs queries at
-the cost of some brevity. This is not currently a priority but if you feel like
-doing this feel free to submit a patch.
+No other libraries are required.
 
 Building
 ========
