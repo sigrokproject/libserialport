@@ -166,10 +166,10 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 
 /* Debug output macros. */
 #define DEBUG(fmt, ...) do { if (sp_debug_handler) sp_debug_handler(fmt ".\n", ##__VA_ARGS__); } while (0)
-#define DEBUG_ERROR(err, msg) DEBUG("%s returning " #err ": " msg, __func__)
-#define DEBUG_FAIL(msg) do { \
+#define DEBUG_ERROR(err, fmt, ...) DEBUG("%s returning " #err ": " fmt, __func__, ##__VA_ARGS__)
+#define DEBUG_FAIL(fmt, ...) do {               \
 	char *errmsg = sp_last_error_message(); \
-	DEBUG("%s returning SP_ERR_FAIL: " msg ": %s", __func__, errmsg); \
+	DEBUG("%s returning SP_ERR_FAIL: "fmt": %s", __func__,##__VA_ARGS__,errmsg); \
 	sp_free_error_message(errmsg); \
 } while (0);
 #define RETURN() do { DEBUG("%s returning", __func__); return; } while(0)
@@ -184,8 +184,8 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 	} \
 } while (0)
 #define RETURN_OK() RETURN_CODE(SP_OK);
-#define RETURN_ERROR(err, msg) do { DEBUG_ERROR(err, msg); return err; } while (0)
-#define RETURN_FAIL(msg) do { DEBUG_FAIL(msg); return SP_ERR_FAIL; } while (0)
+#define RETURN_ERROR(err, ...) do { DEBUG_ERROR(err, __VA_ARGS__); return err; } while (0)
+#define RETURN_FAIL(...) do { DEBUG_FAIL(__VA_ARGS__); return SP_ERR_FAIL; } while (0)
 #define RETURN_VALUE(fmt, x) do { \
 	typeof(x) _x = x; \
 	DEBUG("%s returning " fmt, __func__, _x); \
