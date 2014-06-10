@@ -197,7 +197,6 @@ void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 #define TRY(x) do { int ret = x; if (ret != SP_OK) RETURN_CODEVAL(ret); } while (0)
 
 /* Helper functions. */
-static struct sp_port **list_append(struct sp_port **list, const char *portname);
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config);
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
