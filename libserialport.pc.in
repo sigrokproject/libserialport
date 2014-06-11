@@ -8,5 +8,6 @@ Description: Cross-platform serial port access library.
 URL: http://sigrok.org/wiki/Libserialport
 Requires.private: @SP_PKGLIBS@
 Version: @VERSION@
-Libs: -L${libdir} -lserialport @SP_LIBS@
+Libs: -L${libdir} -lserialport
+Libs.private: @SP_LIBS@
 Cflags: -I${includedir}

@@ -475,12 +475,12 @@ char *sp_get_port_usb_product(const struct sp_port *port);
 char *sp_get_port_usb_serial(const struct sp_port *port);
 
 /**
- * Get the bluetooth address of a bluetooth serial adapter port.
+ * Get the MAC address of a Bluetooth serial adapter port.
  *
  * @param port Pointer to port structure.
  *
- * @return The port bluetooth address, or NULL if an invalid port is passed.
- * The bluetooth address string is part of the port structure and may not be used
+ * @return The port MAC address, or NULL if an invalid port is passed.
+ * The MAC address string is part of the port structure and may not be used
  * after the port structure has been freed.
  *
  * @since 0.2.0

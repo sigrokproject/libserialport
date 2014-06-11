@@ -11,7 +11,7 @@ transparently on any platform supported by the library.
 The operations that are supported are:
 
 - Port enumeration (obtaining a list of serial ports on the system).
-- Obtaining port metadata (USB VID:PID, manufacturer and product name, etc).
+- Obtaining port metadata (USB device information, Bluetooth address, etc).
 - Opening and closing ports.
 - Setting port parameters (baud rate, parity, etc).
 - Reading, writing and flushing data.

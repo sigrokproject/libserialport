@@ -81,18 +81,26 @@ SP_LIBS=""
 case $target_os in
 *linux*)
 	AM_CONDITIONAL([LINUX], true)
+	AM_CONDITIONAL([WIN32], false)
+	AM_CONDITIONAL([MACOSX], false)
 	;;
 *darwin*)
 	AM_CONDITIONAL([LINUX], false)
+	AM_CONDITIONAL([WIN32], false)
+	AM_CONDITIONAL([MACOSX], true)
 	LDFLAGS="$LDFLAGS -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation"
 	AC_CHECK_HEADER(IOKit/IOKitLib.h, [], [AC_MSG_ERROR([IOKit/IOKitLib.h not found])])
 	;;
 mingw* | cygwin*)
 	AM_CONDITIONAL([LINUX], false)
+	AM_CONDITIONAL([WIN32], true)
+	AM_CONDITIONAL([MACOSX], false)
 	SP_LIBS="-lsetupapi -luuid"
 	;;
 *)
 	AM_CONDITIONAL([LINUX], false)
+	AM_CONDITIONAL([WIN32], false)
+	AM_CONDITIONAL([MACOSX], false)
 esac
 
 AC_SUBST(SP_PKGLIBS)

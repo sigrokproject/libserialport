@@ -24,9 +24,15 @@ AM_CPPFLAGS = -I$(top_srcdir)
 
 lib_LTLIBRARIES = libserialport.la
 
-libserialport_la_SOURCES = serialport.c
+libserialport_la_SOURCES = serialport.c libserialport_internal.h
 if LINUX
-libserialport_la_SOURCES += linux_termios.c linux_termios.h
+libserialport_la_SOURCES += linux.c linux_termios.c linux_termios.h
+endif
+if WIN32
+libserialport_la_SOURCES += windows.c
+endif
+if MACOSX
+libserialport_la_SOURCES += macosx.c
 endif
 
 libserialport_la_LIBADD = $(LIBOBJS)
