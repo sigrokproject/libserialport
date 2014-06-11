@@ -148,6 +148,8 @@ enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
 		RETURN_ERROR(SP_ERR_ARG, "Null port");
 	if (port->transport != SP_TRANSPORT_USB)
 		RETURN_ERROR(SP_ERR_ARG, "Port does not use USB transport");
+	if (port->usb_bus < 0 || port->usb_address < 0)
+		RETURN_ERROR(SP_ERR_SUPP, "Bus and address values are not available");
 
 	if (usb_bus)      *usb_bus     = port->usb_bus;
 	if (usb_address)  *usb_address = port->usb_address;
@@ -164,6 +166,8 @@ enum sp_return sp_get_port_usb_vid_pid(const struct sp_port *port,
 		RETURN_ERROR(SP_ERR_ARG, "Null port");
 	if (port->transport != SP_TRANSPORT_USB)
 		RETURN_ERROR(SP_ERR_ARG, "Port does not use USB transport");
+	if (port->usb_vid < 0 || port->usb_pid < 0)
+		RETURN_ERROR(SP_ERR_SUPP, "VID:PID values are not available");
 
 	if (usb_vid)  *usb_vid = port->usb_vid;
 	if (usb_pid)  *usb_pid = port->usb_pid;
