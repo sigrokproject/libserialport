@@ -174,3 +174,52 @@ enum sp_return get_port_details(struct sp_port *port)
 
 	RETURN_OK();
 }
+
+enum sp_return list_ports(struct sp_port ***list)
+{
+	CFMutableDictionaryRef classes;
+	io_iterator_t iter;
+	char path[PATH_MAX];
+	io_object_t port;
+	CFTypeRef cf_path;
+	Boolean result;
+	int ret = SP_OK;
+
+	DEBUG("Creating matching dictionary");
+	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue))) {
+		SET_FAIL(ret, "IOServiceMatching() failed");
+		goto out_done;
+	}
+
+	DEBUG("Getting matching services");
+	if (IOServiceGetMatchingServices(kIOMasterPortDefault, classes,
+	                                 &iter) != KERN_SUCCESS) {
+		SET_FAIL(ret, "IOServiceGetMatchingServices() failed");
+		goto out_done;
+	}
+
+	DEBUG("Iterating over results");
+	while ((port = IOIteratorNext(iter))) {
+		cf_path = IORegistryEntryCreateCFProperty(port,
+				CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
+		if (cf_path) {
+			result = CFStringGetCString(cf_path, path, sizeof(path),
+			                            kCFStringEncodingASCII);
+			CFRelease(cf_path);
+			if (result) {
+				DEBUG("Found port %s", path);
+				if (!(*list = list_append(*list, path))) {
+					SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+					IOObjectRelease(port);
+					goto out;
+				}
+			}
+		}
+		IOObjectRelease(port);
+	}
+out:
+	IOObjectRelease(iter);
+out_done:
+
+	return ret;
+}

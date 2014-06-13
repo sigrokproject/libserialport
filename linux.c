@@ -155,3 +155,58 @@ enum sp_return get_port_details(struct sp_port *port)
 
 	RETURN_OK();
 }
+
+enum sp_return list_ports(struct sp_port ***list)
+{
+	char name[PATH_MAX], target[PATH_MAX];
+	struct dirent entry, *result;
+	struct serial_struct serial_info;
+	int len, fd, ioctl_result;
+	DIR *dir;
+	int ret = SP_OK;
+
+	DEBUG("Enumerating tty devices");
+	if (!(dir = opendir("/sys/class/tty")))
+		RETURN_FAIL("could not open /sys/class/tty");
+
+	DEBUG("Iterating over results");
+	while (!readdir_r(dir, &entry, &result) && result) {
+		len = readlinkat(dirfd(dir), entry.d_name, target, sizeof(target));
+		if (len <= 0 || len >= (int) sizeof(target)-1)
+			continue;
+		target[len] = 0;
+		if (strstr(target, "virtual"))
+			continue;
+		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
+		DEBUG("Found device %s", name);
+		if (strstr(target, "serial8250")) {
+			/* The serial8250 driver has a hardcoded number of ports.
+			 * The only way to tell which actually exist on a given system
+			 * is to try to open them and make an ioctl call. */
+			DEBUG("serial8250 device, attempting to open");
+			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
+				DEBUG("open failed, skipping");
+				continue;
+			}
+			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
+			close(fd);
+			if (ioctl_result != 0) {
+				DEBUG("ioctl failed, skipping");
+				continue;
+			}
+			if (serial_info.type == PORT_UNKNOWN) {
+				DEBUG("port type is unknown, skipping");
+				continue;
+			}
+		}
+		DEBUG("Found port %s", name);
+		*list = list_append(*list, name);
+		if (!list) {
+			SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+			break;
+		}
+	}
+	closedir(dir);
+
+	return ret;
+}

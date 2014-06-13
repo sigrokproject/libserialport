@@ -1,6 +1,7 @@
 /*
  * This file is part of the libserialport project.
  *
+ * Copyright (C) 2013-2014 Martin Ling <martin-libserialport@earth.li>
  * Copyright (C) 2014 Aurelien Jacobs <aurel@gnuage.org>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -454,3 +455,77 @@ enum sp_return get_port_details(struct sp_port *port)
 	RETURN_OK();
 }
 
+enum sp_return list_ports(struct sp_port ***list)
+{
+	HKEY key;
+	TCHAR *value, *data;
+	DWORD max_value_len, max_data_size, max_data_len;
+	DWORD value_len, data_size, data_len;
+	DWORD type, index = 0;
+	char *name;
+	int name_len;
+	int ret = SP_OK;
+
+	DEBUG("Opening registry key");
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
+			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) {
+		SET_FAIL(ret, "RegOpenKeyEx() failed");
+		goto out_done;
+	}
+	DEBUG("Querying registry key value and data sizes");
+	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS) {
+		SET_FAIL(ret, "RegQueryInfoKey() failed");
+		goto out_close;
+	}
+	max_data_len = max_data_size / sizeof(TCHAR);
+	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR)))) {
+		SET_ERROR(ret, SP_ERR_MEM, "registry value malloc failed");
+		goto out_close;
+	}
+	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR)))) {
+		SET_ERROR(ret, SP_ERR_MEM, "registry data malloc failed");
+		goto out_free_value;
+	}
+	DEBUG("Iterating over values");
+	while (
+		value_len = max_value_len + 1,
+		data_size = max_data_size,
+		RegEnumValue(key, index, value, &value_len,
+			NULL, &type, (LPBYTE)data, &data_size) == ERROR_SUCCESS)
+	{
+		data_len = data_size / sizeof(TCHAR);
+		data[data_len] = '\0';
+#ifdef UNICODE
+		name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL);
+#else
+		name_len = data_len + 1;
+#endif
+		if (!(name = malloc(name_len))) {
+			SET_ERROR(ret, SP_ERR_MEM, "registry port name malloc failed");
+			goto out;
+		}
+#ifdef UNICODE
+		WideCharToMultiByte(CP_ACP, 0, data, -1, name, name_len, NULL, NULL);
+#else
+		strcpy(name, data);
+#endif
+		if (type == REG_SZ) {
+			DEBUG("Found port %s", name);
+			if (!(*list = list_append(*list, name))) {
+				SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+				goto out;
+			}
+		}
+		index++;
+	}
+out:
+	free(data);
+out_free_value:
+	free(value);
+out_close:
+	RegCloseKey(key);
+out_done:
+
+	return ret;
+}

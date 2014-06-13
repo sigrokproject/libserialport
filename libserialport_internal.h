@@ -187,5 +187,8 @@ extern void (*sp_debug_handler)(const char *format, ...);
 
 #define TRY(x) do { int ret = x; if (ret != SP_OK) RETURN_CODEVAL(ret); } while (0)
 
+struct sp_port **list_append(struct sp_port **list, const char *portname);
+
 /* OS-specific Helper functions. */
 enum sp_return get_port_details(struct sp_port *port);
+enum sp_return list_ports(struct sp_port ***list);

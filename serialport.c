@@ -287,7 +287,7 @@ void sp_free_port(struct sp_port *port)
 	RETURN();
 }
 
-static struct sp_port **list_append(struct sp_port **list, const char *portname)
+struct sp_port **list_append(struct sp_port **list, const char *portname)
 {
 	void *tmp;
 	unsigned int count;
@@ -309,7 +309,7 @@ fail:
 enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 {
 	struct sp_port **list;
-	int ret = SP_ERR_SUPP;
+	int ret;
 
 	TRACE("%p", list_ptr);
 
@@ -323,176 +323,7 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 
 	list[0] = NULL;
 
-#ifdef _WIN32
-	HKEY key;
-	TCHAR *value, *data;
-	DWORD max_value_len, max_data_size, max_data_len;
-	DWORD value_len, data_size, data_len;
-	DWORD type, index = 0;
-	char *name;
-	int name_len;
-
-	ret = SP_OK;
-
-	DEBUG("Opening registry key");
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
-			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) {
-		SET_FAIL(ret, "RegOpenKeyEx() failed");
-		goto out_done;
-	}
-	DEBUG("Querying registry key value and data sizes");
-	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS) {
-		SET_FAIL(ret, "RegQueryInfoKey() failed");
-		goto out_close;
-	}
-	max_data_len = max_data_size / sizeof(TCHAR);
-	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR)))) {
-		SET_ERROR(ret, SP_ERR_MEM, "registry value malloc failed");
-		goto out_close;
-	}
-	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR)))) {
-		SET_ERROR(ret, SP_ERR_MEM, "registry data malloc failed");
-		goto out_free_value;
-	}
-	DEBUG("Iterating over values");
-	while (
-		value_len = max_value_len + 1,
-		data_size = max_data_size,
-		RegEnumValue(key, index, value, &value_len,
-			NULL, &type, (LPBYTE)data, &data_size) == ERROR_SUCCESS)
-	{
-		data_len = data_size / sizeof(TCHAR);
-		data[data_len] = '\0';
-#ifdef UNICODE
-		name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL);
-#else
-		name_len = data_len + 1;
-#endif
-		if (!(name = malloc(name_len))) {
-			SET_ERROR(ret, SP_ERR_MEM, "registry port name malloc failed");
-			goto out;
-		}
-#ifdef UNICODE
-		WideCharToMultiByte(CP_ACP, 0, data, -1, name, name_len, NULL, NULL);
-#else
-		strcpy(name, data);
-#endif
-		if (type == REG_SZ) {
-			DEBUG("Found port %s", name);
-			if (!(list = list_append(list, name))) {
-				SET_ERROR(ret, SP_ERR_MEM, "list append failed");
-				goto out;
-			}
-		}
-		index++;
-	}
-out:
-	free(data);
-out_free_value:
-	free(value);
-out_close:
-	RegCloseKey(key);
-out_done:
-#endif
-#ifdef __APPLE__
-	CFMutableDictionaryRef classes;
-	io_iterator_t iter;
-	char path[PATH_MAX];
-	io_object_t port;
-	CFTypeRef cf_path;
-	Boolean result;
-
-	ret = SP_OK;
-
-	DEBUG("Creating matching dictionary");
-	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue))) {
-		SET_FAIL(ret, "IOServiceMatching() failed");
-		goto out_done;
-	}
-
-	DEBUG("Getting matching services");
-	if (IOServiceGetMatchingServices(kIOMasterPortDefault, classes,
-	                                 &iter) != KERN_SUCCESS) {
-		SET_FAIL(ret, "IOServiceGetMatchingServices() failed");
-		goto out_done;
-	}
-
-	DEBUG("Iterating over results");
-	while ((port = IOIteratorNext(iter))) {
-		cf_path = IORegistryEntryCreateCFProperty(port,
-				CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
-		if (cf_path) {
-			result = CFStringGetCString(cf_path, path, sizeof(path),
-			                            kCFStringEncodingASCII);
-			CFRelease(cf_path);
-			if (result) {
-				DEBUG("Found port %s", path);
-				if (!(list = list_append(list, path))) {
-					SET_ERROR(ret, SP_ERR_MEM, "list append failed");
-					IOObjectRelease(port);
-					goto out;
-				}
-			}
-		}
-		IOObjectRelease(port);
-	}
-out:
-	IOObjectRelease(iter);
-out_done:
-#endif
-#ifdef __linux__
-	char name[PATH_MAX], target[PATH_MAX];
-	struct dirent entry, *result;
-	struct serial_struct serial_info;
-	int len, fd, ioctl_result;
-	DIR *dir;
-
-	ret = SP_OK;
-
-	DEBUG("Enumerating tty devices");
-	if (!(dir = opendir("/sys/class/tty")))
-		RETURN_FAIL("could not open /sys/class/tty");
-
-	DEBUG("Iterating over results");
-	while (!readdir_r(dir, &entry, &result) && result) {
-		len = readlinkat(dirfd(dir), entry.d_name, target, sizeof(target));
-		if (len <= 0 || len >= (int) sizeof(target)-1)
-			continue;
-		target[len] = 0;
-		if (strstr(target, "virtual"))
-			continue;
-		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
-		DEBUG("Found device %s", name);
-		if (strstr(target, "serial8250")) {
-			/* The serial8250 driver has a hardcoded number of ports.
-			 * The only way to tell which actually exist on a given system
-			 * is to try to open them and make an ioctl call. */
-			DEBUG("serial8250 device, attempting to open");
-			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
-				DEBUG("open failed, skipping");
-				continue;
-			}
-			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
-			close(fd);
-			if (ioctl_result != 0) {
-				DEBUG("ioctl failed, skipping");
-				continue;
-			}
-			if (serial_info.type == PORT_UNKNOWN) {
-				DEBUG("port type is unknown, skipping");
-				continue;
-			}
-		}
-		DEBUG("Found port %s", name);
-		list = list_append(list, name);
-		if (!list) {
-			SET_ERROR(ret, SP_ERR_MEM, "list append failed");
-			break;
-		}
-	}
-	closedir(dir);
-#endif
+	ret = list_ports(&list);
 
 	switch (ret) {
 	case SP_OK:
