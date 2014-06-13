@@ -28,13 +28,12 @@ enum sp_return get_port_details(struct sp_port *port)
 	char description[128];
 	int bus, address, vid, pid = -1;
 	char manufacturer[128], product[128], serial[128];
-	char baddr[32];
 	CFMutableDictionaryRef classes;
 	io_iterator_t iter;
-	io_object_t ioport;
+	io_object_t ioport, ioparent;
 	CFTypeRef cf_property, cf_bus, cf_address, cf_vendor, cf_product;
 	Boolean result;
-	char path[PATH_MAX];
+	char path[PATH_MAX], class[16];
 
 	DEBUG("Getting serial port list");
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
