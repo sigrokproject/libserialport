@@ -99,10 +99,12 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 	port->usb_serial = NULL;
 	port->bluetooth_address = NULL;
 
+#ifndef NO_PORT_METADATA
 	if ((ret = get_port_details(port)) != SP_OK) {
 		sp_free_port(port);
 		return ret;
 	}
+#endif
 
 	*port_ptr = port;
 
@@ -323,7 +325,11 @@ enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 
 	list[0] = NULL;
 
+#ifdef NO_ENUMERATION
+	ret = SP_ERR_SUPP;
+#else
 	ret = list_ports(&list);
+#endif
 
 	switch (ret) {
 	case SP_OK:
