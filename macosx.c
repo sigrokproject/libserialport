@@ -21,7 +21,7 @@
 #include "libserialport.h"
 #include "libserialport_internal.h"
 
-enum sp_return get_port_details(struct sp_port *port)
+SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 {
 	/* Description limited to 127 char,
 	   anything longer would not be user friendly anyway */
@@ -175,7 +175,7 @@ enum sp_return get_port_details(struct sp_port *port)
 	RETURN_OK();
 }
 
-enum sp_return list_ports(struct sp_port ***list)
+SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
 	CFMutableDictionaryRef classes;
 	io_iterator_t iter;

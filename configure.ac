@@ -119,6 +119,21 @@ AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed],
 AC_CHECK_MEMBERS([struct termios2.c_ispeed, struct termios2.c_ospeed],
 	[AC_DEFINE(HAVE_TERMIOS2_SPEED, 1)], [], [[#include <linux/termios.h>]])
 
+saved="$CFLAGS"; CFLAGS="$CFLAGS -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+		__attribute__((visibility("hidden"))) void foo(void) { }
+	]])],
+	[AC_DEFINE(SP_API , __attribute__((visibility("default"))))]
+	[AC_DEFINE(SP_PRIV, __attribute__((visibility("hidden"))))],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+		__declspec(dllexport) void foo(void) { }
+	]])],
+	[AC_DEFINE(SP_API , __declspec(dllexport))]
+	[AC_DEFINE(SP_PRIV,)],
+	[AC_DEFINE(SP_API,)]
+	[AC_DEFINE(SP_PRIV,)]))
+CFLAGS="$saved"
+
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 

@@ -331,7 +331,7 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 	return;
 }
 
-enum sp_return get_port_details(struct sp_port *port)
+SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 {
 	/* Description limited to 127 char,
 	   anything longer would not be user friendly anyway */
@@ -455,7 +455,7 @@ enum sp_return get_port_details(struct sp_port *port)
 	RETURN_OK();
 }
 
-enum sp_return list_ports(struct sp_port ***list)
+SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
 	HKEY key;
 	TCHAR *value, *data;
