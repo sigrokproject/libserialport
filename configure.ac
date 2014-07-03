@@ -122,6 +122,10 @@ AC_CHECK_MEMBERS([struct termios2.c_ispeed, struct termios2.c_ospeed],
 # Check for readlinkat.
 AC_CHECK_FUNC([readlinkat], [AC_DEFINE(HAVE_READLINKAT, 1)], [])
 
+# Check for serial_struct.
+AC_CHECK_TYPE([struct serial_struct], [AC_DEFINE(HAVE_SERIAL_STRUCT, 1)],
+        [], [[#include <linux/serial.h>]])
+
 saved="$CFLAGS"; CFLAGS="$CFLAGS -Werror"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 		__attribute__((visibility("hidden"))) void foo(void) { }

@@ -160,11 +160,14 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
 	char name[PATH_MAX], target[PATH_MAX];
 	struct dirent entry, *result;
+#ifdef HAVE_SERIAL_STRUCT
 	struct serial_struct serial_info;
+	int ioctl_result;
+#endif
 #ifndef HAVE_READLINKAT
 	char buf[sizeof(entry.d_name) + 16];
 #endif
-	int len, fd, ioctl_result;
+	int len, fd;
 	DIR *dir;
 	int ret = SP_OK;
 
@@ -196,8 +199,11 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 				DEBUG("open failed, skipping");
 				continue;
 			}
+#ifdef HAVE_SERIAL_STRUCT
 			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
+#endif
 			close(fd);
+#ifdef HAVE_SERIAL_STRUCT
 			if (ioctl_result != 0) {
 				DEBUG("ioctl failed, skipping");
 				continue;
@@ -206,6 +212,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 				DEBUG("port type is unknown, skipping");
 				continue;
 			}
+#endif
 		}
 		DEBUG("Found port %s", name);
 		*list = list_append(*list, name);
