@@ -161,6 +161,9 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 	char name[PATH_MAX], target[PATH_MAX];
 	struct dirent entry, *result;
 	struct serial_struct serial_info;
+#ifndef HAVE_READLINKAT
+	char buf[sizeof(entry.d_name) + 16];
+#endif
 	int len, fd, ioctl_result;
 	DIR *dir;
 	int ret = SP_OK;
@@ -171,7 +174,12 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 
 	DEBUG("Iterating over results");
 	while (!readdir_r(dir, &entry, &result) && result) {
+#ifdef HAVE_READLINKAT
 		len = readlinkat(dirfd(dir), entry.d_name, target, sizeof(target));
+#else
+		snprintf(buf, sizeof(buf), "/sys/class/tty/%s", entry.d_name);
+		len = readlink(buf, target, sizeof(target));
+#endif
 		if (len <= 0 || len >= (int) sizeof(target)-1)
 			continue;
 		target[len] = 0;

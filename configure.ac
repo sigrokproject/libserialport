@@ -119,6 +119,9 @@ AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed],
 AC_CHECK_MEMBERS([struct termios2.c_ispeed, struct termios2.c_ospeed],
 	[AC_DEFINE(HAVE_TERMIOS2_SPEED, 1)], [], [[#include <linux/termios.h>]])
 
+# Check for readlinkat.
+AC_CHECK_FUNC([readlinkat], [AC_DEFINE(HAVE_READLINKAT, 1)], [])
+
 saved="$CFLAGS"; CFLAGS="$CFLAGS -Werror"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 		__attribute__((visibility("hidden"))) void foo(void) { }
