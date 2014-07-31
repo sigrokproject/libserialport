@@ -55,7 +55,9 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
 	struct sp_port *port;
+#ifndef NO_PORT_METADATA
 	enum sp_return ret;
+#endif
 	int len;
 
 	TRACE("%s, %p", portname, port_ptr);
