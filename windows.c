@@ -24,51 +24,6 @@
 /* USB path is a string of at most 8 decimal numbers < 128 separated by dots */
 #define MAX_USB_PATH  (8*3 + 7*1 + 1)
 
-/* The stuff below is not yet available in MinGW apparently. Define it here. */
-
-#ifndef USB_NODE_CONNECTION_INFORMATION_EX
-typedef struct _USB_NODE_CONNECTION_INFORMATION_EX {
-	ULONG ConnectionIndex;
-	USB_DEVICE_DESCRIPTOR DeviceDescriptor;
-	UCHAR CurrentConfigurationValue;
-	UCHAR Speed;
-	BOOLEAN DeviceIsHub;
-	USHORT DeviceAddress;
-	ULONG NumberOfOpenPipes;
-	USB_CONNECTION_STATUS ConnectionStatus;
-	USB_PIPE_INFO PipeList[];
-} USB_NODE_CONNECTION_INFORMATION_EX, *PUSB_NODE_CONNECTION_INFORMATION_EX;
-#endif
-
-#ifndef USB_GET_NODE_CONNECTION_INFORMATION_EX
-#define USB_GET_NODE_CONNECTION_INFORMATION_EX 274
-#endif
-
-#ifndef IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX
-#define IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX \
-	CTL_CODE(FILE_DEVICE_USB, USB_GET_NODE_CONNECTION_INFORMATION_EX, \
-	METHOD_BUFFERED, FILE_ANY_ACCESS)
-#endif
-
-#ifndef CM_DRP_COMPATIBLEIDS
-#define CM_DRP_COMPATIBLEIDS 0x03
-#endif
-#ifndef CM_DRP_CLASS
-#define CM_DRP_CLASS 0x08
-#endif
-#ifndef CM_DRP_FRIENDLYNAME
-#define CM_DRP_FRIENDLYNAME 0x0d
-#endif
-#ifndef CM_DRP_ADDRESS
-#define CM_DRP_ADDRESS 0x1d
-#endif
-
-#ifndef CM_Get_DevNode_Registry_PropertyA
-CMAPI CONFIGRET WINAPI CM_Get_DevNode_Registry_PropertyA(DEVINST dnDevInst, \
-	ULONG ulProperty, PULONG pulRegDataType, PVOID Buffer, \
-	PULONG pulLength, ULONG ulFlags);
-#endif
-
 static void enumerate_hub(struct sp_port *port, char *hub_name,
                           char *parent_path);
 
