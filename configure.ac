@@ -95,9 +95,6 @@ mingw* | cygwin*)
 	AM_CONDITIONAL([LINUX], false)
 	AM_CONDITIONAL([WIN32], true)
 	AM_CONDITIONAL([MACOSX], false)
-	# Set WINVER to 0x0501 (corresponds to Windows XP), needed for some
-	# defineѕ such as WC_NO_BEST_FIT_CHARS.
-	CFLAGS="$CFLAGS -DWINVER=0x0501"
 	SP_LIBS="-lsetupapi -luuid"
 	;;
 *)
