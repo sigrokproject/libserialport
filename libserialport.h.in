@@ -1196,13 +1196,13 @@ void sp_free_event_set(struct sp_event_set *event_set);
  * the sp_signal enum.
  *
  * @param port Pointer to port structure.
- * @param signals Pointer to variable to receive result.
+ * @param signal_mask Pointer to variable to receive result.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
  * @since 0.1.0
  */
-enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signals);
+enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signal_mask);
 
 /**
  * Put the port transmit line into the break state.
