@@ -39,8 +39,8 @@ AM_INIT_AUTOMAKE([1.11 -Wall -Werror check-news])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
-# Enable more compiler warnings via -Wall and -Wextra.
-CFLAGS="$CFLAGS -Wall -Wextra"
+# Enable more compiler warnings.
+CFLAGS="$CFLAGS -std=c99 -Wall -Wextra -pedantic"
 
 # Checks for programs.
 AC_PROG_CC
