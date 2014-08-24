@@ -25,7 +25,8 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	/* Description limited to 127 char,
 	   anything longer would not be user friendly anyway */
 	char description[128];
-	int bus, address, vid, pid = -1;
+	int bus, address;
+	unsigned int vid, pid;
 	char manufacturer[128], product[128], serial[128];
 	char baddr[32];
 	const char dir_name[] = "/sys/class/tty/%s/device/%s%s";
