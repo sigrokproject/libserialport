@@ -18,6 +18,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef __linux__
+#define _BSD_SOURCE // for timeradd, timersub, timercmp
+#define _XOPEN_SOURCE 700 // for readlinkat
+#endif
+
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
