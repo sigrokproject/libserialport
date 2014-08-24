@@ -70,7 +70,7 @@ SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port *
 	if (!portname)
 		RETURN_ERROR(SP_ERR_ARG, "Null port name");
 
-	DEBUG("Building structure for port %s", portname);
+	DEBUG_FMT("Building structure for port %s", portname);
 
 	if (!(port = malloc(sizeof(struct sp_port))))
 		RETURN_ERROR(SP_ERR_MEM, "Port structure malloc failed");
@@ -405,7 +405,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	if (flags > (SP_MODE_READ | SP_MODE_WRITE))
 		RETURN_ERROR(SP_ERR_ARG, "Invalid flags");
 
-	DEBUG("Opening port %s", port->name);
+	DEBUG_FMT("Opening port %s", port->name);
 
 #ifdef _WIN32
 	DWORD desired_access = 0, flags_and_attributes = 0, errors;
@@ -564,7 +564,7 @@ SP_API enum sp_return sp_close(struct sp_port *port)
 
 	CHECK_OPEN_PORT();
 
-	DEBUG("Closing port %s", port->name);
+	DEBUG_FMT("Closing port %s", port->name);
 
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
@@ -603,7 +603,8 @@ SP_API enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 
 	const char *buffer_names[] = {"no", "input", "output", "both"};
 
-	DEBUG("Flushing %s buffers on port %s", buffer_names[buffers], port->name);
+	DEBUG_FMT("Flushing %s buffers on port %s",
+		buffer_names[buffers], port->name);
 
 #ifdef _WIN32
 	DWORD flags = 0;
@@ -637,7 +638,7 @@ SP_API enum sp_return sp_drain(struct sp_port *port)
 
 	CHECK_OPEN_PORT();
 
-	DEBUG("Draining port %s", port->name);
+	DEBUG_FMT("Draining port %s", port->name);
 
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
@@ -678,9 +679,11 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
 	if (timeout)
-		DEBUG("Writing %d bytes to port %s, timeout %d ms", count, port->name, timeout);
+		DEBUG_FMT("Writing %d bytes to port %s, timeout %d ms",
+			count, port->name, timeout);
 	else
-		DEBUG("Writing %d bytes to port %s, no timeout", count, port->name);
+		DEBUG_FMT("Writing %d bytes to port %s, no timeout",
+			count, port->name);
 
 	if (count == 0)
 		RETURN_INT(0);
@@ -709,7 +712,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		if (GetLastError() == ERROR_IO_PENDING) {
 			DEBUG("Waiting for write to complete");
 			GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE);
-			DEBUG("Write completed, %d/%d bytes written", bytes_written, count);
+			DEBUG_FMT("Write completed, %d/%d bytes written", bytes_written, count);
 			RETURN_INT(bytes_written);
 		} else {
 			RETURN_FAIL("WriteFile() failed");
@@ -792,7 +795,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
-	DEBUG("Writing up to %d bytes to port %s", count, port->name);
+	DEBUG_FMT("Writing up to %d bytes to port %s", count, port->name);
 
 	if (count == 0)
 		RETURN_INT(0);
@@ -873,9 +876,11 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
 	if (timeout)
-		DEBUG("Reading %d bytes from port %s, timeout %d ms", count, port->name, timeout);
+		DEBUG_FMT("Reading %d bytes from port %s, timeout %d ms",
+			count, port->name, timeout);
 	else
-		DEBUG("Reading %d bytes from port %s, no timeout", count, port->name);
+		DEBUG_FMT("Reading %d bytes from port %s, no timeout",
+			count, port->name);
 
 	if (count == 0)
 		RETURN_INT(0);
@@ -894,7 +899,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		if (GetLastError() == ERROR_IO_PENDING) {
 			DEBUG("Waiting for read to complete");
 			GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE);
-			DEBUG("Read completed, %d/%d bytes read", bytes_read, count);
+			DEBUG_FMT("Read completed, %d/%d bytes read", bytes_read, count);
 		} else {
 			RETURN_FAIL("ReadFile() failed");
 		}
@@ -984,7 +989,7 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
-	DEBUG("Reading up to %d bytes from port %s", count, port->name);
+	DEBUG_FMT("Reading up to %d bytes from port %s", count, port->name);
 
 #ifdef _WIN32
 	DWORD bytes_read;
@@ -1034,7 +1039,7 @@ SP_API enum sp_return sp_input_waiting(struct sp_port *port)
 
 	CHECK_OPEN_PORT();
 
-	DEBUG("Checking input bytes waiting on port %s", port->name);
+	DEBUG_FMT("Checking input bytes waiting on port %s", port->name);
 
 #ifdef _WIN32
 	DWORD errors;
@@ -1057,7 +1062,7 @@ SP_API enum sp_return sp_output_waiting(struct sp_port *port)
 
 	CHECK_OPEN_PORT();
 
-	DEBUG("Checking output bytes waiting on port %s", port->name);
+	DEBUG_FMT("Checking output bytes waiting on port %s", port->name);
 
 #ifdef _WIN32
 	DWORD errors;
@@ -1374,7 +1379,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 
 	TRACE("%p, %p, %p", port, data, config);
 
-	DEBUG("Getting configuration for port %s", port->name);
+	DEBUG_FMT("Getting configuration for port %s", port->name);
 
 #ifdef _WIN32
 	if (!GetCommState(port->hdl, &data->dcb))
@@ -1591,7 +1596,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 	TRACE("%p, %p, %p", port, data, config);
 
-	DEBUG("Setting configuration for port %s", port->name);
+	DEBUG_FMT("Setting configuration for port %s", port->name);
 
 #ifdef _WIN32
 	if (config->baudrate >= 0) {
@@ -2141,7 +2146,7 @@ SP_API enum sp_return sp_get_signals(struct sp_port *port,
 	if (!signals)
 		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
-	DEBUG("Getting control signals for port %s", port->name);
+	DEBUG_FMT("Getting control signals for port %s", port->name);
 
 	*signals = 0;
 #ifdef _WIN32
@@ -2206,7 +2211,7 @@ SP_API enum sp_return sp_end_break(struct sp_port *port)
 
 SP_API int sp_last_error_code(void)
 {
-	TRACE("");
+	TRACE_VOID();
 #ifdef _WIN32
 	RETURN_INT(GetLastError());
 #else
@@ -2216,7 +2221,7 @@ SP_API int sp_last_error_code(void)
 
 SP_API char *sp_last_error_message(void)
 {
-	TRACE("");
+	TRACE_VOID();
 
 #ifdef _WIN32
 	LPVOID message;

@@ -155,15 +155,25 @@ extern const struct std_baudrate std_baudrates[];
 extern void (*sp_debug_handler)(const char *format, ...);
 
 /* Debug output macros. */
-#define DEBUG(fmt, ...) do { if (sp_debug_handler) sp_debug_handler(fmt ".\n", ##__VA_ARGS__); } while (0)
-#define DEBUG_ERROR(err, fmt, ...) DEBUG("%s returning " #err ": " fmt, __func__, ##__VA_ARGS__)
-#define DEBUG_FAIL(fmt, ...) do {               \
+#define DEBUG_FMT(fmt, ...) do { \
+	if (sp_debug_handler) \
+		sp_debug_handler(fmt ".\n", __VA_ARGS__); \
+} while (0)
+#define DEBUG(msg) DEBUG_FMT(msg, NULL)
+#define DEBUG_ERROR(err, msg) DEBUG_FMT("%s returning " #err ": " msg, __func__)
+#define DEBUG_FAIL(msg) do {               \
 	char *errmsg = sp_last_error_message(); \
-	DEBUG("%s returning SP_ERR_FAIL: "fmt": %s", __func__,##__VA_ARGS__,errmsg); \
+	DEBUG_FMT("%s returning SP_ERR_FAIL: " msg ": %s", __func__, errmsg); \
 	sp_free_error_message(errmsg); \
 } while (0);
-#define RETURN() do { DEBUG("%s returning", __func__); return; } while(0)
-#define RETURN_CODE(x) do { DEBUG("%s returning " #x, __func__); return x; } while (0)
+#define RETURN() do { \
+	DEBUG_FMT("%s returning", __func__); \
+	return; \
+} while(0)
+#define RETURN_CODE(x) do { \
+	DEBUG_FMT("%s returning " #x, __func__); \
+	return x; \
+} while (0)
 #define RETURN_CODEVAL(x) do { \
 	switch (x) { \
 		case SP_OK: RETURN_CODE(SP_OK); \
@@ -174,26 +184,33 @@ extern void (*sp_debug_handler)(const char *format, ...);
 	} \
 } while (0)
 #define RETURN_OK() RETURN_CODE(SP_OK);
-#define RETURN_ERROR(err, ...) do { DEBUG_ERROR(err, __VA_ARGS__); return err; } while (0)
-#define RETURN_FAIL(...) do { DEBUG_FAIL(__VA_ARGS__); return SP_ERR_FAIL; } while (0)
+#define RETURN_ERROR(err, msg) do { \
+	DEBUG_ERROR(err, msg); \
+	return err; \
+} while (0)
+#define RETURN_FAIL(msg) do { \
+	DEBUG_FAIL(msg); \
+	return SP_ERR_FAIL; \
+} while (0)
 #define RETURN_INT(x) do { \
 	int _x = x; \
-	DEBUG("%s returning %d", __func__, _x); \
+	DEBUG_FMT("%s returning %d", __func__, _x); \
 	return _x; \
 } while (0)
 #define RETURN_STRING(x) do { \
 	char *_x = x; \
-	DEBUG("%s returning %s", __func__, _x); \
+	DEBUG_FMT("%s returning %s", __func__, _x); \
 	return _x; \
 } while (0)
 #define RETURN_POINTER(x) do { \
 	void *_x = x; \
-	DEBUG("%s returning %p", __func__, _x); \
+	DEBUG_FMT("%s returning %p", __func__, _x); \
 	return _x; \
 } while (0)
 #define SET_ERROR(val, err, msg) do { DEBUG_ERROR(err, msg); val = err; } while (0)
 #define SET_FAIL(val, msg) do { DEBUG_FAIL(msg); val = SP_ERR_FAIL; } while (0)
-#define TRACE(fmt, ...) DEBUG("%s(" fmt ") called", __func__, ##__VA_ARGS__)
+#define TRACE(fmt, ...) DEBUG_FMT("%s(" fmt ") called", __func__, __VA_ARGS__)
+#define TRACE_VOID() DEBUG_FMT("%s() called", __func__)
 
 #define TRY(x) do { int ret = x; if (ret != SP_OK) RETURN_CODEVAL(ret); } while (0)
 
