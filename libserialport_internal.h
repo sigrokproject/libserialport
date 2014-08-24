@@ -176,9 +176,19 @@ extern void (*sp_debug_handler)(const char *format, ...);
 #define RETURN_OK() RETURN_CODE(SP_OK);
 #define RETURN_ERROR(err, ...) do { DEBUG_ERROR(err, __VA_ARGS__); return err; } while (0)
 #define RETURN_FAIL(...) do { DEBUG_FAIL(__VA_ARGS__); return SP_ERR_FAIL; } while (0)
-#define RETURN_VALUE(fmt, x) do { \
-	typeof(x) _x = x; \
-	DEBUG("%s returning " fmt, __func__, _x); \
+#define RETURN_INT(x) do { \
+	int _x = x; \
+	DEBUG("%s returning %d", __func__, _x); \
+	return _x; \
+} while (0)
+#define RETURN_STRING(x) do { \
+	char *_x = x; \
+	DEBUG("%s returning %s", __func__, _x); \
+	return _x; \
+} while (0)
+#define RETURN_POINTER(x) do { \
+	void *_x = x; \
+	DEBUG("%s returning %p", __func__, _x); \
 	return _x; \
 } while (0)
 #define SET_ERROR(val, err, msg) do { DEBUG_ERROR(err, msg); val = err; } while (0)

@@ -120,7 +120,7 @@ SP_API char *sp_get_port_name(const struct sp_port *port)
 	if (!port)
 		return NULL;
 
-	RETURN_VALUE("%s", port->name);
+	RETURN_STRING(port->name);
 }
 
 SP_API char *sp_get_port_description(struct sp_port *port)
@@ -130,7 +130,7 @@ SP_API char *sp_get_port_description(struct sp_port *port)
 	if (!port || !port->description)
 		return NULL;
 
-	RETURN_VALUE("%s", port->description);
+	RETURN_STRING(port->description);
 }
 
 SP_API enum sp_transport sp_get_port_transport(struct sp_port *port)
@@ -140,7 +140,7 @@ SP_API enum sp_transport sp_get_port_transport(struct sp_port *port)
 	if (!port)
 		RETURN_ERROR(SP_ERR_ARG, "Null port");
 
-	RETURN_VALUE("%d", port->transport);
+	RETURN_INT(port->transport);
 }
 
 SP_API enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
@@ -186,7 +186,7 @@ SP_API char *sp_get_port_usb_manufacturer(const struct sp_port *port)
 	if (!port || port->transport != SP_TRANSPORT_USB || !port->usb_manufacturer)
 		return NULL;
 
-	RETURN_VALUE("%s", port->usb_manufacturer);
+	RETURN_STRING(port->usb_manufacturer);
 }
 
 SP_API char *sp_get_port_usb_product(const struct sp_port *port)
@@ -196,7 +196,7 @@ SP_API char *sp_get_port_usb_product(const struct sp_port *port)
 	if (!port || port->transport != SP_TRANSPORT_USB || !port->usb_product)
 		return NULL;
 
-	RETURN_VALUE("%s", port->usb_product);
+	RETURN_STRING(port->usb_product);
 }
 
 SP_API char *sp_get_port_usb_serial(const struct sp_port *port)
@@ -206,7 +206,7 @@ SP_API char *sp_get_port_usb_serial(const struct sp_port *port)
 	if (!port || port->transport != SP_TRANSPORT_USB || !port->usb_serial)
 		return NULL;
 
-	RETURN_VALUE("%s", port->usb_serial);
+	RETURN_STRING(port->usb_serial);
 }
 
 SP_API char *sp_get_port_bluetooth_address(const struct sp_port *port)
@@ -217,7 +217,7 @@ SP_API char *sp_get_port_bluetooth_address(const struct sp_port *port)
 	    || !port->bluetooth_address)
 		return NULL;
 
-	RETURN_VALUE("%s", port->bluetooth_address);
+	RETURN_STRING(port->bluetooth_address);
 }
 
 SP_API enum sp_return sp_get_port_handle(const struct sp_port *port,
@@ -257,7 +257,7 @@ SP_API enum sp_return sp_copy_port(const struct sp_port *port,
 
 	DEBUG("Copying port structure");
 
-	RETURN_VALUE("%p", sp_get_port_by_name(port->name, copy_ptr));
+	RETURN_INT(sp_get_port_by_name(port->name, copy_ptr));
 }
 
 SP_API void sp_free_port(struct sp_port *port)
@@ -683,7 +683,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		DEBUG("Writing %d bytes to port %s, no timeout", count, port->name);
 
 	if (count == 0)
-		RETURN_VALUE("0", 0);
+		RETURN_INT(0);
 
 #ifdef _WIN32
 	DWORD bytes_written = 0;
@@ -710,13 +710,13 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 			DEBUG("Waiting for write to complete");
 			GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE);
 			DEBUG("Write completed, %d/%d bytes written", bytes_written, count);
-			RETURN_VALUE("%d", bytes_written);
+			RETURN_INT(bytes_written);
 		} else {
 			RETURN_FAIL("WriteFile() failed");
 		}
 	} else {
 		DEBUG("Write completed immediately");
-		RETURN_VALUE("%d", count);
+		RETURN_INT(count);
 	}
 #else
 	size_t bytes_written = 0;
@@ -745,7 +745,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
 				DEBUG("write timed out");
-				RETURN_VALUE("%d", bytes_written);
+				RETURN_INT(bytes_written);
 			}
 			timersub(&end, &now, &delta);
 		}
@@ -759,7 +759,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 			}
 		} else if (result == 0) {
 			DEBUG("write timed out");
-			RETURN_VALUE("%d", bytes_written);
+			RETURN_INT(bytes_written);
 		}
 
 		/* Do write. */
@@ -778,7 +778,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		ptr += result;
 	}
 
-	RETURN_VALUE("%d", bytes_written);
+	RETURN_INT(bytes_written);
 #endif
 }
 
@@ -795,7 +795,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 	DEBUG("Writing up to %d bytes to port %s", count, port->name);
 
 	if (count == 0)
-		RETURN_VALUE("0", 0);
+		RETURN_INT(0);
 
 #ifdef _WIN32
 	DWORD written = 0;
@@ -809,7 +809,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 		} else {
 			DEBUG("Previous write not complete");
 			/* Can't take a new write until the previous one finishes. */
-			RETURN_VALUE("0", 0);
+			RETURN_INT(0);
 		}
 	}
 
@@ -836,7 +836,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 				} else {
 					DEBUG("Asynchronous write running");
 					port->writing = 1;
-					RETURN_VALUE("%d", ++written);
+					RETURN_INT(++written);
 				}
 			} else {
 				/* Actual failure of some kind. */
@@ -850,7 +850,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 
 	DEBUG("All bytes written immediately");
 
-	RETURN_VALUE("%d", written);
+	RETURN_INT(written);
 #else
 	/* Returns the number of bytes written, or -1 upon failure. */
 	ssize_t written = write(port->fd, buf, count);
@@ -858,7 +858,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 	if (written < 0)
 		RETURN_FAIL("write() failed");
 	else
-		RETURN_VALUE("%d", written);
+		RETURN_INT(written);
 #endif
 }
 
@@ -878,7 +878,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		DEBUG("Reading %d bytes from port %s, no timeout", count, port->name);
 
 	if (count == 0)
-		RETURN_VALUE("0", 0);
+		RETURN_INT(0);
 
 #ifdef _WIN32
 	DWORD bytes_read = 0;
@@ -909,7 +909,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 			RETURN_FAIL("WaitCommEvent() failed");
 	}
 
-	RETURN_VALUE("%d", bytes_read);
+	RETURN_INT(bytes_read);
 
 #else
 	size_t bytes_read = 0;
@@ -938,7 +938,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
-				RETURN_VALUE("%d", bytes_read);
+				RETURN_INT(bytes_read);
 			timersub(&end, &now, &delta);
 		}
 		result = select(port->fd + 1, &fds, NULL, NULL, timeout ? &delta : NULL);
@@ -951,7 +951,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 			}
 		} else if (result == 0) {
 			DEBUG("read timed out");
-			RETURN_VALUE("%d", bytes_read);
+			RETURN_INT(bytes_read);
 		}
 
 		/* Do read. */
@@ -970,7 +970,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		ptr += result;
 	}
 
-	RETURN_VALUE("%d", bytes_read);
+	RETURN_INT(bytes_read);
 #endif
 }
 
@@ -1011,7 +1011,7 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 		}
 	}
 
-	RETURN_VALUE("%d", bytes_read);
+	RETURN_INT(bytes_read);
 #else
 	ssize_t bytes_read;
 
@@ -1024,7 +1024,7 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 			/* This is an actual failure. */
 			RETURN_FAIL("read() failed");
 	}
-	RETURN_VALUE("%d", bytes_read);
+	RETURN_INT(bytes_read);
 #endif
 }
 
@@ -1042,12 +1042,12 @@ SP_API enum sp_return sp_input_waiting(struct sp_port *port)
 
 	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
 		RETURN_FAIL("ClearCommError() failed");
-	RETURN_VALUE("%d", comstat.cbInQue);
+	RETURN_INT(comstat.cbInQue);
 #else
 	int bytes_waiting;
 	if (ioctl(port->fd, TIOCINQ, &bytes_waiting) < 0)
 		RETURN_FAIL("TIOCINQ ioctl failed");
-	RETURN_VALUE("%d", bytes_waiting);
+	RETURN_INT(bytes_waiting);
 #endif
 }
 
@@ -1065,12 +1065,12 @@ SP_API enum sp_return sp_output_waiting(struct sp_port *port)
 
 	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
 		RETURN_FAIL("ClearCommError() failed");
-	RETURN_VALUE("%d", comstat.cbOutQue);
+	RETURN_INT(comstat.cbOutQue);
 #else
 	int bytes_waiting;
 	if (ioctl(port->fd, TIOCOUTQ, &bytes_waiting) < 0)
 		RETURN_FAIL("TIOCOUTQ ioctl failed");
-	RETURN_VALUE("%d", bytes_waiting);
+	RETURN_INT(bytes_waiting);
 #endif
 }
 
@@ -2208,9 +2208,9 @@ SP_API int sp_last_error_code(void)
 {
 	TRACE("");
 #ifdef _WIN32
-	RETURN_VALUE("%d", GetLastError());
+	RETURN_INT(GetLastError());
 #else
-	RETURN_VALUE("%d", errno);
+	RETURN_INT(errno);
 #endif
 }
 
@@ -2232,9 +2232,9 @@ SP_API char *sp_last_error_message(void)
 		(LPTSTR) &message,
 		0, NULL );
 
-	RETURN_VALUE("%s", message);
+	RETURN_STRING(message);
 #else
-	RETURN_VALUE("%s", strerror(errno));
+	RETURN_STRING(strerror(errno));
 #endif
 }
 
