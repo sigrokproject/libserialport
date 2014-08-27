@@ -511,7 +511,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		strcpy(name, data);
 #endif
 		if (type == REG_SZ) {
-			DEBUG("Found port %s", name);
+			DEBUG_FMT("Found port %s", name);
 			if (!(*list = list_append(*list, name))) {
 				SET_ERROR(ret, SP_ERR_MEM, "list append failed");
 				goto out;
