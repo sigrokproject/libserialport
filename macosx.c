@@ -57,7 +57,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			IOObjectRelease(ioport);
 			continue;
 		}
-		DEBUG("Found port %s", path);
+		DEBUG_FMT("Found port %s", path);
 
 		IORegistryEntryGetParentEntry(ioport, kIOServicePlane, &ioparent);
 		if ((cf_property=IORegistryEntrySearchCFProperty(ioparent,kIOServicePlane,
@@ -86,7 +86,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		         CFSTR(kIOTTYDeviceKey), kCFAllocatorDefault, 0))) {
 			if (CFStringGetCString(cf_property, description, sizeof(description),
 			                       kCFStringEncodingASCII)) {
-				DEBUG("Found description %s", description);
+				DEBUG_FMT("Found description %s", description);
 				port->description = strdup(description);
 			}
 			CFRelease(cf_property);
@@ -107,7 +107,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		if (cf_bus && cf_address &&
 		    CFNumberGetValue(cf_bus    , kCFNumberIntType, &bus) &&
 		    CFNumberGetValue(cf_address, kCFNumberIntType, &address)) {
-			DEBUG("Found matching USB bus:address %03d:%03d", bus, address);
+			DEBUG_FMT("Found matching USB bus:address %03d:%03d", bus, address);
 			port->usb_bus = bus;
 			port->usb_address = address;
 		}
@@ -127,7 +127,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		if (cf_vendor && cf_product &&
 		    CFNumberGetValue(cf_vendor , kCFNumberIntType, &vid) &&
 		    CFNumberGetValue(cf_product, kCFNumberIntType, &pid)) {
-			DEBUG("Found matching USB vid:pid %04X:%04X", vid, pid);
+			DEBUG_FMT("Found matching USB vid:pid %04X:%04X", vid, pid);
 			port->usb_vid = vid;
 			port->usb_pid = pid;
 		}
@@ -139,7 +139,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
 			if (CFStringGetCString(cf_property, manufacturer, sizeof(manufacturer),
 			                       kCFStringEncodingASCII)) {
-				DEBUG("Found manufacturer %s", manufacturer);
+				DEBUG_FMT("Found manufacturer %s", manufacturer);
 				port->usb_manufacturer = strdup(manufacturer);
 			}
 			CFRelease(cf_property);
@@ -150,7 +150,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
 			if (CFStringGetCString(cf_property, product, sizeof(product),
 			                       kCFStringEncodingASCII)) {
-				DEBUG("Found product name %s", product);
+				DEBUG_FMT("Found product name %s", product);
 				port->usb_product = strdup(product);
 			}
 			CFRelease(cf_property);
@@ -161,7 +161,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
 			if (CFStringGetCString(cf_property, serial, sizeof(serial),
 			                       kCFStringEncodingASCII)) {
-				DEBUG("Found serial number %s", serial);
+				DEBUG_FMT("Found serial number %s", serial);
 				port->usb_serial = strdup(serial);
 			}
 			CFRelease(cf_property);
@@ -207,7 +207,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			                            kCFStringEncodingASCII);
 			CFRelease(cf_path);
 			if (result) {
-				DEBUG("Found port %s", path);
+				DEBUG_FMT("Found port %s", path);
 				if (!(*list = list_append(*list, path))) {
 					SET_ERROR(ret, SP_ERR_MEM, "list append failed");
 					IOObjectRelease(port);
