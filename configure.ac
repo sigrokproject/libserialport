@@ -119,9 +119,6 @@ AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed],
 AC_CHECK_MEMBERS([struct termios2.c_ispeed, struct termios2.c_ospeed],
 	[AC_DEFINE(HAVE_TERMIOS2_SPEED, 1)], [], [[#include <linux/termios.h>]])
 
-# Check for readlinkat.
-AC_CHECK_FUNC([readlinkat], [AC_DEFINE(HAVE_READLINKAT, 1)], [])
-
 # Check for serial_struct.
 AC_CHECK_TYPE([struct serial_struct], [AC_DEFINE(HAVE_SERIAL_STRUCT, 1)],
         [], [[#include <linux/serial.h>]])
