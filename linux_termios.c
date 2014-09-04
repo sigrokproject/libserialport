@@ -33,10 +33,11 @@
  * TCSETX/TCGETX ioctls used with struct termiox, others do not.
  */
 
+#include <stdlib.h>
 #include <linux/termios.h>
 #include "linux_termios.h"
 
-SP_PRIV int get_termios_get_ioctl(void)
+SP_PRIV unsigned long get_termios_get_ioctl(void)
 {
 #ifdef HAVE_TERMIOS2
 	return TCGETS2;
@@ -45,7 +46,7 @@ SP_PRIV int get_termios_get_ioctl(void)
 #endif
 }
 
-SP_PRIV int get_termios_set_ioctl(void)
+SP_PRIV unsigned long get_termios_set_ioctl(void)
 {
 #ifdef HAVE_TERMIOS2
 	return TCSETS2;
@@ -54,7 +55,7 @@ SP_PRIV int get_termios_set_ioctl(void)
 #endif
 }
 
-SP_PRIV int get_termios_size(void)
+SP_PRIV size_t get_termios_size(void)
 {
 #ifdef HAVE_TERMIOS2
 	return sizeof(struct termios2);
@@ -91,7 +92,7 @@ SP_PRIV void set_termios_speed(void *data, int speed)
 #endif
 
 #ifdef HAVE_TERMIOX
-SP_PRIV int get_termiox_size(void)
+SP_PRIV size_t get_termiox_size(void)
 {
 	return sizeof(struct termiox);
 }
