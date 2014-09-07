@@ -32,11 +32,14 @@
 #include <stdio.h>
 #include <stdarg.h>
 #ifdef _WIN32
+#include <initguid.h>
+
 #include <windows.h>
 #include <tchar.h>
 #include <setupapi.h>
 #include <cfgmgr32.h>
 #include <usbioctl.h>
+#include <usbiodef.h>
 #else
 #include <limits.h>
 #include <termios.h>
