@@ -37,6 +37,10 @@ endif
 
 libserialport_la_LIBADD = $(LIBOBJS)
 
+if WIN32
+libserialport_la_LIBADD += -lsetupapi
+endif
+
 libserialport_la_LDFLAGS = $(SP_LIB_LDFLAGS)
 
 library_includedir = $(includedir)
