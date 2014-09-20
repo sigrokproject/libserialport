@@ -108,7 +108,9 @@ enum sp_mode {
 	/** Open port for read access. */
 	SP_MODE_READ = 1,
 	/** Open port for write access. */
-	SP_MODE_WRITE = 2
+	SP_MODE_WRITE = 2,
+	/** Open port for read and write access. */
+	SP_MODE_READ_WRITE = 3
 };
 
 /** Port events. */

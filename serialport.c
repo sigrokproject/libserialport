@@ -402,7 +402,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 
 	CHECK_PORT();
 
-	if (flags > (SP_MODE_READ | SP_MODE_WRITE))
+	if (flags > SP_MODE_READ_WRITE)
 		RETURN_ERROR(SP_ERR_ARG, "Invalid flags");
 
 	DEBUG_FMT("Opening port %s", port->name);
@@ -479,7 +479,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	int flags_local = O_NONBLOCK | O_NOCTTY;
 
 	/* Map 'flags' to the OS-specific settings. */
-	if (flags & (SP_MODE_READ | SP_MODE_WRITE))
+	if ((flags & SP_MODE_READ_WRITE) == SP_MODE_READ_WRITE)
 		flags_local |= O_RDWR;
 	else if (flags & SP_MODE_READ)
 		flags_local |= O_RDONLY;
