@@ -499,21 +499,21 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			NULL, &type, (LPBYTE)data, &data_size) == ERROR_SUCCESS)
 	{
 		if (type == REG_SZ) {
-		data_len = data_size / sizeof(TCHAR);
-		data[data_len] = '\0';
+			data_len = data_size / sizeof(TCHAR);
+			data[data_len] = '\0';
 #ifdef UNICODE
-		name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL);
+			name_len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL);
 #else
-		name_len = data_len + 1;
+			name_len = data_len + 1;
 #endif
-		if (!(name = malloc(name_len))) {
-			SET_ERROR(ret, SP_ERR_MEM, "registry port name malloc failed");
-			goto out;
-		}
+			if (!(name = malloc(name_len))) {
+				SET_ERROR(ret, SP_ERR_MEM, "registry port name malloc failed");
+				goto out;
+			}
 #ifdef UNICODE
-		WideCharToMultiByte(CP_ACP, 0, data, -1, name, name_len, NULL, NULL);
+			WideCharToMultiByte(CP_ACP, 0, data, -1, name, name_len, NULL, NULL);
 #else
-		strcpy(name, data);
+			strcpy(name, data);
 #endif
 			DEBUG_FMT("Found port %s", name);
 			if (!(*list = list_append(*list, name))) {
