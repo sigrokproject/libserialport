@@ -359,8 +359,10 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			continue;
 		size = sizeof(value);
 		if (RegQueryValueExA(device_key, "PortName", NULL, &type, (LPBYTE)value,
-		                     &size) != ERROR_SUCCESS || type != REG_SZ)
+		                     &size) != ERROR_SUCCESS || type != REG_SZ) {
+			RegCloseKey(device_key);
 			continue;
+		}
 		RegCloseKey(device_key);
 		value[sizeof(value)-1] = 0;
 		if (strcmp(value, port->name))
@@ -452,6 +454,8 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		break;
 	}
 
+	SetupDiDestroyDeviceInfoList(device_info);
+
 	RETURN_OK();
 }
 
@@ -494,6 +498,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		RegEnumValue(key, index, value, &value_len,
 			NULL, &type, (LPBYTE)data, &data_size) == ERROR_SUCCESS)
 	{
+		if (type == REG_SZ) {
 		data_len = data_size / sizeof(TCHAR);
 		data[data_len] = '\0';
 #ifdef UNICODE
@@ -510,12 +515,13 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 #else
 		strcpy(name, data);
 #endif
-		if (type == REG_SZ) {
 			DEBUG_FMT("Found port %s", name);
 			if (!(*list = list_append(*list, name))) {
 				SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+				free(name);
 				goto out;
 			}
+			free(name);
 		}
 		index++;
 	}
