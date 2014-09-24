@@ -32,12 +32,13 @@
 #include <stdio.h>
 #include <stdarg.h>
 #ifdef _WIN32
-#include <initguid.h>
-
 #include <windows.h>
 #include <tchar.h>
 #include <setupapi.h>
 #include <cfgmgr32.h>
+#undef DEFINE_GUID
+#define DEFINE_GUID(name,l,w1,w2,b1,b2,b3,b4,b5,b6,b7,b8) \
+	static const GUID name = { l,w1,w2,{ b1,b2,b3,b4,b5,b6,b7,b8 } }
 #include <usbioctl.h>
 #include <usbiodef.h>
 #else
