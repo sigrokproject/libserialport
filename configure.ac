@@ -119,6 +119,21 @@ AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed],
 AC_CHECK_MEMBERS([struct termios2.c_ispeed, struct termios2.c_ospeed],
 	[AC_DEFINE(HAVE_TERMIOS2_SPEED, 1)], [], [[#include <linux/termios.h>]])
 
+# Check for the BOTHER definition, needed for setting arbitrary baud rates.
+# We can't just #ifdef BOTHER in the code, because of the separation between
+# code using libc headers and code using kernel termios.h headers.
+AC_MSG_CHECKING(for BOTHER)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <linux/termios.h>
+]],
+[[
+#ifndef BOTHER
+#error BOTHER is not defined
+#endif
+]])],
+[AC_DEFINE(HAVE_BOTHER, 1)
+AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
+
 # Check for serial_struct.
 AC_CHECK_TYPE([struct serial_struct], [AC_DEFINE(HAVE_SERIAL_STRUCT, 1)],
         [], [[#include <linux/serial.h>]])

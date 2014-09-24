@@ -78,7 +78,7 @@
 #endif
 
 /* Non-standard baudrates are not available everywhere. */
-#if defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)
+#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && defined(HAVE_BOTHER)
 #define USE_TERMIOS_SPEED
 #endif
 

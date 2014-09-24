@@ -64,7 +64,7 @@ SP_PRIV size_t get_termios_size(void)
 #endif
 }
 
-#if defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)
+#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && defined(HAVE_BOTHER)
 SP_PRIV int get_termios_speed(void *data)
 {
 #ifdef HAVE_TERMIOS2
