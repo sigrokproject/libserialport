@@ -888,6 +888,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 #ifdef _WIN32
 	DWORD bytes_read = 0;
+	DWORD wait_result = 0;
 
 	/* Set timeout. */
 	port->timeouts.ReadIntervalTimeout = 0;
@@ -909,10 +910,15 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		bytes_read = count;
 	}
 
-	/* Start background operation for subsequent events. */
-	if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
-		if (GetLastError() != ERROR_IO_PENDING)
-			RETURN_FAIL("WaitCommEvent() failed");
+	/* Restart wait operation if needed. */
+	if (GetOverlappedResult(port->hdl, &port->wait_ovl, &wait_result, FALSE)) {
+		/* Previous wait completed, start a new one. */
+		if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
+			if (GetLastError() != ERROR_IO_PENDING)
+				RETURN_FAIL("WaitCommEvent() failed");
+		}
+	} else if (GetLastError() != ERROR_IO_INCOMPLETE) {
+		RETURN_FAIL("GetOverlappedResult() failed");
 	}
 
 	RETURN_INT(bytes_read);
@@ -994,6 +1000,7 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 
 #ifdef _WIN32
 	DWORD bytes_read;
+	DWORD wait_result;
 
 	/* Set timeout. */
 	port->timeouts.ReadIntervalTimeout = MAXDWORD;
@@ -1009,12 +1016,15 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 	if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
 		RETURN_FAIL("GetOverlappedResult() failed");
 
-	if (bytes_read > 0) {
-		/* Start background operation for subsequent events. */
+	/* Restart wait operation if needed. */
+	if (GetOverlappedResult(port->hdl, &port->wait_ovl, &wait_result, FALSE)) {
+		/* Previous wait completed, start a new one. */
 		if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
 			if (GetLastError() != ERROR_IO_PENDING)
 				RETURN_FAIL("WaitCommEvent() failed");
 		}
+	} else if (GetLastError() != ERROR_IO_INCOMPLETE) {
+		RETURN_FAIL("GetOverlappedResult() failed");
 	}
 
 	RETURN_INT(bytes_read);
