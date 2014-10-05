@@ -253,7 +253,7 @@ static void enumerate_hub(struct sp_port *port, char *hub_name,
 	/* get the number of ports of the hub */
 	if (DeviceIoControl(hub_device, IOCTL_USB_GET_NODE_INFORMATION,
 	                    &hub_info, size, &hub_info, size, &size, NULL))
-		/* enumarate the ports of the hub */
+		/* enumerate the ports of the hub */
 		enumerate_hub_ports(port, hub_device,
 		   hub_info.u.HubInformation.HubDescriptor.bNumberOfPorts, parent_path);
 
@@ -448,7 +448,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			free(escaped_port_name);
 			CloseHandle(handle);
 
-			/* retrive USB device details from the device descriptor */
+			/* retrieve USB device details from the device descriptor */
 			get_usb_details(port, device_info_data.DevInst);
 		}
 		break;

@@ -237,7 +237,7 @@ enum sp_transport {
 	SP_TRANSPORT_NATIVE,
 	/** USB serial port adapter. */
 	SP_TRANSPORT_USB,
-	/** Bluetooh serial port adapter. */
+	/** Bluetooth serial port adapter. */
 	SP_TRANSPORT_BLUETOOTH
 };
 
