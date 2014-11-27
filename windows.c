@@ -353,9 +353,10 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		CONFIGRET cr;
 
 		/* check if this is the device we are looking for */
-		if (!(device_key = SetupDiOpenDevRegKey(device_info, &device_info_data,
-		                                        DICS_FLAG_GLOBAL, 0,
-		                                        DIREG_DEV, KEY_QUERY_VALUE)))
+		device_key = SetupDiOpenDevRegKey(device_info, &device_info_data,
+		                                  DICS_FLAG_GLOBAL, 0,
+		                                  DIREG_DEV, KEY_QUERY_VALUE);
+		if (device_key == INVALID_HANDLE_VALUE)
 			continue;
 		size = sizeof(value);
 		if (RegQueryValueExA(device_key, "PortName", NULL, &type, (LPBYTE)value,
