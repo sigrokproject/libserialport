@@ -85,6 +85,7 @@ SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port *
 	memcpy(port->name, portname, len);
 
 #ifdef _WIN32
+	port->usb_path = NULL;
 	port->hdl = INVALID_HANDLE_VALUE;
 #else
 	port->fd = -1;
