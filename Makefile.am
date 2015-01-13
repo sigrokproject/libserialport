@@ -34,6 +34,9 @@ endif
 if MACOSX
 libserialport_la_SOURCES += macosx.c
 endif
+if FREEBSD
+libserialport_la_SOURCES += freebsd.c
+endif
 
 libserialport_la_LIBADD = $(LIBOBJS)
 

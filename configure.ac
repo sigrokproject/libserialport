@@ -83,11 +83,13 @@ case $target_os in
 	AM_CONDITIONAL([LINUX], true)
 	AM_CONDITIONAL([WIN32], false)
 	AM_CONDITIONAL([MACOSX], false)
+	AM_CONDITIONAL([FREEBSD], false)
 	;;
 *darwin*)
 	AM_CONDITIONAL([LINUX], false)
 	AM_CONDITIONAL([WIN32], false)
 	AM_CONDITIONAL([MACOSX], true)
+	AM_CONDITIONAL([FREEBSD], false)
 	LDFLAGS="$LDFLAGS -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation"
 	AC_CHECK_HEADER(IOKit/IOKitLib.h, [], [AC_MSG_ERROR([IOKit/IOKitLib.h not found])])
 	;;
@@ -95,12 +97,20 @@ mingw* | cygwin*)
 	AM_CONDITIONAL([LINUX], false)
 	AM_CONDITIONAL([WIN32], true)
 	AM_CONDITIONAL([MACOSX], false)
+	AM_CONDITIONAL([FREEBSD], false)
 	SP_LIBS="-lsetupapi -luuid"
+	;;
+*freebsd*)
+	AM_CONDITIONAL([LINUX], false)
+	AM_CONDITIONAL([WIN32], false)
+	AM_CONDITIONAL([MACOSX], false)
+	AM_CONDITIONAL([FREEBSD], true)
 	;;
 *)
 	AM_CONDITIONAL([LINUX], false)
 	AM_CONDITIONAL([WIN32], false)
 	AM_CONDITIONAL([MACOSX], false)
+	AM_CONDITIONAL([FREEBSD], false)
 	AC_DEFINE(NO_ENUMERATION)
 	AC_DEFINE(NO_PORT_METADATA)
 esac
