@@ -253,6 +253,15 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized.");
 	}
 
+	/* Native UART enumeration. */
+	if ((cua_sfx[0] == 'u') || (cua_sfx[0] == 'd')) {
+		port->transport = SP_TRANSPORT_NATIVE;
+		snprintf(tbuf, sizeof(tbuf) - 1, "cua%s", cua_sfx);
+		port->description = strdup(tbuf);
+		RETURN_OK();
+	}
+
+	/* USB device enumeration. */
 	dev = dev_last = NULL;
 	be = libusb20_be_alloc_default();
 	cua_dev_found = 0;
@@ -339,8 +348,8 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		if (strend(entry.d_name, ".lock"))
 			continue;
 
-		DEBUG_FMT("Found device %s", name);
 		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
+		DEBUG_FMT("Found device %s", name);
 
 		/* Check that we can open tty/cua device in rw mode - we need that. */
 		if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY | O_TTY_INIT | O_CLOEXEC)) < 0) {
