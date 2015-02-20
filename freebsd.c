@@ -162,7 +162,7 @@ static int sysctl_query_dev_drv(const char *drv_name_str,
 	if (!ttyname || !ttyport_cnt)
 		return -1;
 
-	snprintf(sbuf, sizeof(sbuf) - 1, "dev.%s.%s.ttyname", drv_name_str,
+	snprintf(sbuf, sizeof(sbuf), "dev.%s.%s.ttyname", drv_name_str,
 		 drv_inst_str);
 	tbuf_len = sizeof(tbuf) - 1;
 	if ((rc = sysctlbyname(sbuf, tbuf, &tbuf_len, NULL, 0)) != 0)
@@ -173,7 +173,7 @@ static int sysctl_query_dev_drv(const char *drv_name_str,
 	DBG("sysctl: '%s' (%d) (%d): '%.*s'\n", sbuf, rc, (int)tbuf_len,
 	    (int)tbuf_len, tbuf);
 
-	snprintf(sbuf, sizeof(sbuf) - 1, "dev.%s.%s.ttyports",
+	snprintf(sbuf, sizeof(sbuf), "dev.%s.%s.ttyports",
 		 drv_name_str, drv_inst_str);
 	tbuf_len = sizeof(tbuf) - 1;
 	rc = sysctlbyname(sbuf, tbuf, &tbuf_len, NULL, 0);
@@ -256,7 +256,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	/* Native UART enumeration. */
 	if ((cua_sfx[0] == 'u') || (cua_sfx[0] == 'd')) {
 		port->transport = SP_TRANSPORT_NATIVE;
-		snprintf(tbuf, sizeof(tbuf) - 1, "cua%s", cua_sfx);
+		snprintf(tbuf, sizeof(tbuf), "cua%s", cua_sfx);
 		port->description = strdup(tbuf);
 		RETURN_OK();
 	}
@@ -287,9 +287,9 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 					/* Handle multiple subinstances of serial ports in the same driver instance. */
 					for (sub_inst = 0; sub_inst < ttyport_cnt; sub_inst++) {
 						if (ttyport_cnt == 1)
-							snprintf(tbuf, sizeof(tbuf) - 1, "%s", ttyname);
+							snprintf(tbuf, sizeof(tbuf), "%s", ttyname);
 						else
-							snprintf(tbuf, sizeof(tbuf) - 1, "%s.%d", ttyname, sub_inst);
+							snprintf(tbuf, sizeof(tbuf), "%s.%d", ttyname, sub_inst);
 						if (!strcmp(cua_sfx, tbuf)) {
 							DBG("MATCH: '%s' == '%s'\n", cua_sfx, tbuf);
 							cua_dev_found = 1;

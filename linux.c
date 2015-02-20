@@ -137,7 +137,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 			/* If present, add serial to description for better identification. */
 			if (port->usb_serial && strlen(port->usb_serial)) {
-				snprintf(description, sizeof(description) - 1,
+				snprintf(description, sizeof(description),
 					"%s - %s", port->description, port->usb_serial);
 				if (port->description)
 					free(port->description);
