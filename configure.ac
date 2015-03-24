@@ -29,6 +29,7 @@ m4_define([sp_package_version], [sp_package_version_major.sp_package_version_min
 
 AC_INIT([libserialport], [sp_package_version], [martin-libserialport@earth.li],
 	[libserialport], [http://sigrok.org/wiki/Libserialport])
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
@@ -111,8 +112,8 @@ mingw* | cygwin*)
 	AM_CONDITIONAL([WIN32], false)
 	AM_CONDITIONAL([MACOSX], false)
 	AM_CONDITIONAL([FREEBSD], false)
-	AC_DEFINE(NO_ENUMERATION)
-	AC_DEFINE(NO_PORT_METADATA)
+	AC_DEFINE(NO_ENUMERATION,,[Enumeration is unsupported])
+	AC_DEFINE(NO_PORT_METADATA,,[Port metadata is unavailable])
 esac
 
 AC_SUBST(SP_PKGLIBS)
@@ -122,12 +123,22 @@ AC_SUBST(SP_LIBS)
 AC_TYPE_SIZE_T
 
 # Check for specific termios structures.
-AC_CHECK_TYPE([struct termios2], [AC_DEFINE(HAVE_TERMIOS2, 1)], [], [[#include <linux/termios.h>]])
-AC_CHECK_TYPE([struct termiox], [AC_DEFINE(HAVE_TERMIOX, 1)], [], [[#include <linux/termios.h>]])
+AC_CHECK_TYPE([struct termios2],
+	[AC_DEFINE(HAVE_TERMIOS2, 1,
+		[struct termios2 is available.])],
+	[], [[#include <linux/termios.h>]])
+AC_CHECK_TYPE([struct termiox],
+	[AC_DEFINE(HAVE_TERMIOX, 1,
+		[struct termiox is available.])],
+	[], [[#include <linux/termios.h>]])
 AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed],
-	[AC_DEFINE(HAVE_TERMIOS_SPEED, 1)], [], [[#include <linux/termios.h>]])
+	[AC_DEFINE(HAVE_TERMIOS_SPEED, 1,
+		[struct termios has c_ispeed/c_ospeed.])],
+	[], [[#include <linux/termios.h>]])
 AC_CHECK_MEMBERS([struct termios2.c_ispeed, struct termios2.c_ospeed],
-	[AC_DEFINE(HAVE_TERMIOS2_SPEED, 1)], [], [[#include <linux/termios.h>]])
+	[AC_DEFINE(HAVE_TERMIOS2_SPEED, 1,
+		[struct termios2 has c_ispeed/c_ospeed.])],
+	[], [[#include <linux/termios.h>]])
 
 # Check for the BOTHER definition, needed for setting arbitrary baud rates.
 # We can't just #ifdef BOTHER in the code, because of the separation between
@@ -141,14 +152,18 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #error BOTHER is not defined
 #endif
 ]])],
-[AC_DEFINE(HAVE_BOTHER, 1)
+[AC_DEFINE(HAVE_BOTHER, 1, [BOTHER macro is available])
 AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
 
 # Check for serial_struct.
-AC_CHECK_TYPE([struct serial_struct], [AC_DEFINE(HAVE_SERIAL_STRUCT, 1)],
+AC_CHECK_TYPE([struct serial_struct],
+	[AC_DEFINE(HAVE_SERIAL_STRUCT, 1,
+		[struct serial is available.])],
         [], [[#include <linux/serial.h>]])
 
 saved="$CFLAGS"; CFLAGS="$CFLAGS -Werror"
+AC_DEFINE(SP_API,,[Macro preceding public API functions])
+AC_DEFINE(SP_PRIV,,[Macro preceding private functions])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 		__attribute__((visibility("hidden"))) void foo(void) { }
 	]])],

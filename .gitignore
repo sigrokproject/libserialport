@@ -6,6 +6,8 @@ Makefile.in
 aclocal.m4
 autom4te.cache/
 autostuff/
+config.h.in
+config.h
 config.log
 config.status
 configure
@@ -13,5 +15,6 @@ libserialport.la
 libserialport.pc
 libserialport.h
 libtool
+stamp-h1
 *.o
 *.lo

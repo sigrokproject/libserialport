@@ -18,6 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #ifdef __linux__
 #define _BSD_SOURCE // for timeradd, timersub, timercmp
 #endif
