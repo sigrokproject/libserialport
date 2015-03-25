@@ -109,6 +109,7 @@ struct sp_port {
 	DWORD events;
 	BYTE pending_byte;
 	BOOL writing;
+	BOOL wait_running;
 #else
 	int fd;
 #endif

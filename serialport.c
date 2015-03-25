@@ -399,6 +399,43 @@ SP_API void sp_free_port_list(struct sp_port **list)
 	CHECK_PORT_HANDLE(); \
 } while (0)
 
+#ifdef WIN32
+/** To be called after port receive buffer is emptied. */
+static enum sp_return restart_wait(struct sp_port *port)
+{
+	DWORD wait_result;
+
+	if (port->wait_running) {
+		/* Check status of running wait operation. */
+		if (GetOverlappedResult(port->hdl, &port->wait_ovl,
+				&wait_result, FALSE)) {
+			DEBUG("Previous wait completed");
+			port->wait_running = FALSE;
+		} else if (GetLastError() == ERROR_IO_INCOMPLETE) {
+			DEBUG("Previous wait still running");
+			RETURN_OK();
+		} else {
+			RETURN_FAIL("GetOverlappedResult() failed");
+		}
+	}
+
+	if (!port->wait_running) {
+		/* Start new wait operation. */
+		if (WaitCommEvent(port->hdl, &port->events,
+				&port->wait_ovl)) {
+			DEBUG("New wait returned, events already pending");
+		} else if (GetLastError() == ERROR_IO_PENDING) {
+			DEBUG("New wait running in background");
+			port->wait_running = TRUE;
+		} else {
+			RETURN_FAIL("WaitCommEvent() failed");
+		}
+	}
+
+	RETURN_OK();
+}
+#endif
+
 SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 {
 	struct port_data data;
@@ -472,16 +509,15 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		RETURN_FAIL("SetCommMask() failed");
 	}
 
-	/* Start background operation for RX and error events. */
-	if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
-		if (GetLastError() != ERROR_IO_PENDING) {
-			sp_close(port);
-			RETURN_FAIL("WaitCommEvent() failed");
-		}
-	}
-
 	port->writing = FALSE;
+	port->wait_running = FALSE;
 
+	ret = restart_wait(port);
+
+	if (ret < 0) {
+		sp_close(port);
+		RETURN_CODEVAL(ret);
+	}
 #else
 	int flags_local = O_NONBLOCK | O_NOCTTY;
 
@@ -623,6 +659,9 @@ SP_API enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers)
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (PurgeComm(port->hdl, flags) == 0)
 		RETURN_FAIL("PurgeComm() failed");
+
+	if (buffers & SP_BUF_INPUT)
+		TRY(restart_wait(port));
 #else
 	int flags = 0;
 	if (buffers == SP_BUF_BOTH)
@@ -894,7 +933,8 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 #ifdef _WIN32
 	DWORD bytes_read = 0;
-	DWORD wait_result = 0;
+	DWORD bytes_remaining;
+	int ret;
 
 	/* Set timeout. */
 	port->timeouts.ReadIntervalTimeout = 0;
@@ -916,16 +956,16 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		bytes_read = count;
 	}
 
-	/* Restart wait operation if needed. */
-	if (GetOverlappedResult(port->hdl, &port->wait_ovl, &wait_result, FALSE)) {
-		/* Previous wait completed, start a new one. */
-		if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
-			if (GetLastError() != ERROR_IO_PENDING)
-				RETURN_FAIL("WaitCommEvent() failed");
-		}
-	} else if (GetLastError() != ERROR_IO_INCOMPLETE) {
-		RETURN_FAIL("GetOverlappedResult() failed");
-	}
+	ret = sp_input_waiting(port);
+
+	if (ret < 0)
+		RETURN_CODEVAL(ret);
+
+	bytes_remaining = ret;
+
+	/* Restart wait operation if buffer was emptied. */
+	if (bytes_read > 0 && bytes_remaining == 0)
+		TRY(restart_wait(port));
 
 	RETURN_INT(bytes_read);
 
@@ -1005,7 +1045,8 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 
 #ifdef _WIN32
 	DWORD bytes_read;
-	DWORD wait_result;
+	DWORD bytes_remaining;
+	int ret;
 
 	/* Set timeout. */
 	port->timeouts.ReadIntervalTimeout = MAXDWORD;
@@ -1021,16 +1062,16 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 	if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
 		RETURN_FAIL("GetOverlappedResult() failed");
 
-	/* Restart wait operation if needed. */
-	if (GetOverlappedResult(port->hdl, &port->wait_ovl, &wait_result, FALSE)) {
-		/* Previous wait completed, start a new one. */
-		if (WaitCommEvent(port->hdl, &port->events, &port->wait_ovl) == 0) {
-			if (GetLastError() != ERROR_IO_PENDING)
-				RETURN_FAIL("WaitCommEvent() failed");
-		}
-	} else if (GetLastError() != ERROR_IO_INCOMPLETE) {
-		RETURN_FAIL("GetOverlappedResult() failed");
-	}
+	ret = sp_input_waiting(port);
+
+	if (ret < 0)
+		RETURN_CODEVAL(ret);
+
+	bytes_remaining = ret;
+
+	/* Restart wait operation if buffer was emptied. */
+	if (bytes_read > 0 && bytes_remaining == 0)
+		TRY(restart_wait(port));
 
 	RETURN_INT(bytes_read);
 #else
