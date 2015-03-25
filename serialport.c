@@ -156,8 +156,10 @@ SP_API enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
 	if (port->usb_bus < 0 || port->usb_address < 0)
 		RETURN_ERROR(SP_ERR_SUPP, "Bus and address values are not available");
 
-	if (usb_bus)      *usb_bus     = port->usb_bus;
-	if (usb_address)  *usb_address = port->usb_address;
+	if (usb_bus)
+		*usb_bus = port->usb_bus;
+	if (usb_address)
+		*usb_address = port->usb_address;
 
 	RETURN_OK();
 }
@@ -174,8 +176,10 @@ SP_API enum sp_return sp_get_port_usb_vid_pid(const struct sp_port *port,
 	if (port->usb_vid < 0 || port->usb_pid < 0)
 		RETURN_ERROR(SP_ERR_SUPP, "VID:PID values are not available");
 
-	if (usb_vid)  *usb_vid = port->usb_vid;
-	if (usb_pid)  *usb_pid = port->usb_pid;
+	if (usb_vid)
+		*usb_vid = port->usb_vid;
+	if (usb_pid)
+		*usb_pid = port->usb_pid;
 
 	RETURN_OK();
 }
@@ -372,9 +376,9 @@ SP_API void sp_free_port_list(struct sp_port **list)
 }
 
 #define CHECK_PORT() do { \
-	if (port == NULL) \
+	if (!port) \
 		RETURN_ERROR(SP_ERR_ARG, "Null port"); \
-	if (port->name == NULL) \
+	if (!port->name) \
 		RETURN_ERROR(SP_ERR_ARG, "Null port name"); \
 } while (0)
 #ifdef _WIN32
@@ -431,7 +435,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	free(escaped_port_name);
 
 	if (port->hdl == INVALID_HANDLE_VALUE)
-		RETURN_FAIL("port CreateFile() failed");
+		RETURN_FAIL("Port CreateFile() failed");
 
 	/* All timeouts initially disabled. */
 	port->timeouts.ReadIntervalTimeout = 0;
@@ -570,7 +574,7 @@ SP_API enum sp_return sp_close(struct sp_port *port)
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (CloseHandle(port->hdl) == 0)
-		RETURN_FAIL("port CloseHandle() failed");
+		RETURN_FAIL("Port CloseHandle() failed");
 	port->hdl = INVALID_HANDLE_VALUE;
 
 	/* Close event handles for overlapped structures. */
@@ -740,15 +744,14 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	}
 
 	/* Loop until we have written the requested number of bytes. */
-	while (bytes_written < count)
-	{
+	while (bytes_written < count) {
 		/* Wait until space is available. */
 		FD_ZERO(&fds);
 		FD_SET(port->fd, &fds);
 		if (timeout) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
-				DEBUG("write timed out");
+				DEBUG("Write timed out");
 				RETURN_INT(bytes_written);
 			}
 			timersub(&end, &now, &delta);
@@ -762,7 +765,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 				RETURN_FAIL("select() failed");
 			}
 		} else if (result == 0) {
-			DEBUG("write timed out");
+			DEBUG("Write timed out");
 			RETURN_INT(bytes_written);
 		}
 
@@ -822,10 +825,11 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
 		RETURN_FAIL("SetCommTimeouts() failed");
 
-	/* Keep writing data until the OS has to actually start an async IO for it.
-	 * At that point we know the buffer is full. */
-	while (written < count)
-	{
+	/*
+	 * Keep writing data until the OS has to actually start an async IO
+	 * for it. At that point we know the buffer is full.
+	 */
+	while (written < count) {
 		/* Copy first byte of user buffer. */
 		port->pending_byte = *ptr++;
 
@@ -941,8 +945,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	}
 
 	/* Loop until we have the requested number of bytes. */
-	while (bytes_read < count)
-	{
+	while (bytes_read < count) {
 		/* Wait until data is available. */
 		FD_ZERO(&fds);
 		FD_SET(port->fd, &fds);
@@ -962,7 +965,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 				RETURN_FAIL("select() failed");
 			}
 		} else if (result == 0) {
-			DEBUG("read timed out");
+			DEBUG("Read timed out");
 			RETURN_INT(bytes_read);
 		}
 
@@ -1121,11 +1124,11 @@ static enum sp_return add_handle(struct sp_event_set *event_set,
 
 	if (!(new_handles = realloc(event_set->handles,
 			sizeof(event_handle) * (event_set->count + 1))))
-		RETURN_ERROR(SP_ERR_MEM, "handle array realloc() failed");
+		RETURN_ERROR(SP_ERR_MEM, "Handle array realloc() failed");
 
 	if (!(new_masks = realloc(event_set->masks,
 			sizeof(enum sp_event) * (event_set->count + 1))))
-		RETURN_ERROR(SP_ERR_MEM, "mask array realloc() failed");
+		RETURN_ERROR(SP_ERR_MEM, "Mask array realloc() failed");
 
 	event_set->handles = new_handles;
 	event_set->masks = new_masks;
@@ -1235,12 +1238,11 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 	}
 
 	/* Loop until an event occurs. */
-	while (1)
-	{
+	while (1) {
 		if (timeout) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
-				DEBUG("wait timed out");
+				DEBUG("Wait timed out");
 				break;
 			}
 			timersub(&end, &now, &delta);
@@ -1285,7 +1287,7 @@ static enum sp_return get_baudrate(int fd, int *baudrate)
 
 	if (ioctl(fd, get_termios_get_ioctl(), data) < 0) {
 		free(data);
-		RETURN_FAIL("getting termios failed");
+		RETURN_FAIL("Getting termios failed");
 	}
 
 	*baudrate = get_termios_speed(data);
@@ -1308,7 +1310,7 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 
 	if (ioctl(fd, get_termios_get_ioctl(), data) < 0) {
 		free(data);
-		RETURN_FAIL("getting termios failed");
+		RETURN_FAIL("Getting termios failed");
 	}
 
 	DEBUG("Setting baud rate");
@@ -1317,7 +1319,7 @@ static enum sp_return set_baudrate(int fd, int baudrate)
 
 	if (ioctl(fd, get_termios_set_ioctl(), data) < 0) {
 		free(data);
-		RETURN_FAIL("setting termios failed");
+		RETURN_FAIL("Setting termios failed");
 	}
 
 	free(data);
@@ -1340,7 +1342,7 @@ static enum sp_return get_flow(int fd, struct port_data *data)
 
 	if (ioctl(fd, TCGETX, termx) < 0) {
 		free(termx);
-		RETURN_FAIL("getting termiox failed");
+		RETURN_FAIL("Getting termiox failed");
 	}
 
 	get_termiox_flow(termx, &data->rts_flow, &data->cts_flow,
@@ -1364,7 +1366,7 @@ static enum sp_return set_flow(int fd, struct port_data *data)
 
 	if (ioctl(fd, TCGETX, termx) < 0) {
 		free(termx);
-		RETURN_FAIL("getting termiox failed");
+		RETURN_FAIL("Getting termiox failed");
 	}
 
 	DEBUG("Setting advanced flow control");
@@ -1374,7 +1376,7 @@ static enum sp_return set_flow(int fd, struct port_data *data)
 
 	if (ioctl(fd, TCSETX, termx) < 0) {
 		free(termx);
-		RETURN_FAIL("setting termiox failed");
+		RETURN_FAIL("Setting termiox failed");
 	}
 
 	free(termx);
@@ -1958,8 +1960,10 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	if (baud_nonstd != B0) {
 		if (ioctl(port->fd, IOSSIOSPEED, &baud_nonstd) == -1)
 			RETURN_FAIL("IOSSIOSPEED ioctl failed");
-		/* Set baud rates in data->term to correct, but incompatible
-		 * with tcsetattr() value, same as delivered by tcgetattr(). */
+		/*
+		 * Set baud rates in data->term to correct, but incompatible
+		 * with tcsetattr() value, same as delivered by tcgetattr().
+		 */
 		if (cfsetspeed(&data->term, baud_nonstd) < 0)
 			RETURN_FAIL("cfsetspeed() failed");
 	}
@@ -1991,7 +1995,7 @@ SP_API enum sp_return sp_new_config(struct sp_port_config **config_ptr)
 	*config_ptr = NULL;
 
 	if (!(config = malloc(sizeof(struct sp_port_config))))
-		RETURN_ERROR(SP_ERR_MEM, "config malloc failed");
+		RETURN_ERROR(SP_ERR_MEM, "Config malloc failed");
 
 	config->baudrate = -1;
 	config->bits = -1;

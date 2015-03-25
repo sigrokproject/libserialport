@@ -22,8 +22,10 @@
 
 SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 {
-	/* Description limited to 127 char,
-	   anything longer would not be user friendly anyway */
+	/*
+	 * Description limited to 127 char, anything longer
+	 * would not be user friendly anyway.
+	 */
 	char description[128];
 	int bus, address;
 	unsigned int vid, pid;
@@ -36,12 +38,12 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	int i, count;
 
 	if (strncmp(port->name, "/dev/", 5))
-		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized.");
+		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 
 	snprintf(file_name, sizeof(file_name), "/sys/class/tty/%s", dev);
 	count = readlink(file_name, file_name, sizeof(file_name));
-	if (count <= 0 || count >= (int) sizeof(file_name)-1)
-		RETURN_ERROR(SP_ERR_ARG, "Device not found.");
+	if (count <= 0 || count >= (int)(sizeof(file_name) - 1))
+		RETURN_ERROR(SP_ERR_ARG, "Device not found");
 	file_name[count] = 0;
 	if (strstr(file_name, "bluetooth"))
 		port->transport = SP_TRANSPORT_BLUETOOTH;
@@ -49,7 +51,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		port->transport = SP_TRANSPORT_USB;
 
 	if (port->transport == SP_TRANSPORT_USB) {
-		for (i=0; i<5; i++) {
+		for (i = 0; i < 5; i++) {
 			strcat(sub_dir, "../");
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "busnum");
@@ -181,13 +183,13 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 
 	DEBUG("Enumerating tty devices");
 	if (!(dir = opendir("/sys/class/tty")))
-		RETURN_FAIL("could not open /sys/class/tty");
+		RETURN_FAIL("Could not open /sys/class/tty");
 
 	DEBUG("Iterating over results");
 	while (!readdir_r(dir, &entry, &result) && result) {
 		snprintf(buf, sizeof(buf), "/sys/class/tty/%s", entry.d_name);
 		len = readlink(buf, target, sizeof(target));
-		if (len <= 0 || len >= (int) sizeof(target)-1)
+		if (len <= 0 || len >= (int)(sizeof(target) - 1))
 			continue;
 		target[len] = 0;
 		if (strstr(target, "virtual"))
@@ -195,12 +197,14 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
 		DEBUG_FMT("Found device %s", name);
 		if (strstr(target, "serial8250")) {
-			/* The serial8250 driver has a hardcoded number of ports.
+			/*
+			 * The serial8250 driver has a hardcoded number of ports.
 			 * The only way to tell which actually exist on a given system
-			 * is to try to open them and make an ioctl call. */
+			 * is to try to open them and make an ioctl call.
+			 */
 			DEBUG("serial8250 device, attempting to open");
 			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
-				DEBUG("open failed, skipping");
+				DEBUG("Open failed, skipping");
 				continue;
 			}
 #ifdef HAVE_SERIAL_STRUCT
@@ -213,7 +217,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 				continue;
 			}
 			if (serial_info.type == PORT_UNKNOWN) {
-				DEBUG("port type is unknown, skipping");
+				DEBUG("Port type is unknown, skipping");
 				continue;
 			}
 #endif
@@ -221,7 +225,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		DEBUG_FMT("Found port %s", name);
 		*list = list_append(*list, name);
 		if (!list) {
-			SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+			SET_ERROR(ret, SP_ERR_MEM, "List append failed");
 			break;
 		}
 	}

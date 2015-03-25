@@ -23,8 +23,10 @@
 
 SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 {
-	/* Description limited to 127 char,
-	   anything longer would not be user friendly anyway */
+	/*
+	 * Description limited to 127 char, anything longer
+	 * would not be user friendly anyway.
+	 */
 	char description[128];
 	int bus, address, vid, pid = -1;
 	char manufacturer[128], product[128], serial[128];
@@ -111,8 +113,10 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			port->usb_bus = bus;
 			port->usb_address = address;
 		}
-		if (cf_bus    )  CFRelease(cf_bus);
-		if (cf_address)  CFRelease(cf_address);
+		if (cf_bus)
+			CFRelease(cf_bus);
+		if (cf_address)
+			CFRelease(cf_address);
 
 		cf_vendor = IORegistryEntrySearchCFProperty(ioport, kIOServicePlane,
 		                                         CFSTR("idVendor"),
@@ -127,12 +131,14 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		if (cf_vendor && cf_product &&
 		    CFNumberGetValue(cf_vendor , kCFNumberIntType, &vid) &&
 		    CFNumberGetValue(cf_product, kCFNumberIntType, &pid)) {
-			DEBUG_FMT("Found matching USB vid:pid %04X:%04X", vid, pid);
+			DEBUG_FMT("Found matching USB VID:PID %04X:%04X", vid, pid);
 			port->usb_vid = vid;
 			port->usb_pid = pid;
 		}
-		if (cf_vendor )  CFRelease(cf_vendor);
-		if (cf_product)  CFRelease(cf_product);
+		if (cf_vendor)
+			CFRelease(cf_vendor);
+		if (cf_product)
+			CFRelease(cf_product);
 
 		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
 		         CFSTR("USB Vendor Name"), kCFAllocatorDefault,
@@ -209,7 +215,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			if (result) {
 				DEBUG_FMT("Found port %s", path);
 				if (!(*list = list_append(*list, path))) {
-					SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+					SET_ERROR(ret, SP_ERR_MEM, "List append failed");
 					IOObjectRelease(port);
 					goto out;
 				}

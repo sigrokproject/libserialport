@@ -21,31 +21,31 @@
 #include "libserialport.h"
 #include "libserialport_internal.h"
 
-/* USB path is a string of at most 8 decimal numbers < 128 separated by dots */
-#define MAX_USB_PATH  (8*3 + 7*1 + 1)
+/* USB path is a string of at most 8 decimal numbers < 128 separated by dots. */
+#define MAX_USB_PATH ((8 * 3) + (7 * 1) + 1)
 
 static void enumerate_hub(struct sp_port *port, char *hub_name,
                           char *parent_path);
 
 static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 {
-	WCHAR wc_str[size/sizeof(WCHAR)+1];
+	WCHAR wc_str[(size / sizeof(WCHAR)) + 1];
 	char *utf8_str;
 
-	/* zero terminate the wide char string */
+	/* Zero-terminate the wide char string. */
 	memcpy(wc_str, wc_buffer, size);
-	wc_str[sizeof(wc_str)-1] = 0;
+	wc_str[sizeof(wc_str) - 1] = 0;
 
-	/* compute the size of the utf8 converted string */
+	/* Compute the size of the UTF-8 converted string. */
 	if (!(size = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
 	                                 NULL, 0, NULL, NULL)))
 		return NULL;
 
-	/* allocate utf8 output buffer */
+	/* Allocate UTF-8 output buffer. */
 	if (!(utf8_str = malloc(size)))
 		return NULL;
 
-	/* actually converted to utf8 */
+	/* Actually converted to UTF-8. */
 	if (!WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
 	                         utf8_str, size, NULL, NULL)) {
 		free(utf8_str);
@@ -57,29 +57,29 @@ static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 
 static char *get_root_hub_name(HANDLE host_controller)
 {
-	USB_ROOT_HUB_NAME  root_hub_name;
+	USB_ROOT_HUB_NAME root_hub_name;
 	PUSB_ROOT_HUB_NAME root_hub_name_wc;
 	char *root_hub_name_utf8;
 	ULONG size = 0;
 
-	/* compute the size of the root hub name string */
+	/* Compute the size of the root hub name string. */
 	if (!DeviceIoControl(host_controller, IOCTL_USB_GET_ROOT_HUB_NAME, 0, 0,
 	                     &root_hub_name, sizeof(root_hub_name), &size, NULL))
 		return NULL;
 
-	/* allocate wide char root hub name string */
+	/* Allocate wide char root hub name string. */
 	size = root_hub_name.ActualLength;
 	if (!(root_hub_name_wc = malloc(size)))
 		return NULL;
 
-	/* actually get the root hub name string */
+	/* Actually get the root hub name string. */
 	if (!DeviceIoControl(host_controller, IOCTL_USB_GET_ROOT_HUB_NAME,
 	                     NULL, 0, root_hub_name_wc, size, &size, NULL)) {
 		free(root_hub_name_wc);
 		return NULL;
 	}
 
-	/* convert the root hub name string to utf8 */
+	/* Convert the root hub name string to UTF-8. */
 	root_hub_name_utf8 = wc_to_utf8(root_hub_name_wc->RootHubName, size);
 	free(root_hub_name_wc);
 	return root_hub_name_utf8;
@@ -87,25 +87,25 @@ static char *get_root_hub_name(HANDLE host_controller)
 
 static char *get_external_hub_name(HANDLE hub, ULONG connection_index)
 {
-	USB_NODE_CONNECTION_NAME  ext_hub_name;
+	USB_NODE_CONNECTION_NAME ext_hub_name;
 	PUSB_NODE_CONNECTION_NAME ext_hub_name_wc;
 	char *ext_hub_name_utf8;
 	ULONG size;
 
-	/* compute the size of the external hub name string */
+	/* Compute the size of the external hub name string. */
 	ext_hub_name.ConnectionIndex = connection_index;
 	if (!DeviceIoControl(hub, IOCTL_USB_GET_NODE_CONNECTION_NAME,
 	                     &ext_hub_name, sizeof(ext_hub_name),
 	                     &ext_hub_name, sizeof(ext_hub_name), &size, NULL))
 		return NULL;
 
-	/* allocate wide char external hub name string */
+	/* Allocate wide char external hub name string. */
 	size = ext_hub_name.ActualLength;
 	if (size <= sizeof(ext_hub_name)
 	    || !(ext_hub_name_wc = malloc(size)))
 		return NULL;
 
-	/* get the name of the external hub attached to the specified port */
+	/* Get the name of the external hub attached to the specified port. */
 	ext_hub_name_wc->ConnectionIndex = connection_index;
 	if (!DeviceIoControl(hub, IOCTL_USB_GET_NODE_CONNECTION_NAME,
 	                     ext_hub_name_wc, size,
@@ -114,7 +114,7 @@ static char *get_external_hub_name(HANDLE hub, ULONG connection_index)
 		return NULL;
 	}
 
-	/* convert the external hub name string to utf8 */
+	/* Convert the external hub name string to UTF-8. */
 	ext_hub_name_utf8 = wc_to_utf8(ext_hub_name_wc->NodeName, size);
 	free(ext_hub_name_wc);
 	return ext_hub_name_utf8;
@@ -125,14 +125,14 @@ static char *get_string_descriptor(HANDLE hub_device, ULONG connection_index,
 {
 	char desc_req_buf[sizeof(USB_DESCRIPTOR_REQUEST) +
 	                  MAXIMUM_USB_STRING_LENGTH] = { 0 };
-	PUSB_DESCRIPTOR_REQUEST desc_req = (void *) desc_req_buf;
-	PUSB_STRING_DESCRIPTOR  desc     = (void *) (desc_req + 1);
+	PUSB_DESCRIPTOR_REQUEST desc_req = (void *)desc_req_buf;
+	PUSB_STRING_DESCRIPTOR desc = (void *)(desc_req + 1);
 	ULONG size = sizeof(desc_req_buf);
 
-	desc_req->ConnectionIndex     = connection_index;
-	desc_req->SetupPacket.wValue  = (USB_STRING_DESCRIPTOR_TYPE << 8)
-	                                | descriptor_index;
-	desc_req->SetupPacket.wIndex  = 0;
+	desc_req->ConnectionIndex = connection_index;
+	desc_req->SetupPacket.wValue = (USB_STRING_DESCRIPTOR_TYPE << 8)
+	                               | descriptor_index;
+	desc_req->SetupPacket.wIndex = 0;
 	desc_req->SetupPacket.wLength = size - sizeof(*desc_req);
 
 	if (!DeviceIoControl(hub_device,
@@ -155,7 +155,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 
 	for (index = 1; index <= nb_ports; index++) {
 		PUSB_NODE_CONNECTION_INFORMATION_EX connection_info_ex;
-		ULONG size = sizeof(*connection_info_ex) + 30*sizeof(USB_PIPE_INFO);
+		ULONG size = sizeof(*connection_info_ex) + (30 * sizeof(USB_PIPE_INFO));
 
 		if (!(connection_info_ex = malloc(size)))
 			break;
@@ -165,11 +165,13 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 		                     IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX,
 		                     connection_info_ex, size,
 		                     connection_info_ex, size, &size, NULL)) {
-			/* try to get CONNECTION_INFORMATION if CONNECTION_INFORMATION_EX
-			   did not work */
+			/*
+			 * Try to get CONNECTION_INFORMATION if
+			 * CONNECTION_INFORMATION_EX did not work.
+			 */
 			PUSB_NODE_CONNECTION_INFORMATION connection_info;
 
-			size = sizeof(*connection_info) + 30*sizeof(USB_PIPE_INFO);
+			size = sizeof(*connection_info) + (30 * sizeof(USB_PIPE_INFO));
 			if (!(connection_info = malloc(size))) {
 				free(connection_info_ex);
 				continue;
@@ -192,7 +194,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 		}
 
 		if (connection_info_ex->DeviceIsHub) {
-			/* recursively enumerate external hub */
+			/* Recursively enumerate external hub. */
 			PCHAR ext_hub_name;
 			if ((ext_hub_name = get_external_hub_name(hub_device, index))) {
 				snprintf(path, sizeof(path), "%s%ld.",
@@ -204,13 +206,13 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 			snprintf(path, sizeof(path), "%s%ld",
 			         parent_path, connection_info_ex->ConnectionIndex);
 
-			/* check if this device is the one we search for */
+			/* Check if this device is the one we search for. */
 			if (strcmp(path, port->usb_path)) {
 				free(connection_info_ex);
 				continue;
 			}
 
-			/* finally grab detailed informations regarding the device */
+			/* Finally grab detailed information regarding the device. */
 			port->usb_address = connection_info_ex->DeviceAddress + 1;
 			port->usb_vid = connection_info_ex->DeviceDescriptor.idVendor;
 			port->usb_pid = connection_info_ex->DeviceDescriptor.idProduct;
@@ -239,7 +241,7 @@ static void enumerate_hub(struct sp_port *port, char *hub_name,
 	ULONG size = sizeof(hub_info);
 	char *device_name;
 
-	/* open the hub with its full name */
+	/* Open the hub with its full name. */
 	if (!(device_name = malloc(strlen("\\\\.\\") + strlen(hub_name) + 1)))
 		return;
 	strcpy(device_name, "\\\\.\\");
@@ -250,10 +252,10 @@ static void enumerate_hub(struct sp_port *port, char *hub_name,
 	if (hub_device == INVALID_HANDLE_VALUE)
 		return;
 
-	/* get the number of ports of the hub */
+	/* Get the number of ports of the hub. */
 	if (DeviceIoControl(hub_device, IOCTL_USB_GET_NODE_INFORMATION,
 	                    &hub_info, size, &hub_info, size, &size, NULL))
-		/* enumerate the ports of the hub */
+		/* Enumerate the ports of the hub. */
 		enumerate_hub_ports(port, hub_device,
 		   hub_info.u.HubInformation.HubDescriptor.bNumberOfPorts, parent_path);
 
@@ -277,11 +279,11 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 	SP_DEVINFO_DATA device_info_data;
 	ULONG i, size = 0;
 
-	device_info = SetupDiGetClassDevs(&GUID_CLASS_USB_HOST_CONTROLLER,NULL,NULL,
+	device_info = SetupDiGetClassDevs(&GUID_CLASS_USB_HOST_CONTROLLER, NULL, NULL,
 	                                  DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 	device_info_data.cbSize = sizeof(device_info_data);
 
-	for (i=0; SetupDiEnumDeviceInfo(device_info, i, &device_info_data); i++) {
+	for (i = 0; SetupDiEnumDeviceInfo(device_info, i, &device_info_data); i++) {
 		SP_DEVICE_INTERFACE_DATA device_interface_data;
 		PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data;
 		DEVINST dev_inst = dev_inst_match;
@@ -333,8 +335,10 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 
 SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 {
-	/* Description limited to 127 char,
-	   anything longer would not be user friendly anyway */
+	/*
+	 * Description limited to 127 char, anything longer
+	 * would not be user friendly anyway.
+	 */
 	char description[128];
 	SP_DEVINFO_DATA device_info_data = { .cbSize = sizeof(device_info_data) };
 	HDEVINFO device_info;
@@ -345,14 +349,14 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	if (device_info == INVALID_HANDLE_VALUE)
 		RETURN_FAIL("SetupDiGetClassDevs() failed");
 
-	for (i=0; SetupDiEnumDeviceInfo(device_info, i, &device_info_data); i++) {
+	for (i = 0; SetupDiEnumDeviceInfo(device_info, i, &device_info_data); i++) {
 		HKEY device_key;
 		DEVINST dev_inst;
 		char value[8], class[16];
 		DWORD size, type;
 		CONFIGRET cr;
 
-		/* check if this is the device we are looking for */
+		/* Check if this is the device we are looking for. */
 		device_key = SetupDiOpenDevRegKey(device_info, &device_info_data,
 		                                  DICS_FLAG_GLOBAL, 0,
 		                                  DIREG_DEV, KEY_QUERY_VALUE);
@@ -369,7 +373,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		if (strcmp(value, port->name))
 			continue;
 
-		/* check port transport type */
+		/* Check port transport type. */
 		dev_inst = device_info_data.DevInst;
 		size = sizeof(class);
 		cr = CR_FAILURE;
@@ -381,7 +385,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 				port->transport = SP_TRANSPORT_USB;
 		}
 
-		/* get port description (friendly name) */
+		/* Get port description (friendly name). */
 		dev_inst = device_info_data.DevInst;
 		size = sizeof(description);
 		while ((cr = CM_Get_DevNode_Registry_PropertyA(dev_inst,
@@ -390,21 +394,21 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		if (cr == CR_SUCCESS)
 			port->description = strdup(description);
 
-		/* get more informations for USB connected ports */
+		/* Get more informations for USB connected ports. */
 		if (port->transport == SP_TRANSPORT_USB) {
 			char usb_path[MAX_USB_PATH] = "", tmp[MAX_USB_PATH];
 			char device_id[MAX_DEVICE_ID_LEN];
 
-			/* recurse over parents to build the USB device path */
+			/* Recurse over parents to build the USB device path. */
 			dev_inst = device_info_data.DevInst;
 			do {
-				/* verify that this layer of the tree is USB related */
+				/* Verify that this layer of the tree is USB related. */
 				if (CM_Get_Device_IDA(dev_inst, device_id,
 				                      sizeof(device_id), 0) != CR_SUCCESS
 				    || strncmp(device_id, "USB\\", 4))
 					continue;
 
-				/* discard one layer for composite devices */
+				/* Discard one layer for composite devices. */
 				char compat_ids[512], *p = compat_ids;
 				size = sizeof(compat_ids);
 				if (CM_Get_DevNode_Registry_PropertyA(dev_inst,
@@ -420,11 +424,11 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 						continue;
 				}
 
-				/* stop the recursion when reaching the USB root */
+				/* Stop the recursion when reaching the USB root. */
 				if (!strncmp(device_id, "USB\\ROOT", 8))
 					break;
 
-				/* prepend the address of current USB layer to the USB path */
+				/* Prepend the address of current USB layer to the USB path. */
 				DWORD address;
 				size = sizeof(address);
 				if (CM_Get_DevNode_Registry_PropertyA(dev_inst, CM_DRP_ADDRESS,
@@ -437,7 +441,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 			port->usb_path = strdup(usb_path);
 
-			/* wake up the USB device to be able to read string descriptor */
+			/* Wake up the USB device to be able to read string descriptor. */
 			char *escaped_port_name;
 			HANDLE handle;
 			if (!(escaped_port_name = malloc(strlen(port->name) + 5)))
@@ -449,7 +453,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			free(escaped_port_name);
 			CloseHandle(handle);
 
-			/* retrieve USB device details from the device descriptor */
+			/* Retrieve USB device details from the device descriptor. */
 			get_usb_details(port, device_info_data.DevInst);
 		}
 		break;
@@ -485,11 +489,11 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 	}
 	max_data_len = max_data_size / sizeof(TCHAR);
 	if (!(value = malloc((max_value_len + 1) * sizeof(TCHAR)))) {
-		SET_ERROR(ret, SP_ERR_MEM, "registry value malloc failed");
+		SET_ERROR(ret, SP_ERR_MEM, "Registry value malloc failed");
 		goto out_close;
 	}
 	if (!(data = malloc((max_data_len + 1) * sizeof(TCHAR)))) {
-		SET_ERROR(ret, SP_ERR_MEM, "registry data malloc failed");
+		SET_ERROR(ret, SP_ERR_MEM, "Registry data malloc failed");
 		goto out_free_value;
 	}
 	DEBUG("Iterating over values");
@@ -508,7 +512,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			name_len = data_len + 1;
 #endif
 			if (!(name = malloc(name_len))) {
-				SET_ERROR(ret, SP_ERR_MEM, "registry port name malloc failed");
+				SET_ERROR(ret, SP_ERR_MEM, "Registry port name malloc failed");
 				goto out;
 			}
 #ifdef UNICODE
@@ -518,7 +522,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 #endif
 			DEBUG_FMT("Found port %s", name);
 			if (!(*list = list_append(*list, name))) {
-				SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+				SET_ERROR(ret, SP_ERR_MEM, "List append failed");
 				free(name);
 				goto out;
 			}

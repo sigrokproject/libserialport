@@ -24,7 +24,7 @@
 #include "config.h"
 
 #ifdef __linux__
-#define _BSD_SOURCE // for timeradd, timersub, timercmp
+#define _BSD_SOURCE /* For timeradd, timersub, timercmp. */
 #endif
 
 #include <string.h>
@@ -182,7 +182,7 @@ extern void (*sp_debug_handler)(const char *format, ...);
 #define RETURN() do { \
 	DEBUG_FMT("%s returning", __func__); \
 	return; \
-} while(0)
+} while (0)
 #define RETURN_CODE(x) do { \
 	DEBUG_FMT("%s returning " #x, __func__); \
 	return x; \

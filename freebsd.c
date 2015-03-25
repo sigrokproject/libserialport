@@ -133,7 +133,7 @@ static int libusb_query_port(struct libusb20_device *dev, int idx,
 	if (sbuf[0] == 0)
 		return rc;
 
-	DBG("device interface descriptor: idx=%003d '%s'\n", idx, sbuf);
+	DBG("Device interface descriptor: idx=%003d '%s'\n", idx, sbuf);
 	j = strchr(sbuf, ':');
 	if (j > sbuf) {
 		sbuf[j - sbuf] = 0;
@@ -244,13 +244,13 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	uint8_t idx;
 	int sub_inst;
 
-	DBG("portname: '%s'\n", port->name);
+	DBG("Portname: '%s'\n", port->name);
 
 	if (!strncmp(port->name, DEV_CUA_PATH, strlen(DEV_CUA_PATH))) {
 		cua_sfx = port->name + strlen(DEV_CUA_PATH);
 		DBG("'%s': '%s'\n", DEV_CUA_PATH, cua_sfx);
 	} else {
-		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized.");
+		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 	}
 
 	/* Native UART enumeration. */
@@ -271,7 +271,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			break;
 
 		libusb20_dev_open(dev, 0);
-		DBG("device descriptor: '%s'\n", libusb20_dev_get_desc(dev));
+		DBG("Device descriptor: '%s'\n", libusb20_dev_get_desc(dev));
 
 		for (idx = 0; idx <= UINT8_MAX - 1; idx++) {
 			char *drv_name_str = NULL;
@@ -316,7 +316,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	libusb20_be_free(be);
 
 	if (cua_dev_found == 0)
-		DBG("WARN: found no match '%s' %s'\n", port->name, cua_sfx);
+		DBG("WARN: Found no match '%s' %s'\n", port->name, cua_sfx);
 
 	RETURN_OK();
 }
@@ -332,7 +332,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 
 	DEBUG("Enumerating tty devices");
 	if (!(dir = opendir("/dev")))
-		RETURN_FAIL("could not open dir /dev");
+		RETURN_FAIL("Could not open dir /dev");
 
 	DEBUG("Iterating over results");
 	while (!readdir_r(dir, &entry, &result) && result) {
@@ -353,7 +353,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 
 		/* Check that we can open tty/cua device in rw mode - we need that. */
 		if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY | O_TTY_INIT | O_CLOEXEC)) < 0) {
-			DEBUG("open failed, skipping");
+			DEBUG("Open failed, skipping");
 			continue;
 		}
 
@@ -373,7 +373,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 
 		*list = list_append(*list, name);
 		if (!list) {
-			SET_ERROR(ret, SP_ERR_MEM, "list append failed");
+			SET_ERROR(ret, SP_ERR_MEM, "List append failed");
 			break;
 		}
 	}
