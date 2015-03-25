@@ -95,7 +95,7 @@ enum sp_return {
 	SP_OK = 0,
 	/** Invalid arguments were passed to the function. */
 	SP_ERR_ARG = -1,
-	/** A system error occured while executing the operation. */
+	/** A system error occurred while executing the operation. */
 	SP_ERR_FAIL = -2,
 	/** A memory allocation failed while executing the operation. */
 	SP_ERR_MEM = -3,
@@ -119,7 +119,7 @@ enum sp_event {
 	SP_EVENT_RX_READY = 1,
 	/* Ready to transmit new data. */
 	SP_EVENT_TX_READY = 2,
-	/* Error occured. */
+	/* Error occurred. */
 	SP_EVENT_ERROR = 4
 };
 
@@ -1045,7 +1045,7 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
  *         written. If timeout is zero, the function will always return
  *         either the requested number of bytes or a negative error code. In
  *         the event of an error there is no way to determine how many bytes
- *         were sent before the error occured.
+ *         were sent before the error occurred.
  *
  * @since 0.1.0
  */
