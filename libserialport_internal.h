@@ -160,10 +160,7 @@ struct std_baudrate {
 	int value;
 };
 
-extern const struct std_baudrate std_baudrates[];
-
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
-#define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
 
 extern void (*sp_debug_handler)(const char *format, ...);
 

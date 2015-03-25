@@ -24,7 +24,7 @@
 #include "libserialport.h"
 #include "libserialport_internal.h"
 
-const struct std_baudrate std_baudrates[] = {
+static const struct std_baudrate std_baudrates[] = {
 #ifdef _WIN32
 	/*
 	 * The baudrates 50/75/134/150/200/1800/230400/460800 do not seem to
@@ -43,6 +43,8 @@ const struct std_baudrate std_baudrates[] = {
 #endif
 #endif
 };
+
+#define NUM_STD_BAUDRATES ARRAY_SIZE(std_baudrates)
 
 void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 
