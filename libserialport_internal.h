@@ -18,6 +18,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
+#define LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
+
 #include "config.h"
 
 #ifdef __linux__
@@ -229,3 +232,5 @@ SP_PRIV struct sp_port **list_append(struct sp_port **list, const char *portname
 /* OS-specific Helper functions. */
 SP_PRIV enum sp_return get_port_details(struct sp_port *port);
 SP_PRIV enum sp_return list_ports(struct sp_port ***list);
+
+#endif
