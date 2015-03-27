@@ -546,7 +546,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	data.dcb.fDsrSensitivity = FALSE;
 	data.dcb.fErrorChar = FALSE;
 	data.dcb.fNull = FALSE;
-	data.dcb.fAbortOnError = TRUE;
+	data.dcb.fAbortOnError = FALSE;
 #else
 	/* Turn off all fancy termios tricks, give us a raw channel. */
 	data.term.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IMAXBEL);
