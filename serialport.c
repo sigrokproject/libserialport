@@ -330,31 +330,27 @@ SP_API enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 	if (!list_ptr)
 		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
+#ifdef NO_ENUMERATION
+	RETURN_ERROR(SP_ERR_SUPP, "Enumeration not supported on this platform");
+#else
 	DEBUG("Enumerating ports");
 
-	if (!(list = malloc(sizeof(struct sp_port **))))
+	if (!(list = malloc(sizeof(struct sp_port *))))
 		RETURN_ERROR(SP_ERR_MEM, "Port list malloc failed");
 
 	list[0] = NULL;
 
-#ifdef NO_ENUMERATION
-	ret = SP_ERR_SUPP;
-#else
 	ret = list_ports(&list);
-#endif
 
-	switch (ret) {
-	case SP_OK:
+	if (ret == SP_OK) {
 		*list_ptr = list;
-		RETURN_OK();
-	case SP_ERR_SUPP:
-		DEBUG_ERROR(SP_ERR_SUPP, "Enumeration not supported on this platform");
-	default:
-		if (list)
-			sp_free_port_list(list);
+	} else {
+		sp_free_port_list(list);
 		*list_ptr = NULL;
-		return ret;
 	}
+
+	RETURN_CODEVAL(ret);
+#endif
 }
 
 SP_API void sp_free_port_list(struct sp_port **list)
