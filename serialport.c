@@ -1166,8 +1166,10 @@ static enum sp_return add_handle(struct sp_event_set *event_set,
 		RETURN_ERROR(SP_ERR_MEM, "Handle array realloc() failed");
 
 	if (!(new_masks = realloc(event_set->masks,
-			sizeof(enum sp_event) * (event_set->count + 1))))
+			sizeof(enum sp_event) * (event_set->count + 1)))) {
+		free(new_handles);
 		RETURN_ERROR(SP_ERR_MEM, "Mask array realloc() failed");
+	}
 
 	event_set->handles = new_handles;
 	event_set->masks = new_masks;
