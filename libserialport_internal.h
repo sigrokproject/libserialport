@@ -187,11 +187,11 @@ extern void (*sp_debug_handler)(const char *format, ...);
 } while (0)
 #define RETURN_CODEVAL(x) do { \
 	switch (x) { \
-		case SP_OK: RETURN_CODE(SP_OK); \
-		case SP_ERR_ARG: RETURN_CODE(SP_ERR_ARG); \
-		case SP_ERR_FAIL: RETURN_CODE(SP_ERR_FAIL); \
-		case SP_ERR_MEM: RETURN_CODE(SP_ERR_MEM); \
-		case SP_ERR_SUPP: RETURN_CODE(SP_ERR_SUPP); \
+	case SP_OK: RETURN_CODE(SP_OK); \
+	case SP_ERR_ARG: RETURN_CODE(SP_ERR_ARG); \
+	case SP_ERR_FAIL: RETURN_CODE(SP_ERR_FAIL); \
+	case SP_ERR_MEM: RETURN_CODE(SP_ERR_MEM); \
+	case SP_ERR_SUPP: RETURN_CODE(SP_ERR_SUPP); \
 	} \
 } while (0)
 #define RETURN_OK() RETURN_CODE(SP_OK);
