@@ -192,6 +192,7 @@ extern void (*sp_debug_handler)(const char *format, ...);
 	case SP_ERR_FAIL: RETURN_CODE(SP_ERR_FAIL); \
 	case SP_ERR_MEM: RETURN_CODE(SP_ERR_MEM); \
 	case SP_ERR_SUPP: RETURN_CODE(SP_ERR_SUPP); \
+	default: RETURN_CODE(SP_ERR_FAIL); \
 	} \
 } while (0)
 #define RETURN_OK() RETURN_CODE(SP_OK);
