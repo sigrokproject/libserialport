@@ -322,8 +322,10 @@ fail:
 
 SP_API enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 {
+#ifndef NO_ENUMERATION
 	struct sp_port **list;
 	int ret;
+#endif
 
 	TRACE("%p", list_ptr);
 
