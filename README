@@ -43,7 +43,7 @@ Building
 The package uses a GNU style build system and requires a Unix style shell.
 
 Windows builds can be created natively with the MinGW-w64 toolchain and
-MSYS environment, or cross-compiled using a MinGW-w64 toolchain:
+MSYS2 environment, or cross-compiled using a MinGW-w64 toolchain:
 
   http://mingw-w64.sourceforge.net/
 
