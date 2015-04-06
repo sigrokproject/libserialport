@@ -115,11 +115,11 @@ enum sp_mode {
 
 /** Port events. */
 enum sp_event {
-	/* Data received and ready to read. */
+	/** Data received and ready to read. */
 	SP_EVENT_RX_READY = 1,
-	/* Ready to transmit new data. */
+	/** Ready to transmit new data. */
 	SP_EVENT_TX_READY = 2,
-	/* Error occurred. */
+	/** Error occurred. */
 	SP_EVENT_ERROR = 4
 };
 
@@ -267,9 +267,12 @@ struct sp_event_set {
 };
 
 /**
-@defgroup Enumeration Port enumeration
-@{
-*/
+ * @defgroup Enumeration Port enumeration
+ *
+ * Enumerating the serial ports of a system.
+ *
+ * @{
+ */
 
 /**
  * Obtain a pointer to a new sp_port structure representing the named port.
@@ -344,7 +347,10 @@ void sp_free_port_list(struct sp_port **ports);
 
 /**
  * @}
- * @defgroup Ports Opening, closing and querying ports
+ * @defgroup Ports Port handling
+ *
+ * Opening, closing and querying ports.
+ *
  * @{
  */
 
@@ -517,7 +523,10 @@ enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
 
 /**
  * @}
- * @defgroup Configuration Setting port parameters
+ *
+ * @defgroup Configuration Configuration
+ *
+ * Setting and querying serial port parameters.
  * @{
  */
 
@@ -968,9 +977,13 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 
 /**
  * @}
- * @defgroup Data Reading, writing, and flushing data
+ *
+ * @defgroup Data Data handling
+ *
+ * Reading, writing, and flushing data.
+ *
  * @{
-*/
+ */
 
 /**
  * Read bytes from the specified serial port, blocking until complete.
@@ -1126,7 +1139,11 @@ enum sp_return sp_drain(struct sp_port *port);
 
 /**
  * @}
- * @defgroup Waiting Waiting for events
+ *
+ * @defgroup Waiting Waiting
+ *
+ * Waiting for events and timeout handling.
+ *
  * @{
  */
 
@@ -1185,7 +1202,11 @@ void sp_free_event_set(struct sp_event_set *event_set);
 
 /**
  * @}
- * @defgroup Signals Port signalling operations
+ *
+ * @defgroup Signals Signals
+ *
+ * Port signalling operations.
+ *
  * @{
  */
 
@@ -1230,9 +1251,13 @@ enum sp_return sp_end_break(struct sp_port *port);
 
 /**
  * @}
- * @defgroup Errors Obtaining error information
+ *
+ * @defgroup Errors Errors
+ *
+ * Obtaining error information.
+ *
  * @{
-*/
+ */
 
 /**
  * Get the error code for a failed operation.
@@ -1298,7 +1323,9 @@ void sp_default_debug_handler(const char *format, ...);
 /** @} */
 
 /**
- * @defgroup Versions Version number querying functions, definitions, and macros
+ * @defgroup Versions Versions
+ *
+ * Version number querying functions, definitions, and macros.
  *
  * This set of API calls returns two different version numbers related
  * to libserialport. The "package version" is the release version number of the
