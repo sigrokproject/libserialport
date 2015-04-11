@@ -224,7 +224,7 @@ extern void (*sp_debug_handler)(const char *format, ...);
 #define TRACE(fmt, ...) DEBUG_FMT("%s(" fmt ") called", __func__, __VA_ARGS__)
 #define TRACE_VOID() DEBUG_FMT("%s() called", __func__)
 
-#define TRY(x) do { int ret = x; if (ret != SP_OK) RETURN_CODEVAL(ret); } while (0)
+#define TRY(x) do { int retval = x; if (retval != SP_OK) RETURN_CODEVAL(retval); } while (0)
 
 SP_PRIV struct sp_port **list_append(struct sp_port **list, const char *portname);
 
