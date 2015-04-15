@@ -85,9 +85,6 @@ extern "C" {
 #endif
 
 #include <stddef.h>
-#ifdef _WIN32
-#include <windows.h>
-#endif
 
 /** Return values. */
 enum sp_return {
