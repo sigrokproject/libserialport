@@ -33,6 +33,10 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
+AH_TOP([#ifndef SP_CONFIG_H
+#define SP_CONFIG_H])
+AH_BOTTOM([#endif])
+
 # We require at least automake 1.11 (needed for 'silent rules').
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror check-news])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
