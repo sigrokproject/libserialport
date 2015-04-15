@@ -169,12 +169,12 @@ AC_DEFINE(SP_PRIV,,[Macro preceding private functions])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 		__attribute__((visibility("hidden"))) void foo(void) { }
 	]])],
-	[AC_DEFINE(SP_API , __attribute__((visibility("default"))))]
+	[AC_DEFINE(SP_API, __attribute__((visibility("default"))))]
 	[AC_DEFINE(SP_PRIV, __attribute__((visibility("hidden"))))],
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 		__declspec(dllexport) void foo(void) { }
 	]])],
-	[AC_DEFINE(SP_API , __declspec(dllexport))]
+	[AC_DEFINE(SP_API, __declspec(dllexport))]
 	[AC_DEFINE(SP_PRIV,)],
 	[AC_DEFINE(SP_API,)]
 	[AC_DEFINE(SP_PRIV,)]))
