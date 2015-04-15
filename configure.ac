@@ -101,7 +101,7 @@ mingw* | cygwin*)
 	AM_CONDITIONAL([WIN32], true)
 	AM_CONDITIONAL([MACOSX], false)
 	AM_CONDITIONAL([FREEBSD], false)
-	SP_LIBS="-lsetupapi -luuid"
+	SP_LIBS="-lsetupapi"
 	;;
 *freebsd*)
 	AM_CONDITIONAL([LINUX], false)

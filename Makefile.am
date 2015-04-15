@@ -43,7 +43,7 @@ libserialport_la_LIBADD = $(LIBOBJS)
 libserialport_la_LDFLAGS = $(SP_LIB_LDFLAGS)
 
 if WIN32
-libserialport_la_LIBADD += -lsetupapi
+libserialport_la_LIBADD += $(SP_LIBS)
 endif
 
 libserialport_la_LDFLAGS += -no-undefined
