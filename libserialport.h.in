@@ -401,7 +401,7 @@ char *sp_get_port_name(const struct sp_port *port);
  * The description string is part of the port structure and may not be used
  * after the port structure has been freed.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 char *sp_get_port_description(struct sp_port *port);
 
@@ -412,7 +412,7 @@ char *sp_get_port_description(struct sp_port *port);
  *
  * @return The port transport type.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 enum sp_transport sp_get_port_transport(struct sp_port *port);
 
@@ -425,7 +425,7 @@ enum sp_transport sp_get_port_transport(struct sp_port *port);
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
                                            int *usb_bus, int *usb_address);
@@ -439,7 +439,7 @@ enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 enum sp_return sp_get_port_usb_vid_pid(const struct sp_port *port, int *usb_vid, int *usb_pid);
 
@@ -452,7 +452,7 @@ enum sp_return sp_get_port_usb_vid_pid(const struct sp_port *port, int *usb_vid,
  * The manufacturer string is part of the port structure and may not be used
  * after the port structure has been freed.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 char *sp_get_port_usb_manufacturer(const struct sp_port *port);
 
@@ -465,7 +465,7 @@ char *sp_get_port_usb_manufacturer(const struct sp_port *port);
  * The product string is part of the port structure and may not be used
  * after the port structure has been freed.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 char *sp_get_port_usb_product(const struct sp_port *port);
 
@@ -478,7 +478,7 @@ char *sp_get_port_usb_product(const struct sp_port *port);
  * The serial number string is part of the port structure and may not be used
  * after the port structure has been freed.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 char *sp_get_port_usb_serial(const struct sp_port *port);
 
@@ -491,7 +491,7 @@ char *sp_get_port_usb_serial(const struct sp_port *port);
  * The MAC address string is part of the port structure and may not be used
  * after the port structure has been freed.
  *
- * @since 0.2.0
+ * @since 0.1.1
  */
 char *sp_get_port_bluetooth_address(const struct sp_port *port);
 

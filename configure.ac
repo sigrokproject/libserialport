@@ -23,8 +23,8 @@ AC_PREREQ([2.63])
 
 # libserialport package version number (NOT the same as shared lib version!).
 m4_define([sp_package_version_major], [0])
-m4_define([sp_package_version_minor], [2])
-m4_define([sp_package_version_micro], [0])
+m4_define([sp_package_version_minor], [1])
+m4_define([sp_package_version_micro], [1])
 m4_define([sp_package_version], [sp_package_version_major.sp_package_version_minor.sp_package_version_micro])
 
 AC_INIT([libserialport], [sp_package_version], [martin-libserialport@earth.li],
