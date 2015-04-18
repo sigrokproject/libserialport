@@ -283,8 +283,10 @@ struct sp_event_set {
  *
  * The result should be freed after use by calling sp_free_port().
  *
- * If any error is returned, the variable pointed to by port_ptr will be set
- * to NULL. Otherwise, it will be set to point to the newly allocated port.
+ * @param[in] portname The OS-specific name of a serial port. Must not be NULL.
+ * @param[out] port_ptr If any error is returned, the variable pointed to by
+ *                      port_ptr will be set to NULL. Otherwise, it will be set
+ *                      to point to the newly allocated port. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -294,6 +296,8 @@ enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_p
 
 /**
  * Free a port structure obtained from sp_get_port_by_name() or sp_copy_port().
+ *
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @since 0.1.0
  */
@@ -310,8 +314,9 @@ void sp_free_port(struct sp_port *port);
  * If a port from the list is to be used after freeing the list, it must be
  * copied first using sp_copy_port().
  *
- * If any error is returned, the variable pointed to by list_ptr will be set
- * to NULL. Otherwise, it will be set to point to the newly allocated array.
+ * @param[out] list_ptr If any error is returned, the variable pointed to by
+ *                      list_ptr will be set to NULL. Otherwise, it will be set
+ *                      to point to the newly allocated array. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -320,15 +325,17 @@ void sp_free_port(struct sp_port *port);
 enum sp_return sp_list_ports(struct sp_port ***list_ptr);
 
 /**
- * Make a new copy of a sp_port structure.
+ * Make a new copy of an sp_port structure.
  *
  * The user should allocate a variable of type "struct sp_port *" and pass a
  * pointer to this to receive the result.
  *
  * The copy should be freed after use by calling sp_free_port().
  *
- * If any error is returned, the variable pointed to by copy_ptr will be set
- * to NULL. Otherwise, it will be set to point to the newly allocated copy.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] copy_ptr If any error is returned, the variable pointed to by
+ *                      copy_ptr will be set to NULL. Otherwise, it will be set
+ *                      to point to the newly allocated copy. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -341,6 +348,8 @@ enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **copy_pt
  *
  * This will also free all the sp_port structures referred to from the list;
  * any that are to be retained must be copied first using sp_copy_port().
+ *
+ * @param[in] ports Pointer to a list of port structures. Must not be NULL.
  *
  * @since 0.1.0
  */
@@ -358,8 +367,8 @@ void sp_free_port_list(struct sp_port **ports);
 /**
  * Open the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param flags Flags to use when opening the serial port.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] flags Flags to use when opening the serial port.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -369,6 +378,8 @@ enum sp_return sp_open(struct sp_port *port, enum sp_mode flags);
 
 /**
  * Close the specified serial port.
+ *
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -383,11 +394,11 @@ enum sp_return sp_close(struct sp_port *port);
  * current operating system; e.g. for Windows it will usually be a "COMn"
  * device name, and for Unix it will be a device path beginning with "/dev/".
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return The port name, or NULL if an invalid port is passed. The name
- * string is part of the port structure and may not be used after the
- * port structure has been freed.
+ *         string is part of the port structure and may not be used after
+ *         the port structure has been freed.
  *
  * @since 0.1.0
  */
@@ -396,11 +407,11 @@ char *sp_get_port_name(const struct sp_port *port);
 /**
  * Get a description for a port, to present to end user.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return The port description, or NULL if an invalid port is passed.
- * The description string is part of the port structure and may not be used
- * after the port structure has been freed.
+ *         The description string is part of the port structure and may not
+ *         be used after the port structure has been freed.
  *
  * @since 0.1.1
  */
@@ -409,7 +420,7 @@ char *sp_get_port_description(struct sp_port *port);
 /**
  * Get the transport type used by a port.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return The port transport type.
  *
@@ -420,9 +431,9 @@ enum sp_transport sp_get_port_transport(struct sp_port *port);
 /**
  * Get the USB bus number and address on bus of a USB serial adapter port.
  *
- * @param port Pointer to port structure.
- * @param usb_bus Pointer to variable to store USB bus.
- * @param usb_address Pointer to variable to store USB address
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] usb_bus Pointer to a variable to store the USB bus. Must not be NULL.
+ * @param[out] usb_address Pointer to a variable to store the USB address. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -434,9 +445,9 @@ enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
 /**
  * Get the USB Vendor ID and Product ID of a USB serial adapter port.
  *
- * @param port Pointer to port structure.
- * @param usb_vid Pointer to variable to store USB VID.
- * @param usb_pid Pointer to variable to store USB PID
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] usb_vid Pointer to a variable to store the USB VID. Must not be NULL.
+ * @param[out] usb_pid Pointer to a variable to store the USB PID. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -447,11 +458,11 @@ enum sp_return sp_get_port_usb_vid_pid(const struct sp_port *port, int *usb_vid,
 /**
  * Get the USB manufacturer string of a USB serial adapter port.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return The port manufacturer string, or NULL if an invalid port is passed.
- * The manufacturer string is part of the port structure and may not be used
- * after the port structure has been freed.
+ *         The manufacturer string is part of the port structure and may not
+ *         be used after the port structure has been freed.
  *
  * @since 0.1.1
  */
@@ -460,11 +471,11 @@ char *sp_get_port_usb_manufacturer(const struct sp_port *port);
 /**
  * Get the USB product string of a USB serial adapter port.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return The port product string, or NULL if an invalid port is passed.
- * The product string is part of the port structure and may not be used
- * after the port structure has been freed.
+ *         The product string is part of the port structure and may not be
+ *         used after the port structure has been freed.
  *
  * @since 0.1.1
  */
@@ -473,11 +484,11 @@ char *sp_get_port_usb_product(const struct sp_port *port);
 /**
  * Get the USB serial number string of a USB serial adapter port.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return The port serial number, or NULL if an invalid port is passed.
- * The serial number string is part of the port structure and may not be used
- * after the port structure has been freed.
+ *         The serial number string is part of the port structure and may
+ *         not be used after the port structure has been freed.
  *
  * @since 0.1.1
  */
@@ -486,11 +497,11 @@ char *sp_get_port_usb_serial(const struct sp_port *port);
 /**
  * Get the MAC address of a Bluetooth serial adapter port.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return The port MAC address, or NULL if an invalid port is passed.
- * The MAC address string is part of the port structure and may not be used
- * after the port structure has been freed.
+ *         The MAC address string is part of the port structure and may not
+ *         be used after the port structure has been freed.
  *
  * @since 0.1.1
  */
@@ -515,6 +526,11 @@ char *sp_get_port_bluetooth_address(const struct sp_port *port);
  *          comes at a cost in portability. It also cannot be guaranteed
  *          that direct usage of the OS handle will not conflict with the
  *          library's own usage of the port. Be careful.
+ *
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] result_ptr If any error is returned, the variable pointed to by
+ *                        result_ptr will be set to NULL. Otherwise, it will
+ *                        be set to point to the OS handle. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -544,7 +560,8 @@ enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
  *
  * The structure should be freed after use by calling sp_free_config().
  *
- * @param config_ptr Pointer to variable to receive result.
+ * @param[out] config_ptr Pointer to a variable to receive the result.
+ *                        Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -555,7 +572,7 @@ enum sp_return sp_new_config(struct sp_port_config **config_ptr);
 /**
  * Free a port configuration structure.
  *
- * @param config Pointer to configuration structure.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
  *
  * @since 0.1.0
  */
@@ -572,6 +589,10 @@ void sp_free_config(struct sp_port_config *config);
  * supported by libserialport, will be set to special values that are
  * ignored by sp_set_config().
  *
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] config Pointer to a configuration structure that will hold
+ *                    the result. Must not be NULL.
+ *
  * @return SP_OK upon success, a negative error code otherwise.
  *
  * @since 0.1.0
@@ -585,6 +606,9 @@ enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config
  * -1, but see the documentation for each field). These values will be ignored
  * and the corresponding setting left unchanged on the port.
  *
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ *
  * @return SP_OK upon success, a negative error code otherwise.
  *
  * @since 0.1.0
@@ -594,8 +618,8 @@ enum sp_return sp_set_config(struct sp_port *port, const struct sp_port_config *
 /**
  * Set the baud rate for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param baudrate Baud rate in bits per second.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] baudrate Baud rate in bits per second.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -606,11 +630,11 @@ enum sp_return sp_set_baudrate(struct sp_port *port, int baudrate);
 /**
  * Get the baud rate from a port configuration.
  *
- * The user should allocate a variable of type int and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type int and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param baudrate_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] baudrate_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -621,8 +645,8 @@ enum sp_return sp_get_config_baudrate(const struct sp_port_config *config, int *
 /**
  * Set the baud rate in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param baudrate Baud rate in bits per second, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] baudrate Baud rate in bits per second, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -633,8 +657,8 @@ enum sp_return sp_set_config_baudrate(struct sp_port_config *config, int baudrat
 /**
  * Set the data bits for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param bits Number of data bits.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] bits Number of data bits.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -645,11 +669,11 @@ enum sp_return sp_set_bits(struct sp_port *port, int bits);
 /**
  * Get the data bits from a port configuration.
  *
- * The user should allocate a variable of type int and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type int and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param bits_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] bits_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -660,8 +684,8 @@ enum sp_return sp_get_config_bits(const struct sp_port_config *config, int *bits
 /**
  * Set the data bits in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param bits Number of data bits, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] bits Number of data bits, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -672,8 +696,8 @@ enum sp_return sp_set_config_bits(struct sp_port_config *config, int bits);
 /**
  * Set the parity setting for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param parity Parity setting.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] parity Parity setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -684,11 +708,11 @@ enum sp_return sp_set_parity(struct sp_port *port, enum sp_parity parity);
 /**
  * Get the parity setting from a port configuration.
  *
- * The user should allocate a variable of type enum sp_parity and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type enum sp_parity and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param parity_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] parity_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -699,8 +723,8 @@ enum sp_return sp_get_config_parity(const struct sp_port_config *config, enum sp
 /**
  * Set the parity setting in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param parity Parity setting, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] parity Parity setting, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -711,8 +735,8 @@ enum sp_return sp_set_config_parity(struct sp_port_config *config, enum sp_parit
 /**
  * Set the stop bits for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param stopbits Number of stop bits.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] stopbits Number of stop bits.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -723,11 +747,11 @@ enum sp_return sp_set_stopbits(struct sp_port *port, int stopbits);
 /**
  * Get the stop bits from a port configuration.
  *
- * The user should allocate a variable of type int and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type int and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param stopbits_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] stopbits_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -738,8 +762,8 @@ enum sp_return sp_get_config_stopbits(const struct sp_port_config *config, int *
 /**
  * Set the stop bits in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param stopbits Number of stop bits, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] stopbits Number of stop bits, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -750,8 +774,8 @@ enum sp_return sp_set_config_stopbits(struct sp_port_config *config, int stopbit
 /**
  * Set the RTS pin behaviour for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param rts RTS pin mode.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] rts RTS pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -762,11 +786,11 @@ enum sp_return sp_set_rts(struct sp_port *port, enum sp_rts rts);
 /**
  * Get the RTS pin behaviour from a port configuration.
  *
- * The user should allocate a variable of type enum sp_rts and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type enum sp_rts and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param rts_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] rts_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -777,8 +801,8 @@ enum sp_return sp_get_config_rts(const struct sp_port_config *config, enum sp_rt
 /**
  * Set the RTS pin behaviour in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param rts RTS pin mode, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] rts RTS pin mode, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -789,8 +813,8 @@ enum sp_return sp_set_config_rts(struct sp_port_config *config, enum sp_rts rts)
 /**
  * Set the CTS pin behaviour for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param cts CTS pin mode.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] cts CTS pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -801,11 +825,11 @@ enum sp_return sp_set_cts(struct sp_port *port, enum sp_cts cts);
 /**
  * Get the CTS pin behaviour from a port configuration.
  *
- * The user should allocate a variable of type enum sp_cts and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type enum sp_cts and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param cts_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] cts_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -816,8 +840,8 @@ enum sp_return sp_get_config_cts(const struct sp_port_config *config, enum sp_ct
 /**
  * Set the CTS pin behaviour in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param cts CTS pin mode, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] cts CTS pin mode, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -828,8 +852,8 @@ enum sp_return sp_set_config_cts(struct sp_port_config *config, enum sp_cts cts)
 /**
  * Set the DTR pin behaviour for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param dtr DTR pin mode.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] dtr DTR pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -840,11 +864,11 @@ enum sp_return sp_set_dtr(struct sp_port *port, enum sp_dtr dtr);
 /**
  * Get the DTR pin behaviour from a port configuration.
  *
- * The user should allocate a variable of type enum sp_dtr and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type enum sp_dtr and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param dtr_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] dtr_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -855,8 +879,8 @@ enum sp_return sp_get_config_dtr(const struct sp_port_config *config, enum sp_dt
 /**
  * Set the DTR pin behaviour in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param dtr DTR pin mode, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] dtr DTR pin mode, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -867,8 +891,8 @@ enum sp_return sp_set_config_dtr(struct sp_port_config *config, enum sp_dtr dtr)
 /**
  * Set the DSR pin behaviour for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param dsr DSR pin mode.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] dsr DSR pin mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -879,11 +903,11 @@ enum sp_return sp_set_dsr(struct sp_port *port, enum sp_dsr dsr);
 /**
  * Get the DSR pin behaviour from a port configuration.
  *
- * The user should allocate a variable of type enum sp_dsr and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type enum sp_dsr and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param dsr_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] dsr_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -894,8 +918,8 @@ enum sp_return sp_get_config_dsr(const struct sp_port_config *config, enum sp_ds
 /**
  * Set the DSR pin behaviour in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param dsr DSR pin mode, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] dsr DSR pin mode, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -906,8 +930,8 @@ enum sp_return sp_set_config_dsr(struct sp_port_config *config, enum sp_dsr dsr)
 /**
  * Set the XON/XOFF configuration for the specified serial port.
  *
- * @param port Pointer to port structure.
- * @param xon_xoff XON/XOFF mode.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] xon_xoff XON/XOFF mode.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -918,11 +942,11 @@ enum sp_return sp_set_xon_xoff(struct sp_port *port, enum sp_xonxoff xon_xoff);
 /**
  * Get the XON/XOFF configuration from a port configuration.
  *
- * The user should allocate a variable of type enum sp_xonxoff and pass a pointer to this
- * to receive the result.
+ * The user should allocate a variable of type enum sp_xonxoff and
+ * pass a pointer to this to receive the result.
  *
- * @param config Pointer to configuration structure.
- * @param xon_xoff_ptr Pointer to variable to store result.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[out] xon_xoff_ptr Pointer to a variable to store the result. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -933,8 +957,8 @@ enum sp_return sp_get_config_xon_xoff(const struct sp_port_config *config, enum 
 /**
  * Set the XON/XOFF configuration in a port configuration.
  *
- * @param config Pointer to configuration structure.
- * @param xon_xoff XON/XOFF mode, or -1 to retain current setting.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] xon_xoff XON/XOFF mode, or -1 to retain the current setting.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -950,8 +974,8 @@ enum sp_return sp_set_config_xon_xoff(struct sp_port_config *config, enum sp_xon
  * type. For more fine-grained control of these settings, use their
  * individual configuration functions.
  *
- * @param config Pointer to configuration structure.
- * @param flowcontrol Flow control setting to use.
+ * @param[in] config Pointer to a configuration structure. Must not be NULL.
+ * @param[in] flowcontrol Flow control setting to use.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -967,8 +991,8 @@ enum sp_return sp_set_config_flowcontrol(struct sp_port_config *config, enum sp_
  * type. For more fine-grained control of these settings, use their
  * individual configuration functions.
  *
- * @param port Pointer to port structure.
- * @param flowcontrol Flow control setting to use.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] flowcontrol Flow control setting to use.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -999,10 +1023,10 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
  *          sp_get_port_handle() and use this to call select() or pselect(),
  *          with appropriate arrangements to return if a signal is received.
  *
- * @param port Pointer to port structure.
- * @param buf Buffer in which to store the bytes read.
- * @param count Requested number of bytes to read.
- * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] buf Buffer in which to store the bytes read. Must not be NULL.
+ * @param[in] count Requested number of bytes to read.
+ * @param[in] timeout Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return The number of bytes read on success, or a negative error code. If
  *         the number of bytes returned is less than that requested, the
@@ -1017,9 +1041,9 @@ enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, u
 /**
  * Read bytes from the specified serial port, without blocking.
  *
- * @param port Pointer to port structure.
- * @param buf Buffer in which to store the bytes read.
- * @param count Maximum number of bytes to read.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] buf Buffer in which to store the bytes read. Must not be NULL.
+ * @param[in] count Maximum number of bytes to read.
  *
  * @return The number of bytes read on success, or a negative error code. The
  *         number of bytes returned may be any number from zero to the maximum
@@ -1048,10 +1072,10 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
  *          sp_get_port_handle() and use this to call select() or pselect(),
  *          with appropriate arrangements to return if a signal is received.
  *
- * @param port Pointer to port structure.
- * @param buf Buffer containing the bytes to write.
- * @param count Requested number of bytes to write.
- * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] buf Buffer containing the bytes to write. Must not be NULL.
+ * @param[in] count Requested number of bytes to write.
+ * @param[in] timeout Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return The number of bytes written on success, or a negative error code.
  *         If the number of bytes returned is less than that requested, the
@@ -1074,9 +1098,9 @@ enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t c
  * been transmitted, use the sp_output_waiting() function. To wait until all
  * written bytes have actually been transmitted, use the sp_drain() function.
  *
- * @param port Pointer to port structure.
- * @param buf Buffer containing the bytes to write.
- * @param count Maximum number of bytes to write.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] buf Buffer containing the bytes to write. Must not be NULL.
+ * @param[in] count Maximum number of bytes to write.
  *
  * @return The number of bytes written on success, or a negative error code.
  *         The number of bytes returned may be any number from zero to the
@@ -1089,7 +1113,7 @@ enum sp_return sp_nonblocking_write(struct sp_port *port, const void *buf, size_
 /**
  * Gets the number of bytes waiting in the input buffer.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return Number of bytes waiting on success, a negative error code otherwise.
  *
@@ -1100,7 +1124,7 @@ enum sp_return sp_input_waiting(struct sp_port *port);
 /**
  * Gets the number of bytes waiting in the output buffer.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return Number of bytes waiting on success, a negative error code otherwise.
  *
@@ -1111,8 +1135,8 @@ enum sp_return sp_output_waiting(struct sp_port *port);
 /**
  * Flush serial port buffers. Data in the selected buffer(s) is discarded.
  *
- * @param port Pointer to port structure.
- * @param buffers Which buffer(s) to flush.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] buffers Which buffer(s) to flush.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -1130,7 +1154,7 @@ enum sp_return sp_flush(struct sp_port *port, enum sp_buffer buffers);
  *          signal handler, you would need to implement your own blocking
  *          drain by polling the result of sp_output_waiting().
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -1156,6 +1180,10 @@ enum sp_return sp_drain(struct sp_port *port);
  *
  * The result should be freed after use by calling sp_free_event_set().
  *
+ * @param[out] result_ptr If any error is returned, the variable pointed to by
+ *                        result_ptr will be set to NULL. Otherwise, it will
+ *                        be set to point to the event set. Must not be NULL.
+ *
  * @return SP_OK upon success, a negative error code otherwise.
  *
  * @since 0.1.0
@@ -1171,9 +1199,9 @@ enum sp_return sp_new_event_set(struct sp_event_set **result_ptr);
  * After the port is closed or the port structure freed, the results may
  * no longer be valid.
  *
- * @param event_set Event set to update.
- * @param port Pointer to port structure.
- * @param mask Bitmask of events to be waited for.
+ * @param[in,out] event_set Event set to update. Must not be NULL.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[in] mask Bitmask of events to be waited for.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -1185,8 +1213,8 @@ enum sp_return sp_add_port_events(struct sp_event_set *event_set,
 /**
  * Wait for any of a set of events to occur.
  *
- * @param event_set Event set to wait on.
- * @param timeout Timeout in milliseconds, or zero to wait indefinitely.
+ * @param[in] event_set Event set to wait on. Must not be NULL.
+ * @param[in] timeout Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -1196,6 +1224,8 @@ enum sp_return sp_wait(struct sp_event_set *event_set, unsigned int timeout);
 
 /**
  * Free a structure allocated by sp_new_event_set().
+ *
+ * @param[in] event_set Event set to free. Must not be NULL.
  *
  * @since 0.1.0
  */
@@ -1219,8 +1249,9 @@ void sp_free_event_set(struct sp_event_set *event_set);
  * in which individual signals can be checked by bitwise OR with values of
  * the sp_signal enum.
  *
- * @param port Pointer to port structure.
- * @param signal_mask Pointer to variable to receive result.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] signal_mask Pointer to a variable to receive the result.
+ *                         Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -1231,7 +1262,7 @@ enum sp_return sp_get_signals(struct sp_port *port, enum sp_signal *signal_mask)
 /**
  * Put the port transmit line into the break state.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -1242,7 +1273,7 @@ enum sp_return sp_start_break(struct sp_port *port);
 /**
  * Take the port transmit line out of the break state.
  *
- * @param port Pointer to port structure.
+ * @param[in] port Pointer to a port structure. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -1290,6 +1321,8 @@ char *sp_last_error_message(void);
 /**
  * Free an error message returned by sp_last_error_message().
  *
+ * @param[in] message The error message string to free. Must not be NULL.
+ *
  * @since 0.1.0
  */
 void sp_free_error_message(char *message);
@@ -1306,6 +1339,9 @@ void sp_free_error_message(char *message);
  *
  * The default handler is sp_default_debug_handler().
  *
+ * @param[in] handler The handler function to use. Can be NULL (in that case
+ *                    all debug messages will be ignored).
+ *
  * @since 0.1.0
  */
 void sp_set_debug_handler(void (*handler)(const char *format, ...));
@@ -1316,6 +1352,9 @@ void sp_set_debug_handler(void (*handler)(const char *format, ...));
  * This function prints debug messages to the standard error stream if the
  * environment variable LIBSERIALPORT_DEBUG is set. Otherwise, they are
  * ignored.
+ *
+ * @param[in] format The format string to use. Must not be NULL.
+ * @param[in] ... The variable length argument list to use.
  *
  * @since 0.1.0
  */
