@@ -24,8 +24,8 @@
 /* USB path is a string of at most 8 decimal numbers < 128 separated by dots. */
 #define MAX_USB_PATH ((8 * 3) + (7 * 1) + 1)
 
-static void enumerate_hub(struct sp_port *port, char *hub_name,
-                          char *parent_path);
+static void enumerate_hub(struct sp_port *port, const char *hub_name,
+                          const char *parent_path);
 
 static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 {
@@ -148,7 +148,7 @@ static char *get_string_descriptor(HANDLE hub_device, ULONG connection_index,
 }
 
 static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
-                                ULONG nb_ports, char *parent_path)
+                                ULONG nb_ports, const char *parent_path)
 {
 	char path[MAX_USB_PATH];
 	ULONG index = 0;
@@ -233,8 +233,8 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 	}
 }
 
-static void enumerate_hub(struct sp_port *port, char *hub_name,
-                          char *parent_path)
+static void enumerate_hub(struct sp_port *port, const char *hub_name,
+                          const char *parent_path)
 {
 	USB_NODE_INFORMATION hub_info;
 	HANDLE hub_device;
