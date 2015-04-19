@@ -22,6 +22,9 @@ ACLOCAL_AMFLAGS = -I autostuff
 
 AM_CPPFLAGS = -I$(top_srcdir)
 
+# Enable more compiler warnings.
+AM_CFLAGS = -std=c99 -Wall -Wextra -pedantic -Wmissing-prototypes -Wshadow
+
 lib_LTLIBRARIES = libserialport.la
 
 libserialport_la_SOURCES = serialport.c libserialport_internal.h
@@ -39,11 +42,13 @@ libserialport_la_SOURCES += freebsd.c
 endif
 
 libserialport_la_LIBADD = $(LIBOBJS)
-
-libserialport_la_LDFLAGS = $(SP_LIB_LDFLAGS) -no-undefined
-
 if WIN32
 libserialport_la_LIBADD += $(SP_LIBS)
+endif
+
+libserialport_la_LDFLAGS = $(SP_LIB_LDFLAGS) -no-undefined
+if MACOSX
+libserialport_la_LDFLAGS += -framework IOKit -framework CoreFoundation
 endif
 
 library_includedir = $(includedir)
