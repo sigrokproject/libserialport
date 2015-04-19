@@ -426,7 +426,7 @@ char *sp_get_port_description(struct sp_port *port);
  *
  * @since 0.1.1
  */
-enum sp_transport sp_get_port_transport(struct sp_port *port);
+enum sp_transport sp_get_port_transport(const struct sp_port *port);
 
 /**
  * Get the USB bus number and address on bus of a USB serial adapter port.

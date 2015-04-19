@@ -136,7 +136,7 @@ SP_API char *sp_get_port_description(struct sp_port *port)
 	RETURN_STRING(port->description);
 }
 
-SP_API enum sp_transport sp_get_port_transport(struct sp_port *port)
+SP_API enum sp_transport sp_get_port_transport(const struct sp_port *port)
 {
 	TRACE("%p", port);
 
