@@ -713,18 +713,18 @@ SP_API enum sp_return sp_drain(struct sp_port *port)
 }
 
 SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
-                                        size_t count, unsigned int timeout)
+                                        size_t count, unsigned int timeout_ms)
 {
-	TRACE("%p, %p, %d, %d", port, buf, count, timeout);
+	TRACE("%p, %p, %d, %d", port, buf, count, timeout_ms);
 
 	CHECK_OPEN_PORT();
 
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
-	if (timeout)
+	if (timeout_ms)
 		DEBUG_FMT("Writing %d bytes to port %s, timeout %d ms",
-			count, port->name, timeout);
+			count, port->name, timeout_ms);
 	else
 		DEBUG_FMT("Writing %d bytes to port %s, no timeout",
 			count, port->name);
@@ -747,7 +747,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	}
 
 	/* Set timeout. */
-	port->timeouts.WriteTotalTimeoutConstant = timeout;
+	port->timeouts.WriteTotalTimeoutConstant = timeout_ms;
 	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
 		RETURN_FAIL("SetCommTimeouts() failed");
 
@@ -772,12 +772,12 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	fd_set fds;
 	int result;
 
-	if (timeout) {
+	if (timeout_ms) {
 		/* Get time at start of operation. */
 		gettimeofday(&start, NULL);
 		/* Define duration of timeout. */
-		delta.tv_sec = timeout / 1000;
-		delta.tv_usec = (timeout % 1000) * 1000;
+		delta.tv_sec = timeout_ms / 1000;
+		delta.tv_usec = (timeout_ms % 1000) * 1000;
 		/* Calculate time at which we should give up. */
 		timeradd(&start, &delta, &end);
 	}
@@ -787,7 +787,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		/* Wait until space is available. */
 		FD_ZERO(&fds);
 		FD_SET(port->fd, &fds);
-		if (timeout) {
+		if (timeout_ms) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
 				DEBUG("Write timed out");
@@ -795,7 +795,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 			}
 			timersub(&end, &now, &delta);
 		}
-		result = select(port->fd + 1, NULL, &fds, NULL, timeout ? &delta : NULL);
+		result = select(port->fd + 1, NULL, &fds, NULL, timeout_ms ? &delta : NULL);
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("select() call was interrupted, repeating");
@@ -910,18 +910,18 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 }
 
 SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
-                                       size_t count, unsigned int timeout)
+                                       size_t count, unsigned int timeout_ms)
 {
-	TRACE("%p, %p, %d, %d", port, buf, count, timeout);
+	TRACE("%p, %p, %d, %d", port, buf, count, timeout_ms);
 
 	CHECK_OPEN_PORT();
 
 	if (!buf)
 		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
 
-	if (timeout)
+	if (timeout_ms)
 		DEBUG_FMT("Reading %d bytes from port %s, timeout %d ms",
-			count, port->name, timeout);
+			count, port->name, timeout_ms);
 	else
 		DEBUG_FMT("Reading %d bytes from port %s, no timeout",
 			count, port->name);
@@ -936,7 +936,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 	/* Set timeout. */
 	port->timeouts.ReadIntervalTimeout = 0;
-	port->timeouts.ReadTotalTimeoutConstant = timeout;
+	port->timeouts.ReadTotalTimeoutConstant = timeout_ms;
 	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
 		RETURN_FAIL("SetCommTimeouts() failed");
 
@@ -974,12 +974,12 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	fd_set fds;
 	int result;
 
-	if (timeout) {
+	if (timeout_ms) {
 		/* Get time at start of operation. */
 		gettimeofday(&start, NULL);
 		/* Define duration of timeout. */
-		delta.tv_sec = timeout / 1000;
-		delta.tv_usec = (timeout % 1000) * 1000;
+		delta.tv_sec = timeout_ms / 1000;
+		delta.tv_usec = (timeout_ms % 1000) * 1000;
 		/* Calculate time at which we should give up. */
 		timeradd(&start, &delta, &end);
 	}
@@ -989,14 +989,14 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		/* Wait until data is available. */
 		FD_ZERO(&fds);
 		FD_SET(port->fd, &fds);
-		if (timeout) {
+		if (timeout_ms) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
 				RETURN_INT(bytes_read);
 			timersub(&end, &now, &delta);
 		}
-		result = select(port->fd + 1, &fds, NULL, NULL, timeout ? &delta : NULL);
+		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &delta : NULL);
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("select() call was interrupted, repeating");
@@ -1235,22 +1235,22 @@ SP_API void sp_free_event_set(struct sp_event_set *event_set)
 }
 
 SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
-                              unsigned int timeout)
+                              unsigned int timeout_ms)
 {
-	TRACE("%p, %d", event_set, timeout);
+	TRACE("%p, %d", event_set, timeout_ms);
 
 	if (!event_set)
 		RETURN_ERROR(SP_ERR_ARG, "Null event set");
 
 #ifdef _WIN32
 	if (WaitForMultipleObjects(event_set->count, event_set->handles, FALSE,
-			timeout ? timeout : INFINITE) == WAIT_FAILED)
+			timeout_ms ? timeout_ms : INFINITE) == WAIT_FAILED)
 		RETURN_FAIL("WaitForMultipleObjects() failed");
 
 	RETURN_OK();
 #else
 	struct timeval start, delta, now, end = {0, 0};
-	int result, timeout_remaining;
+	int result, timeout_remaining_ms;
 	struct pollfd *pollfds;
 	unsigned int i;
 
@@ -1269,29 +1269,29 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			pollfds[i].events |= POLLERR;
 	}
 
-	if (timeout) {
+	if (timeout_ms) {
 		/* Get time at start of operation. */
 		gettimeofday(&start, NULL);
 		/* Define duration of timeout. */
-		delta.tv_sec = timeout / 1000;
-		delta.tv_usec = (timeout % 1000) * 1000;
+		delta.tv_sec = timeout_ms / 1000;
+		delta.tv_usec = (timeout_ms % 1000) * 1000;
 		/* Calculate time at which we should give up. */
 		timeradd(&start, &delta, &end);
 	}
 
 	/* Loop until an event occurs. */
 	while (1) {
-		if (timeout) {
+		if (timeout_ms) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
 				DEBUG("Wait timed out");
 				break;
 			}
 			timersub(&end, &now, &delta);
-			timeout_remaining = delta.tv_sec * 1000 + delta.tv_usec / 1000;
+			timeout_remaining_ms = delta.tv_sec * 1000 + delta.tv_usec / 1000;
 		}
 
-		result = poll(pollfds, event_set->count, timeout ? timeout_remaining : -1);
+		result = poll(pollfds, event_set->count, timeout_ms ? timeout_remaining_ms : -1);
 
 		if (result < 0) {
 			if (errno == EINTR) {

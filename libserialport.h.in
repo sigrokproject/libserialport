@@ -1026,7 +1026,7 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
  * @param[in] port Pointer to a port structure. Must not be NULL.
  * @param[out] buf Buffer in which to store the bytes read. Must not be NULL.
  * @param[in] count Requested number of bytes to read.
- * @param[in] timeout Timeout in milliseconds, or zero to wait indefinitely.
+ * @param[in] timeout_ms Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return The number of bytes read on success, or a negative error code. If
  *         the number of bytes returned is less than that requested, the
@@ -1036,7 +1036,7 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
  *
  * @since 0.1.0
  */
-enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, unsigned int timeout);
+enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, unsigned int timeout_ms);
 
 /**
  * Read bytes from the specified serial port, without blocking.
@@ -1075,7 +1075,7 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
  * @param[in] port Pointer to a port structure. Must not be NULL.
  * @param[in] buf Buffer containing the bytes to write. Must not be NULL.
  * @param[in] count Requested number of bytes to write.
- * @param[in] timeout Timeout in milliseconds, or zero to wait indefinitely.
+ * @param[in] timeout_ms Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return The number of bytes written on success, or a negative error code.
  *         If the number of bytes returned is less than that requested, the
@@ -1087,7 +1087,7 @@ enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf, size_t count
  *
  * @since 0.1.0
  */
-enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t count, unsigned int timeout);
+enum sp_return sp_blocking_write(struct sp_port *port, const void *buf, size_t count, unsigned int timeout_ms);
 
 /**
  * Write bytes to the specified serial port, without blocking.
@@ -1214,13 +1214,13 @@ enum sp_return sp_add_port_events(struct sp_event_set *event_set,
  * Wait for any of a set of events to occur.
  *
  * @param[in] event_set Event set to wait on. Must not be NULL.
- * @param[in] timeout Timeout in milliseconds, or zero to wait indefinitely.
+ * @param[in] timeout_ms Timeout in milliseconds, or zero to wait indefinitely.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
  * @since 0.1.0
  */
-enum sp_return sp_wait(struct sp_event_set *event_set, unsigned int timeout);
+enum sp_return sp_wait(struct sp_event_set *event_set, unsigned int timeout_ms);
 
 /**
  * Free a structure allocated by sp_new_event_set().
