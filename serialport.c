@@ -126,7 +126,7 @@ SP_API char *sp_get_port_name(const struct sp_port *port)
 	RETURN_STRING(port->name);
 }
 
-SP_API char *sp_get_port_description(struct sp_port *port)
+SP_API char *sp_get_port_description(const struct sp_port *port)
 {
 	TRACE("%p", port);
 
