@@ -75,10 +75,6 @@ AC_SUBST(SP_LIB_LDFLAGS)
 
 # Checks for libraries.
 
-# This variable collects the pkg-config names of all detected libs.
-# It is then used to construct the "Requires.private:" field in the
-# libserialport.pc file.
-SP_PKGLIBS=""
 SP_LIBS=""
 
 case $host_os in
@@ -118,7 +114,6 @@ mingw* | cygwin*)
 	AC_DEFINE(NO_PORT_METADATA,,[Port metadata is unavailable])
 esac
 
-AC_SUBST(SP_PKGLIBS)
 AC_SUBST(SP_LIBS)
 
 # Define size_t if not defined as standard.

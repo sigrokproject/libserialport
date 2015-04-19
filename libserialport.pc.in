@@ -6,7 +6,7 @@ includedir=@includedir@
 Name: libserialport
 Description: Cross-platform serial port access library.
 URL: http://sigrok.org/wiki/Libserialport
-Requires.private: @SP_PKGLIBS@
+Requires.private:
 Version: @VERSION@
 Libs: -L${libdir} -lserialport
 Libs.private: @SP_LIBS@
