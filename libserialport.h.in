@@ -446,8 +446,10 @@ enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
  * Get the USB Vendor ID and Product ID of a USB serial adapter port.
  *
  * @param[in] port Pointer to a port structure. Must not be NULL.
- * @param[out] usb_vid Pointer to a variable to store the USB VID. Must not be NULL.
- * @param[out] usb_pid Pointer to a variable to store the USB PID. Must not be NULL.
+ * @param[out] usb_vid Pointer to a variable to store the USB VID.
+ *                     Can be NULL (in that case it will be ignored).
+ * @param[out] usb_pid Pointer to a variable to store the USB PID.
+ *                     Can be NULL (in that case it will be ignored).
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
