@@ -555,10 +555,10 @@ enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
 /**
  * Allocate a port configuration structure.
  *
- * The user should allocate a variable of type "struct sp_config *" and pass a
- * pointer to this to receive the result. The variable will be updated to
- * point to the new configuration structure. The structure is opaque and must
- * be accessed via the functions provided.
+ * The user should allocate a variable of type "struct sp_port_config *" and
+ * pass a pointer to this to receive the result. The variable will be updated
+ * to point to the new configuration structure. The structure is opaque and
+ * must be accessed via the functions provided.
  *
  * All parameters in the structure will be initialised to special values which
  * are ignored by sp_set_config().
