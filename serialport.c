@@ -234,6 +234,8 @@ SP_API enum sp_return sp_get_port_handle(const struct sp_port *port,
 
 	if (!port)
 		RETURN_ERROR(SP_ERR_ARG, "Null port");
+	if (!result_ptr)
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
 #ifdef _WIN32
 	HANDLE *handle_ptr = result_ptr;
