@@ -432,8 +432,10 @@ enum sp_transport sp_get_port_transport(const struct sp_port *port);
  * Get the USB bus number and address on bus of a USB serial adapter port.
  *
  * @param[in] port Pointer to a port structure. Must not be NULL.
- * @param[out] usb_bus Pointer to a variable to store the USB bus. Must not be NULL.
- * @param[out] usb_address Pointer to a variable to store the USB address. Must not be NULL.
+ * @param[out] usb_bus Pointer to a variable to store the USB bus.
+ *                     Can be NULL (in that case it will be ignored).
+ * @param[out] usb_address Pointer to a variable to store the USB address.
+ *                         Can be NULL (in that case it will be ignored).
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -531,8 +533,9 @@ char *sp_get_port_bluetooth_address(const struct sp_port *port);
  *
  * @param[in] port Pointer to a port structure. Must not be NULL.
  * @param[out] result_ptr If any error is returned, the variable pointed to by
- *                        result_ptr will be set to NULL. Otherwise, it will
- *                        be set to point to the OS handle. Must not be NULL.
+ *                        result_ptr will have unknown contents and should not
+ *                        be used. Otherwise, it will be set to point to the
+ *                        OS handle. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -562,7 +565,9 @@ enum sp_return sp_get_port_handle(const struct sp_port *port, void *result_ptr);
  *
  * The structure should be freed after use by calling sp_free_config().
  *
- * @param[out] config_ptr Pointer to a variable to receive the result.
+ * @param[out] config_ptr If any error is returned, the variable pointed to by
+ *                        config_ptr will be set to NULL. Otherwise, it will
+ *                        be set to point to the allocated config structure.
  *                        Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
@@ -593,7 +598,8 @@ void sp_free_config(struct sp_port_config *config);
  *
  * @param[in] port Pointer to a port structure. Must not be NULL.
  * @param[out] config Pointer to a configuration structure that will hold
- *                    the result. Must not be NULL.
+ *                    the result. Upon errors the contents of the config
+ *                    struct will not be changed. Must not be NULL.
  *
  * @return SP_OK upon success, a negative error code otherwise.
  *
@@ -607,6 +613,9 @@ enum sp_return sp_get_config(struct sp_port *port, struct sp_port_config *config
  * For each parameter in the configuration, there is a special value (usually
  * -1, but see the documentation for each field). These values will be ignored
  * and the corresponding setting left unchanged on the port.
+ *
+ * Upon errors, the configuration of the serial port is unknown since
+ * partial/incomplete config updates may have happened.
  *
  * @param[in] port Pointer to a port structure. Must not be NULL.
  * @param[in] config Pointer to a configuration structure. Must not be NULL.
