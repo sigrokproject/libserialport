@@ -334,6 +334,8 @@ SP_API enum sp_return sp_list_ports(struct sp_port ***list_ptr)
 	if (!list_ptr)
 		RETURN_ERROR(SP_ERR_ARG, "Null result pointer");
 
+	*list_ptr = NULL;
+
 #ifdef NO_ENUMERATION
 	RETURN_ERROR(SP_ERR_SUPP, "Enumeration not supported on this platform");
 #else
