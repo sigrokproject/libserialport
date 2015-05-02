@@ -2117,6 +2117,8 @@ SP_API enum sp_return sp_set_##x(struct sp_port *port, type x) { \
 SP_API enum sp_return sp_get_config_##x(const struct sp_port_config *config, \
                                         type *x) { \
 	TRACE("%p, %p", config, x); \
+	if (!x) \
+		RETURN_ERROR(SP_ERR_ARG, "Null result pointer"); \
 	if (!config) \
 		RETURN_ERROR(SP_ERR_ARG, "Null config"); \
 	*x = config->x; \
