@@ -923,6 +923,9 @@ static enum sp_return restart_wait_if_needed(struct sp_port *port, unsigned int 
 {
 	int ret, bytes_remaining;
 
+	if (bytes_read == 0)
+		RETURN_OK();
+
 	ret = sp_input_waiting(port);
 
 	if (ret < 0)
@@ -930,7 +933,7 @@ static enum sp_return restart_wait_if_needed(struct sp_port *port, unsigned int 
 
 	bytes_remaining = ret;
 
-	if (bytes_read > 0 && bytes_remaining == 0)
+	if (bytes_remaining == 0)
 		TRY(restart_wait(port));
 
 	RETURN_OK();
