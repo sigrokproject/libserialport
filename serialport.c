@@ -917,6 +917,26 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 #endif
 }
 
+#ifdef _WIN32
+/* Restart wait operation if buffer was emptied. */
+static enum sp_return restart_wait_if_needed(struct sp_port *port, unsigned int bytes_read)
+{
+	int ret, bytes_remaining;
+
+	ret = sp_input_waiting(port);
+
+	if (ret < 0)
+		RETURN_CODEVAL(ret);
+
+	bytes_remaining = ret;
+
+	if (bytes_read > 0 && bytes_remaining == 0)
+		TRY(restart_wait(port));
+
+	RETURN_OK();
+}
+#endif
+
 SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
                                        size_t count, unsigned int timeout_ms)
 {
@@ -939,8 +959,6 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 #ifdef _WIN32
 	DWORD bytes_read = 0;
-	DWORD bytes_remaining;
-	int ret;
 
 	/* Set timeout. */
 	if (port->timeouts.ReadIntervalTimeout != 0 ||
@@ -965,16 +983,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		bytes_read = count;
 	}
 
-	ret = sp_input_waiting(port);
-
-	if (ret < 0)
-		RETURN_CODEVAL(ret);
-
-	bytes_remaining = ret;
-
-	/* Restart wait operation if buffer was emptied. */
-	if (bytes_read > 0 && bytes_remaining == 0)
-		TRY(restart_wait(port));
+	TRY(restart_wait_if_needed(port, bytes_read));
 
 	RETURN_INT(bytes_read);
 
@@ -1054,8 +1063,6 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 
 #ifdef _WIN32
 	DWORD bytes_read;
-	DWORD bytes_remaining;
-	int ret;
 
 	/* Set timeout. */
 	if (port->timeouts.ReadIntervalTimeout != MAXDWORD ||
@@ -1074,16 +1081,7 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 	if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
 		RETURN_FAIL("GetOverlappedResult() failed");
 
-	ret = sp_input_waiting(port);
-
-	if (ret < 0)
-		RETURN_CODEVAL(ret);
-
-	bytes_remaining = ret;
-
-	/* Restart wait operation if buffer was emptied. */
-	if (bytes_read > 0 && bytes_remaining == 0)
-		TRY(restart_wait(port));
+	TRY(restart_wait_if_needed(port, bytes_read));
 
 	RETURN_INT(bytes_read);
 #else
