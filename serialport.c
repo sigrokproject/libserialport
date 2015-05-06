@@ -2287,10 +2287,10 @@ SP_API char *sp_last_error_message(void)
 	TRACE_VOID();
 
 #ifdef _WIN32
-	LPVOID message;
+	TCHAR *message;
 	DWORD error = GetLastError();
 
-	FormatMessage(
+	DWORD length = FormatMessage(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER |
 		FORMAT_MESSAGE_FROM_SYSTEM |
 		FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -2299,6 +2299,9 @@ SP_API char *sp_last_error_message(void)
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPTSTR) &message,
 		0, NULL );
+
+	if (length >= 2 && message[length - 2] == '\r')
+		message[length - 2] = '\0';
 
 	RETURN_STRING(message);
 #else
