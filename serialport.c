@@ -751,9 +751,11 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	}
 
 	/* Set timeout. */
-	port->timeouts.WriteTotalTimeoutConstant = timeout_ms;
-	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
-		RETURN_FAIL("SetCommTimeouts() failed");
+	if (port->timeouts.WriteTotalTimeoutConstant != timeout_ms) {
+		port->timeouts.WriteTotalTimeoutConstant = timeout_ms;
+		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+			RETURN_FAIL("SetCommTimeouts() failed");
+	}
 
 	/* Start write. */
 	if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl) == 0) {
@@ -864,9 +866,11 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 	}
 
 	/* Set timeout. */
-	port->timeouts.WriteTotalTimeoutConstant = 0;
-	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
-		RETURN_FAIL("SetCommTimeouts() failed");
+	if (port->timeouts.WriteTotalTimeoutConstant != 0) {
+		port->timeouts.WriteTotalTimeoutConstant = 0;
+		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+			RETURN_FAIL("SetCommTimeouts() failed");
+	}
 
 	/*
 	 * Keep writing data until the OS has to actually start an async IO
@@ -939,10 +943,13 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	int ret;
 
 	/* Set timeout. */
-	port->timeouts.ReadIntervalTimeout = 0;
-	port->timeouts.ReadTotalTimeoutConstant = timeout_ms;
-	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
-		RETURN_FAIL("SetCommTimeouts() failed");
+	if (port->timeouts.ReadIntervalTimeout != 0 ||
+			port->timeouts.ReadTotalTimeoutConstant != timeout_ms) {
+		port->timeouts.ReadIntervalTimeout = 0;
+		port->timeouts.ReadTotalTimeoutConstant = timeout_ms;
+		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+			RETURN_FAIL("SetCommTimeouts() failed");
+	}
 
 	/* Start read. */
 	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl) == 0) {
@@ -1051,10 +1058,13 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 	int ret;
 
 	/* Set timeout. */
-	port->timeouts.ReadIntervalTimeout = MAXDWORD;
-	port->timeouts.ReadTotalTimeoutConstant = 0;
-	if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
-		RETURN_FAIL("SetCommTimeouts() failed");
+	if (port->timeouts.ReadIntervalTimeout != MAXDWORD ||
+			port->timeouts.ReadTotalTimeoutConstant != 0) {
+		port->timeouts.ReadIntervalTimeout = MAXDWORD;
+		port->timeouts.ReadTotalTimeoutConstant = 0;
+		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+			RETURN_FAIL("SetCommTimeouts() failed");
+	}
 
 	/* Do read. */
 	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl) == 0)
