@@ -921,19 +921,16 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 /* Restart wait operation if buffer was emptied. */
 static enum sp_return restart_wait_if_needed(struct sp_port *port, unsigned int bytes_read)
 {
-	int ret, bytes_remaining;
+	DWORD errors;
+	COMSTAT comstat;
 
 	if (bytes_read == 0)
 		RETURN_OK();
 
-	ret = sp_input_waiting(port);
+	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
+		RETURN_FAIL("ClearCommError() failed");
 
-	if (ret < 0)
-		RETURN_CODEVAL(ret);
-
-	bytes_remaining = ret;
-
-	if (bytes_remaining == 0)
+	if (comstat.cbInQue == 0)
 		TRY(restart_wait(port));
 
 	RETURN_OK();
