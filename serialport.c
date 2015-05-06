@@ -758,18 +758,16 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	}
 
 	/* Start write. */
-	if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl) == 0) {
-		if (GetLastError() == ERROR_IO_PENDING) {
-			DEBUG("Waiting for write to complete");
-			GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE);
-			DEBUG_FMT("Write completed, %d/%d bytes written", bytes_written, count);
-			RETURN_INT(bytes_written);
-		} else {
-			RETURN_FAIL("WriteFile() failed");
-		}
-	} else {
+	if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl)) {
 		DEBUG("Write completed immediately");
 		RETURN_INT(count);
+	} else if (GetLastError() == ERROR_IO_PENDING) {
+		DEBUG("Waiting for write to complete");
+		GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE);
+		DEBUG_FMT("Write completed, %d/%d bytes written", bytes_written, count);
+		RETURN_INT(bytes_written);
+	} else {
+		RETURN_FAIL("WriteFile() failed");
 	}
 #else
 	size_t bytes_written = 0;
@@ -970,17 +968,15 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	}
 
 	/* Start read. */
-	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl) == 0) {
-		if (GetLastError() == ERROR_IO_PENDING) {
-			DEBUG("Waiting for read to complete");
-			GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE);
-			DEBUG_FMT("Read completed, %d/%d bytes read", bytes_read, count);
-		} else {
-			RETURN_FAIL("ReadFile() failed");
-		}
-	} else {
+	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl)) {
 		DEBUG("Read completed immediately");
 		bytes_read = count;
+	} else if (GetLastError() == ERROR_IO_PENDING) {
+		DEBUG("Waiting for read to complete");
+		GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE);
+		DEBUG_FMT("Read completed, %d/%d bytes read", bytes_read, count);
+	} else {
+		RETURN_FAIL("ReadFile() failed");
 	}
 
 	TRY(restart_wait_if_needed(port, bytes_read));
