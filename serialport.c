@@ -1071,6 +1071,140 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 #endif
 }
 
+SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
+                                            size_t count, unsigned int timeout_ms)
+{
+	TRACE("%p, %p, %d, %d", port, buf, count, timeout_ms);
+
+	CHECK_OPEN_PORT();
+
+	if (!buf)
+		RETURN_ERROR(SP_ERR_ARG, "Null buffer");
+
+	if (count == 0)
+		RETURN_ERROR(SP_ERR_ARG, "Zero count");
+
+	if (timeout_ms)
+		DEBUG_FMT("Reading next max %d bytes from port %s, timeout %d ms",
+			count, port->name, timeout_ms);
+	else
+		DEBUG_FMT("Reading next max %d bytes from port %s, no timeout",
+			count, port->name);
+
+#ifdef _WIN32
+	DWORD bytes_read = 0;
+
+	/* If timeout_ms == 0, set maximum timeout. */
+	DWORD timeout_val = (timeout_ms == 0 ? MAXDWORD - 1 : timeout_ms);
+
+	/* Set timeout. */
+	if (port->timeouts.ReadIntervalTimeout != MAXDWORD ||
+			port->timeouts.ReadTotalTimeoutMultiplier != MAXDWORD ||
+			port->timeouts.ReadTotalTimeoutConstant != timeout_val) {
+		port->timeouts.ReadIntervalTimeout = MAXDWORD;
+		port->timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
+		port->timeouts.ReadTotalTimeoutConstant = timeout_val;
+		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+			RETURN_FAIL("SetCommTimeouts() failed");
+	}
+
+	/* Loop until we have at least one byte, or timeout is reached. */
+	while (bytes_read == 0) {
+		/* Start read. */
+		if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl)) {
+			DEBUG("Read completed immediately");
+			bytes_read = count;
+		} else if (GetLastError() == ERROR_IO_PENDING) {
+			DEBUG("Waiting for read to complete");
+			if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
+				RETURN_FAIL("GetOverlappedResult() failed");
+			if (bytes_read > 0) {
+				DEBUG("Read completed");
+			} else if (timeout_ms > 0) {
+				DEBUG("Read timed out");
+				break;
+			} else {
+				DEBUG("Restarting read");
+			}
+		} else {
+			RETURN_FAIL("ReadFile() failed");
+		}
+	}
+
+	TRY(restart_wait_if_needed(port, bytes_read));
+
+	RETURN_INT(bytes_read);
+
+#else
+	size_t bytes_read = 0;
+	struct timeval start, delta, now, end = {0, 0};
+	int started = 0;
+	fd_set fds;
+	int result;
+
+	if (timeout_ms) {
+		/* Get time at start of operation. */
+		gettimeofday(&start, NULL);
+		/* Define duration of timeout. */
+		delta.tv_sec = timeout_ms / 1000;
+		delta.tv_usec = (timeout_ms % 1000) * 1000;
+		/* Calculate time at which we should give up. */
+		timeradd(&start, &delta, &end);
+	}
+
+	FD_ZERO(&fds);
+	FD_SET(port->fd, &fds);
+
+	/* Loop until we have at least one byte, or timeout is reached. */
+	while (bytes_read == 0) {
+		/*
+		 * Check timeout only if we have run select() at least once,
+		 * to avoid any issues if a short timeout is reached before
+		 * select() is even run.
+		 */
+		if (timeout_ms && started) {
+			gettimeofday(&now, NULL);
+			if (timercmp(&now, &end, >))
+				/* Timeout has expired. */
+				break;
+			timersub(&end, &now, &delta);
+		}
+		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &delta : NULL);
+		started = 1;
+		if (result < 0) {
+			if (errno == EINTR) {
+				DEBUG("select() call was interrupted, repeating");
+				continue;
+			} else {
+				RETURN_FAIL("select() failed");
+			}
+		} else if (result == 0) {
+			/* Timeout has expired. */
+			break;
+		}
+
+		/* Do read. */
+		result = read(port->fd, buf, count);
+
+		if (result < 0) {
+			if (errno == EAGAIN)
+				/* This shouldn't happen because we did a select() first, but handle anyway. */
+				continue;
+			else
+				/* This is an actual failure. */
+				RETURN_FAIL("read() failed");
+		}
+
+		bytes_read = result;
+	}
+
+	if (bytes_read == 0)
+		DEBUG("Read timed out");
+
+	RETURN_INT(bytes_read);
+#endif
+}
+
 SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
                                           size_t count)
 {

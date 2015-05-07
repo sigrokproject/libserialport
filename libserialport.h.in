@@ -1050,6 +1050,34 @@ enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontrol flow
 enum sp_return sp_blocking_read(struct sp_port *port, void *buf, size_t count, unsigned int timeout_ms);
 
 /**
+ * Read bytes from the specified serial port, returning as soon as any data is
+ * available.
+ *
+ * @warning If your program runs on Unix, defines its own signal handlers, and
+ *          needs to abort blocking reads when these are called, then you
+ *          should not use this function. It repeats system calls that return
+ *          with EINTR. To be able to abort a read from a signal handler, you
+ *          should implement your own blocking read using sp_nonblocking_read()
+ *          together with a blocking method that makes sense for your program.
+ *          E.g. you can obtain the file descriptor for an open port using
+ *          sp_get_port_handle() and use this to call select() or pselect(),
+ *          with appropriate arrangements to return if a signal is received.
+ *
+ * @param[in] port Pointer to a port structure. Must not be NULL.
+ * @param[out] buf Buffer in which to store the bytes read. Must not be NULL.
+ * @param[in] count Maximum number of bytes to read. Must not be zero.
+ * @param[in] timeout_ms Timeout in milliseconds, or zero to wait indefinitely.
+ *
+ * @return The number of bytes read on success, or a negative error code. If
+ *         the result is zero, the timeout was reached before any bytes were
+ *         available. If timeout_ms is zero, the function will always return
+ *         either at least one byte, or a negative error code.
+ *
+ * @since 0.1.1
+ */
+enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf, size_t count, unsigned int timeout_ms);
+
+/**
  * Read bytes from the specified serial port, without blocking.
  *
  * @param[in] port Pointer to a port structure. Must not be NULL.
