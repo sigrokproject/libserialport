@@ -795,10 +795,9 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		/* Wait until space is available. */
 		if (timeout_ms) {
 			gettimeofday(&now, NULL);
-			if (timercmp(&now, &end, >)) {
-				DEBUG("Write timed out");
-				RETURN_INT(bytes_written);
-			}
+			if (timercmp(&now, &end, >))
+				/* Timeout has expired. */
+				break;
 			timersub(&end, &now, &delta);
 		}
 		result = select(port->fd + 1, NULL, &fds, NULL, timeout_ms ? &delta : NULL);
@@ -810,8 +809,8 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 				RETURN_FAIL("select() failed");
 			}
 		} else if (result == 0) {
-			DEBUG("Write timed out");
-			RETURN_INT(bytes_written);
+			/* Timeout has expired. */
+			break;
 		}
 
 		/* Do write. */
@@ -829,6 +828,9 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		bytes_written += result;
 		ptr += result;
 	}
+
+	if (bytes_written < count)
+		DEBUG("Write timed out");
 
 	RETURN_INT(bytes_written);
 #endif
@@ -1013,7 +1015,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
-				RETURN_INT(bytes_read);
+				break;
 			timersub(&end, &now, &delta);
 		}
 		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &delta : NULL);
@@ -1025,8 +1027,8 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 				RETURN_FAIL("select() failed");
 			}
 		} else if (result == 0) {
-			DEBUG("Read timed out");
-			RETURN_INT(bytes_read);
+			/* Timeout has expired. */
+			break;
 		}
 
 		/* Do read. */
@@ -1044,6 +1046,9 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		bytes_read += result;
 		ptr += result;
 	}
+
+	if (bytes_read < count)
+		DEBUG("Read timed out");
 
 	RETURN_INT(bytes_read);
 #endif
