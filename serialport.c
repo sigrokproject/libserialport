@@ -774,6 +774,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	size_t bytes_written = 0;
 	unsigned char *ptr = (unsigned char *) buf;
 	struct timeval start, delta, now, end = {0, 0};
+	int started = 0;
 	fd_set fds;
 	int result;
 
@@ -792,8 +793,12 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 
 	/* Loop until we have written the requested number of bytes. */
 	while (bytes_written < count) {
-		/* Wait until space is available. */
-		if (timeout_ms) {
+		/*
+		 * Check timeout only if we have run select() at least once,
+		 * to avoid any issues if a short timeout is reached before
+		 * select() is even run.
+		 */
+		if (timeout_ms && started) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
@@ -801,6 +806,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 			timersub(&end, &now, &delta);
 		}
 		result = select(port->fd + 1, NULL, &fds, NULL, timeout_ms ? &delta : NULL);
+		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("select() call was interrupted, repeating");
@@ -992,6 +998,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	size_t bytes_read = 0;
 	unsigned char *ptr = (unsigned char *) buf;
 	struct timeval start, delta, now, end = {0, 0};
+	int started = 0;
 	fd_set fds;
 	int result;
 
@@ -1010,8 +1017,12 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 	/* Loop until we have the requested number of bytes. */
 	while (bytes_read < count) {
-		/* Wait until data is available. */
-		if (timeout_ms) {
+		/*
+		 * Check timeout only if we have run select() at least once,
+		 * to avoid any issues if a short timeout is reached before
+		 * select() is even run.
+		 */
+		if (timeout_ms && started) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
@@ -1019,6 +1030,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 			timersub(&end, &now, &delta);
 		}
 		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &delta : NULL);
+		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("select() call was interrupted, repeating");
@@ -1036,7 +1048,10 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 		if (result < 0) {
 			if (errno == EAGAIN)
-				/* This shouldn't happen because we did a select() first, but handle anyway. */
+				/*
+				 * This shouldn't happen because we did a
+				 * select() first, but handle anyway.
+				 */
 				continue;
 			else
 				/* This is an actual failure. */
@@ -1267,6 +1282,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 	RETURN_OK();
 #else
 	struct timeval start, delta, now, end = {0, 0};
+	int started = 0;
 	int result, timeout_remaining_ms;
 	struct pollfd *pollfds;
 	unsigned int i;
@@ -1298,7 +1314,12 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 
 	/* Loop until an event occurs. */
 	while (1) {
-		if (timeout_ms) {
+		/*
+		 * Check timeout only if we have run poll() at least once,
+		 * to avoid any issues if a short timeout is reached before
+		 * poll() is even run.
+		 */
+		if (timeout_ms && started) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
 				DEBUG("Wait timed out");
@@ -1309,6 +1330,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 		}
 
 		result = poll(pollfds, event_set->count, timeout_ms ? timeout_remaining_ms : -1);
+		started = 1;
 
 		if (result < 0) {
 			if (errno == EINTR) {
