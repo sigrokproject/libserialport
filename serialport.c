@@ -787,11 +787,12 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		timeradd(&start, &delta, &end);
 	}
 
+	FD_ZERO(&fds);
+	FD_SET(port->fd, &fds);
+
 	/* Loop until we have written the requested number of bytes. */
 	while (bytes_written < count) {
 		/* Wait until space is available. */
-		FD_ZERO(&fds);
-		FD_SET(port->fd, &fds);
 		if (timeout_ms) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
@@ -1002,11 +1003,12 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		timeradd(&start, &delta, &end);
 	}
 
+	FD_ZERO(&fds);
+	FD_SET(port->fd, &fds);
+
 	/* Loop until we have the requested number of bytes. */
 	while (bytes_read < count) {
 		/* Wait until data is available. */
-		FD_ZERO(&fds);
-		FD_SET(port->fd, &fds);
 		if (timeout_ms) {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >))
