@@ -970,8 +970,10 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 	/* Set timeout. */
 	if (port->timeouts.ReadIntervalTimeout != 0 ||
+			port->timeouts.ReadTotalTimeoutMultiplier != 0 ||
 			port->timeouts.ReadTotalTimeoutConstant != timeout_ms) {
 		port->timeouts.ReadIntervalTimeout = 0;
+		port->timeouts.ReadTotalTimeoutMultiplier = 0;
 		port->timeouts.ReadTotalTimeoutConstant = timeout_ms;
 		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
 			RETURN_FAIL("SetCommTimeouts() failed");
@@ -1086,8 +1088,10 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 
 	/* Set timeout. */
 	if (port->timeouts.ReadIntervalTimeout != MAXDWORD ||
+			port->timeouts.ReadTotalTimeoutMultiplier != 0 ||
 			port->timeouts.ReadTotalTimeoutConstant != 0) {
 		port->timeouts.ReadIntervalTimeout = MAXDWORD;
+		port->timeouts.ReadTotalTimeoutMultiplier = 0;
 		port->timeouts.ReadTotalTimeoutConstant = 0;
 		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
 			RETURN_FAIL("SetCommTimeouts() failed");
