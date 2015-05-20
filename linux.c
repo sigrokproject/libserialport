@@ -36,11 +36,16 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	char *ptr, *dev = port->name + 5;
 	FILE *file;
 	int i, count;
+	struct stat statbuf;
 
 	if (strncmp(port->name, "/dev/", 5))
 		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 
 	snprintf(file_name, sizeof(file_name), "/sys/class/tty/%s", dev);
+	if (lstat(file_name, &statbuf) == -1)
+		RETURN_ERROR(SP_ERR_ARG, "Device not found");
+	if (!S_ISLNK(statbuf.st_mode))
+		snprintf(file_name, sizeof(file_name), "/sys/class/tty/%s/device", dev);
 	count = readlink(file_name, file_name, sizeof(file_name));
 	if (count <= 0 || count >= (int)(sizeof(file_name) - 1))
 		RETURN_ERROR(SP_ERR_ARG, "Device not found");
@@ -176,10 +181,11 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 	struct serial_struct serial_info;
 	int ioctl_result;
 #endif
-	char buf[sizeof(entry.d_name) + 16];
+	char buf[sizeof(entry.d_name) + 23];
 	int len, fd;
 	DIR *dir;
 	int ret = SP_OK;
+	struct stat statbuf;
 
 	DEBUG("Enumerating tty devices");
 	if (!(dir = opendir("/sys/class/tty")))
@@ -188,6 +194,10 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 	DEBUG("Iterating over results");
 	while (!readdir_r(dir, &entry, &result) && result) {
 		snprintf(buf, sizeof(buf), "/sys/class/tty/%s", entry.d_name);
+		if (lstat(buf, &statbuf) == -1)
+			continue;
+		if (!S_ISLNK(statbuf.st_mode))
+			snprintf(buf, sizeof(buf), "/sys/class/tty/%s/device", entry.d_name);
 		len = readlink(buf, target, sizeof(target));
 		if (len <= 0 || len >= (int)(sizeof(target) - 1))
 			continue;
