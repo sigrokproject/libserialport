@@ -1335,6 +1335,8 @@ enum sp_return sp_end_break(struct sp_port *port);
  *
  * In order to obtain the correct result, this function should be called
  * straight after the failure, before executing any other system operations.
+ * The result is thread-specific, and only valid when called immediately
+ * after a previous call returning SP_ERR_FAIL.
  *
  * @return The system's numeric code for the error that caused the last
  *         operation to fail.
@@ -1348,6 +1350,8 @@ int sp_last_error_code(void);
  *
  * In order to obtain the correct result, this function should be called
  * straight after the failure, before executing other system operations.
+ * The result is thread-specific, and only valid when called immediately
+ * after a previous call returning SP_ERR_FAIL.
  *
  * @return The system's message for the error that caused the last
  *         operation to fail. This string may be allocated by the function,
