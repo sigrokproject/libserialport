@@ -29,27 +29,56 @@
  * By writing your serial code to use libserialport, you enable it to work
  * transparently on any platform supported by the library.
  *
- * The operations that are supported are:
- *
- * - @ref Enumeration (obtaining a list of serial ports on the system)
- * - @ref Ports
- * - @ref Configuration (baud rate, parity, etc.)
- * - @ref Signals (modem control lines, breaks, etc.)
- * - @ref Data
- * - @ref Waiting
- * - @ref Errors
- *
  * libserialport is an open source project released under the LGPL3+ license.
  *
- * API principles
- * ==============
+ * The library is maintained by the [sigrok](http://sigrok.org/) project. See
+ * the [libserialport homepage](http://sigrok.org/wiki/Libserialport) for the
+ * latest information.
  *
- * The API is simple, and designed to be a minimal wrapper around the serial
- * port support in each OS.
+ * Source code is maintained in git at
+ * [git://sigrok.org/libserialport](http://sigrok.org/gitweb/?p=libserialport.git).
  *
- * Most functions take a pointer to a struct sp_port, which represents a serial
- * port. These structures are always allocated and freed by the library, using
- * the functions in the @ref Enumeration "Enumeration" section.
+ * Bugs are tracked at http://sigrok.org/bugzilla/.
+ *
+ * The library was conceived and designed by Martin Ling, is maintained by
+ * Uwe Hermann, and has received contributions from several other developers.
+ * See the git history for full credits.
+ *
+ * API information
+ * ===============
+ *
+ * The API has been designed from scratch. It does not exactly resemble the
+ * serial API of any particular operating system. Instead it aims to provide
+ * a set of functions that can reliably be implemented across all operating
+ * systems. These form a sufficient basis for higher level behaviour to
+ * be implemented in a platform independent manner.
+ *
+ * If you are porting code written for a particular OS, you may find you need
+ * to restructure things somewhat, or do without some specialised features.
+ * For particular notes on porting existing code, see @ref Porting.
+ *
+ * The following subsections will help explain the principles of the API.
+ * To jump directly into the detailed function documentation, see the
+ * <a href="modules.html">categorised function lists</a>.
+ *
+ * Data structures
+ * ---------------
+ *
+ * The library defines three data structures:
+ *
+ * - @ref sp_port, which represents a serial port.
+ *   See @ref Enumeration.
+ * - @ref sp_port_config, which represents a port configuration.
+ *   See @ref Configuration.
+ * - @ref sp_event_set, which represents a set of events.
+ *   See @ref Waiting.
+ *
+ * All these structures are allocated and freed by library functions. It is
+ * the caller's responsibility to ensure that the correct calls are made to
+ * free allocated structures after use.
+ *
+ * Return codes and error handling
+ * -------------------------------
  *
  * Most functions have return type @ref sp_return and can return only four
  * possible error values:
@@ -75,6 +104,124 @@
  * Calls that succeed return @ref SP_OK, which is equal to zero. Some functions
  * declared @ref sp_return can also return a positive value for a successful
  * numeric result, e.g. sp_blocking_read() or sp_blocking_write().
+ *
+ * An error message is only available via sp_last_error_message() in the case
+ * where SP_ERR_FAIL was returned by the previous function call. The error
+ * message returned is that provided by the OS, using the current language
+ * settings. It is an error to call sp_last_error_code() or
+ * sp_last_error_message() except after a previous function call returned
+ * SP_ERR_FAIL. The library does not define its own error codes or messages
+ * to accompany other return codes.
+ *
+ * Thread safety
+ * -------------
+ *
+ * Certain combinations of calls can be made concurrently, as follows.
+ *
+ * - Calls using different ports may always be made concurrently, i.e.
+ *   it is safe for separate threads to handle their own ports.
+ *
+ * - Calls using the same port may be made concurrently when one call
+ *   is a read operation and one call is a write operation, i.e. it is safe
+ *   to use separate "reader" and "writer" threads for the same port. See
+ *   below for which operations meet these definitions.
+ *
+ * Read operations:
+ *
+ * - sp_blocking_read()
+ * - sp_blocking_read_next()
+ * - sp_nonblocking_read()
+ * - sp_input_waiting()
+ * - sp_flush() with @ref SP_BUF_INPUT only.
+ * - sp_wait() with @ref SP_EVENT_RX_READY only.
+ *
+ * Write operations:
+ *
+ * - sp_blocking_write()
+ * - sp_nonblocking_write()
+ * - sp_output_waiting()
+ * - sp_drain()
+ * - sp_flush() with @ref SP_BUF_OUTPUT only.
+ * - sp_wait() with @ref SP_EVENT_TX_READY only.
+ *
+ * If two calls, on the same port, do not fit into one of these categories
+ * each, then they may not be made concurrently.
+ *
+ * Debugging
+ * ---------
+ *
+ * The library can output extensive tracing and debugging information. The
+ * simplest way to use this is to set the environment variable
+ * LIBSERIALPORT_DEBUG to any value; messages will then be output to the
+ * standard error stream.
+ *
+ * This behaviour is implemented by a default debug message handling
+ * callback. An alternative callback can be set using sp_set_debug_handler(),
+ * in order to e.g. redirect the output elsewhere or filter it.
+ *
+ * No guarantees are made about the content of the debug output; it is chosen
+ * to suit the needs of the developers and may change between releases.
+ *
+ * @anchor Porting
+ * Porting
+ * -------
+ *
+ * The following guidelines may help when porting existing OS-specific code
+ * to use libserialport.
+ *
+ * ### Porting from Unix-like systems ###
+ *
+ * There are two main differences to note when porting code written for Unix.
+ *
+ * The first is that Unix traditionally provides a wide range of functionality
+ * for dealing with serial devices at the OS level; this is exposed through the
+ * termios API and dates to the days when serial terminals were common. If your
+ * code relies on many of these facilities you will need to adapt it, because
+ * libserialport provides only a raw 8-bit channel with no special handling.
+ *
+ * The second relates to blocking versus non-blocking I/O behaviour. In
+ * Unix-like systems this is normally specified by setting the O_NONBLOCK
+ * flag on the file descriptor, affecting the semantics of subsequent read()
+ * and write() calls.
+ *
+ * In libserialport, blocking and nonblocking operations are both available at
+ * any time. If your existing code ѕets O_NONBLOCK, you should use
+ * sp_nonblocking_read() and sp_nonblocking_write() to get the same behaviour
+ * as your existing read() and write() calls. If it does not, you should use
+ * sp_blocking_read() and sp_blocking_write() instead. You may also find
+ * sp_blocking_read_next() useful, which reproduces the semantics of a blocking
+ * read() with VTIME = 0 and VMIN = 1 set in termios.
+ *
+ * Finally, you should take care if your program uses custom signal handlers.
+ * The blocking calls provided by libserialport will restart system calls that
+ * return with EINTR, so you will need to make your own arrangements if you
+ * need to interrupt blocking operations when your signal handlers are called.
+ * This is not an issue if you only use the default handlers.
+ *
+ * ### Porting from Windows ###
+ *
+ * The main consideration when porting from Windows is that there is no
+ * direct equivalent for overlapped I/O operations.
+ *
+ * If your program does not use overlapped I/O, you can simply use
+ * sp_blocking_read() and sp_blocking_write() as direct equivalents for
+ * ReadFile() and WriteFile(). You may also find sp_blocking_read_next()
+ * useful, which reproduces the special semantics of ReadFile() with
+ * ReadIntervalTimeout and ReadTotalTimeoutMultiplier set to MAXDWORD
+ * and 0 < ReadTotalTimeoutConstant < MAXDWORD.
+ *
+ * If your program makes use of overlapped I/O to continue work while a serial
+ * operation is in progress, then you can achieve the same results using
+ * sp_nonblocking_read() and sp_nonblocking_write().
+ *
+ * Generally, overlapped I/O is combined with either waiting for completion
+ * once there is no more background work to do (using WaitForSingleObject() or
+ * WaitForMultipleObjects()), or periodically checking for completion with
+ * GetOverlappedResult(). If the aim is to start a new operation for further
+ * data once the previous one has completed, you can instead simply call the
+ * nonblocking functions again with the next data. If you need to wait for
+ * completion, use sp_wait() to determine when the port is ready to send or
+ * receive further data.
  */
 
 #ifndef LIBSERIALPORT_LIBSERIALPORT_H
