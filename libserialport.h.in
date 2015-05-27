@@ -58,8 +58,32 @@
  * For particular notes on porting existing code, see @ref Porting.
  *
  * The following subsections will help explain the principles of the API.
- * To jump directly into the detailed function documentation, see the
- * <a href="modules.html">categorised function lists</a>.
+ *
+ * Headers
+ * -------
+ *
+ * To use libserialport functions in your code, you should include the
+ * libserialport.h header, i.e. "#include <libserialport.h>".
+ *
+ * Namespace
+ * ---------
+ *
+ * All identifiers defined by the public libserialport headers use the prefix
+ * sp_ (for functions and data types) or SP_ (for macros and constants).
+ *
+ * Functions
+ * ---------
+ *
+ * The functions provided by the library are documented in detail in
+ * the following sections:
+ *
+ * - @ref Enumeration (obtaining a list of serial ports on the system)
+ * - @ref Ports (opening, closing and getting information about ports)
+ * - @ref Configuration (baud rate, parity, etc.)
+ * - @ref Signals (modem control lines, breaks, etc.)
+ * - @ref Data (reading and writing data, and buffer management)
+ * - @ref Waiting (waiting for ports to be ready, integrating with event loops)
+ * - @ref Errors (getting error and debugging information)
  *
  * Data structures
  * ---------------
