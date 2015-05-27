@@ -1457,7 +1457,11 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 		 * to avoid any issues if a short timeout is reached before
 		 * poll() is even run.
 		 */
-		if (timeout_ms && started) {
+		if (!timeout_ms) {
+			timeout_remaining_ms = -1;
+		} else if (!started) {
+			timeout_remaining_ms = timeout_ms;
+		} else {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
 				DEBUG("Wait timed out");
@@ -1467,7 +1471,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			timeout_remaining_ms = delta.tv_sec * 1000 + delta.tv_usec / 1000;
 		}
 
-		result = poll(pollfds, event_set->count, timeout_ms ? timeout_remaining_ms : -1);
+		result = poll(pollfds, event_set->count, timeout_remaining_ms);
 		started = 1;
 
 		if (result < 0) {
