@@ -201,7 +201,7 @@
  * for dealing with serial devices at the OS level; this is exposed through the
  * termios API and dates to the days when serial terminals were common. If your
  * code relies on many of these facilities you will need to adapt it, because
- * libserialport provides only a raw 8-bit channel with no special handling.
+ * libserialport provides only a raw binary channel with no special handling.
  *
  * The second relates to blocking versus non-blocking I/O behaviour. In
  * Unix-like systems this is normally specified by setting the O_NONBLOCK
