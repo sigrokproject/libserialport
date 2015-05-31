@@ -1,6 +1,7 @@
 /*
  * This file is part of the libserialport project.
  *
+ * Copyright (C) 2013 Martin Ling <martin-libserialport@earth.li>
  * Copyright (C) 2014 Aurelien Jacobs <aurel@gnuage.org>
  *
  * This program is free software: you can redistribute it and/or modify

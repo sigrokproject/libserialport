@@ -2,8 +2,8 @@
  * This file is part of the libserialport project.
  *
  * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
- * Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
- * Copyright (C) 2013 Martin Ling <martin-libserialport@earth.li>
+ * Copyright (C) 2010-2015 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2013-2015 Martin Ling <martin-libserialport@earth.li>
  * Copyright (C) 2013 Matthias Heidbrink <m-sigrok@heidbrink.biz>
  * Copyright (C) 2014 Aurelien Jacobs <aurel@gnuage.org>
  *
