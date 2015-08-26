@@ -19,8 +19,8 @@
 ##
 
 ACLOCAL_AMFLAGS = -I autostuff
-
-AM_CPPFLAGS = -I$(top_srcdir)
+AM_LIBTOOLFLAGS = --silent
+MAKEFLAGS = --no-print-directory
 
 # Enable more compiler warnings.
 AM_CFLAGS = -std=c99 -Wall -Wextra -pedantic -Wmissing-prototypes -Wshadow
@@ -41,18 +41,14 @@ if FREEBSD
 libserialport_la_SOURCES += freebsd.c
 endif
 
-libserialport_la_LIBADD = $(LIBOBJS)
-if WIN32
-libserialport_la_LIBADD += $(SP_LIBS)
-endif
+libserialport_la_LIBADD = $(SP_LIBS)
 
-libserialport_la_LDFLAGS = $(SP_LIB_LDFLAGS) -no-undefined
+libserialport_la_LDFLAGS = -version-info $(SP_LIB_VERSION) -no-undefined
 if MACOSX
 libserialport_la_LDFLAGS += -framework IOKit -framework CoreFoundation
 endif
 
-library_includedir = $(includedir)
-library_include_HEADERS = libserialport.h
+nodist_include_HEADERS = libserialport.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libserialport.pc
@@ -61,11 +57,12 @@ EXTRA_DIST = Doxyfile
 
 MAINTAINERCLEANFILES = ChangeLog
 
-.PHONY: ChangeLog
+.PHONY: ChangeLog doc
+
 ChangeLog:
 	git --git-dir $(top_srcdir)/.git log > ChangeLog || touch ChangeLog
 
 dist-hook: ChangeLog
 
-doc: $(library_include_HEADERS) $(top_srcdir)/Doxyfile
+doc: $(nodist_include_HEADERS) $(top_srcdir)/Doxyfile
 	doxygen $(top_srcdir)/Doxyfile

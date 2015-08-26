@@ -39,7 +39,7 @@
 
 SP_PRIV unsigned long get_termios_get_ioctl(void)
 {
-#ifdef HAVE_TERMIOS2
+#ifdef HAVE_STRUCT_TERMIOS2
 	return TCGETS2;
 #else
 	return TCGETS;
@@ -48,7 +48,7 @@ SP_PRIV unsigned long get_termios_get_ioctl(void)
 
 SP_PRIV unsigned long get_termios_set_ioctl(void)
 {
-#ifdef HAVE_TERMIOS2
+#ifdef HAVE_STRUCT_TERMIOS2
 	return TCSETS2;
 #else
 	return TCSETS;
@@ -57,17 +57,17 @@ SP_PRIV unsigned long get_termios_set_ioctl(void)
 
 SP_PRIV size_t get_termios_size(void)
 {
-#ifdef HAVE_TERMIOS2
+#ifdef HAVE_STRUCT_TERMIOS2
 	return sizeof(struct termios2);
 #else
 	return sizeof(struct termios);
 #endif
 }
 
-#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && defined(HAVE_BOTHER)
+#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && defined(HAVE_DECL_BOTHER)
 SP_PRIV int get_termios_speed(void *data)
 {
-#ifdef HAVE_TERMIOS2
+#ifdef HAVE_STRUCT_TERMIOS2
 	struct termios2 *term = (struct termios2 *) data;
 #else
 	struct termios *term = (struct termios *) data;
@@ -80,7 +80,7 @@ SP_PRIV int get_termios_speed(void *data)
 
 SP_PRIV void set_termios_speed(void *data, int speed)
 {
-#ifdef HAVE_TERMIOS2
+#ifdef HAVE_STRUCT_TERMIOS2
 	struct termios2 *term = (struct termios2 *) data;
 #else
 	struct termios *term = (struct termios *) data;
@@ -91,7 +91,7 @@ SP_PRIV void set_termios_speed(void *data, int speed)
 }
 #endif
 
-#ifdef HAVE_TERMIOX
+#ifdef HAVE_STRUCT_TERMIOX
 SP_PRIV size_t get_termiox_size(void)
 {
 	return sizeof(struct termiox);

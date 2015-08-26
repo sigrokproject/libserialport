@@ -1603,32 +1603,32 @@ void sp_default_debug_handler(const char *format, ...);
  */
 
 /** The libserialport package 'major' version number. */
-#define SP_PACKAGE_VERSION_MAJOR @SP_PACKAGE_VERSION_MAJOR@
+#undef SP_PACKAGE_VERSION_MAJOR
 
 /** The libserialport package 'minor' version number. */
-#define SP_PACKAGE_VERSION_MINOR @SP_PACKAGE_VERSION_MINOR@
+#undef SP_PACKAGE_VERSION_MINOR
 
 /** The libserialport package 'micro' version number. */
-#define SP_PACKAGE_VERSION_MICRO @SP_PACKAGE_VERSION_MICRO@
+#undef SP_PACKAGE_VERSION_MICRO
 
 /** The libserialport package version ("major.minor.micro") as string. */
-#define SP_PACKAGE_VERSION_STRING "@SP_PACKAGE_VERSION@"
+#undef SP_PACKAGE_VERSION_STRING
 
 /*
  * Library/libtool version macros (can be used for conditional compilation).
  */
 
 /** The libserialport libtool 'current' version number. */
-#define SP_LIB_VERSION_CURRENT @SP_LIB_VERSION_CURRENT@
+#undef SP_LIB_VERSION_CURRENT
 
 /** The libserialport libtool 'revision' version number. */
-#define SP_LIB_VERSION_REVISION @SP_LIB_VERSION_REVISION@
+#undef SP_LIB_VERSION_REVISION
 
 /** The libserialport libtool 'age' version number. */
-#define SP_LIB_VERSION_AGE @SP_LIB_VERSION_AGE@
+#undef SP_LIB_VERSION_AGE
 
 /** The libserialport libtool version ("current:revision:age") as string. */
-#define SP_LIB_VERSION_STRING "@SP_LIB_VERSION@"
+#undef SP_LIB_VERSION_STRING
 
 /**
  * Get the major libserialport package version number.

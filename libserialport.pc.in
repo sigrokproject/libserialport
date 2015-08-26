@@ -7,7 +7,7 @@ Name: libserialport
 Description: Cross-platform serial port access library.
 URL: http://sigrok.org/wiki/Libserialport
 Requires.private:
-Version: @VERSION@
+Version: @SP_PACKAGE_VERSION@
 Libs: -L${libdir} -lserialport
 Libs.private: @SP_LIBS@
 Cflags: -I${includedir}

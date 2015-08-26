@@ -178,7 +178,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
 	char name[PATH_MAX], target[PATH_MAX];
 	struct dirent entry, *result;
-#ifdef HAVE_SERIAL_STRUCT
+#ifdef HAVE_STRUCT_SERIAL_STRUCT
 	struct serial_struct serial_info;
 	int ioctl_result;
 #endif
@@ -218,11 +218,11 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 				DEBUG("Open failed, skipping");
 				continue;
 			}
-#ifdef HAVE_SERIAL_STRUCT
+#ifdef HAVE_STRUCT_SERIAL_STRUCT
 			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
 #endif
 			close(fd);
-#ifdef HAVE_SERIAL_STRUCT
+#ifdef HAVE_STRUCT_SERIAL_STRUCT
 			if (ioctl_result != 0) {
 				DEBUG("ioctl failed, skipping");
 				continue;

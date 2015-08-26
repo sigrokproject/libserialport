@@ -21,7 +21,7 @@
 #ifndef LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 #define LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 
-#include "config.h"
+#include <config.h>
 
 #ifdef __linux__
 #define _BSD_SOURCE /* For timeradd, timersub, timercmp. */
@@ -69,7 +69,7 @@
 #include "linux_termios.h"
 
 /* TCGETX/TCSETX is not available everywhere. */
-#if defined(TCGETX) && defined(TCSETX) && defined(HAVE_TERMIOX)
+#if defined(TCGETX) && defined(TCSETX) && defined(HAVE_STRUCT_TERMIOX)
 #define USE_TERMIOX
 #endif
 #endif
@@ -83,7 +83,7 @@
 #endif
 
 /* Non-standard baudrates are not available everywhere. */
-#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && defined(HAVE_BOTHER)
+#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && defined(HAVE_DECL_BOTHER)
 #define USE_TERMIOS_SPEED
 #endif
 
