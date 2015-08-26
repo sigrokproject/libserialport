@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 ##
 ## This file is part of the libserialport project.
 ##
@@ -19,31 +19,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-OS=`uname`
+test -n "$srcdir" || srcdir=`dirname "$0"`
+test -n "$srcdir" || srcdir=.
 
-LIBTOOLIZE=libtoolize
-
-if [ "x$OS" = "xDarwin" ]; then
-	LIBTOOLIZE=glibtoolize
-	if [ -d /sw/share/aclocal ]; then
-		# fink installs aclocal macros here
-		ACLOCAL_DIR="-I /sw/share/aclocal"
-	elif [ -d /opt/local/share/aclocal ]; then
-		# Macports installs aclocal macros here
-		ACLOCAL_DIR="-I /opt/local/share/aclocal"
-	elif [ -d /usr/local/share/aclocal ]; then
-		# Homebrew installs aclocal macros here
-		ACLOCAL_DIR="-I /usr/local/share/aclocal"
-	elif [ -d /usr/share/aclocal ]; then
-		# Xcode installs aclocal macros here
-		ACLOCAL_DIR="-I /usr/share/aclocal"
-	fi
-fi
-
-echo "Generating build system..."
-${LIBTOOLIZE} --install --copy --quiet || exit 1
-aclocal ${ACLOCAL_DIR} || exit 1
-autoheader || exit 1
-automake --add-missing --copy || exit 1
-autoconf || exit 1
-
+autoreconf --force --install --verbose "$srcdir"
