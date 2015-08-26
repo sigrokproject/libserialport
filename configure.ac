@@ -95,6 +95,8 @@ AS_CASE([$host_os], [linux*|darwin*|mingw*|cygwin*|freebsd*],, [
 	AC_DEFINE([NO_PORT_METADATA], [1], [Port metadata is unavailable.])
 ])
 
+AC_SYS_LARGEFILE
+
 # Define size_t if not defined as standard.
 AC_TYPE_SIZE_T
 
