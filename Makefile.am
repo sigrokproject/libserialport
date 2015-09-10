@@ -20,7 +20,7 @@
 
 ACLOCAL_AMFLAGS = -I autostuff
 AM_LIBTOOLFLAGS = --silent
-MAKEFLAGS = --no-print-directory
+GNUMAKEFLAGS = --no-print-directory
 
 # Enable more compiler warnings.
 AM_CFLAGS = -std=c99 -Wall -Wextra -pedantic -Wmissing-prototypes -Wshadow
@@ -60,7 +60,7 @@ MAINTAINERCLEANFILES = ChangeLog
 .PHONY: ChangeLog doc
 
 ChangeLog:
-	git --git-dir $(top_srcdir)/.git log > ChangeLog || touch ChangeLog
+	git --git-dir '$(top_srcdir)/.git' log >$@ || touch $@
 
 dist-hook: ChangeLog
 
