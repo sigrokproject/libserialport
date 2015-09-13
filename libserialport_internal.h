@@ -21,7 +21,6 @@
 #ifndef LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 #define LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 
-#include <config.h>
 
 #ifdef __linux__
 #define _BSD_SOURCE /* For timeradd, timersub, timercmp. */

@@ -33,16 +33,11 @@ AC_CONFIG_HEADERS([config.h libserialport.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
-AH_TOP([#ifndef SP_CONFIG_H
-#define SP_CONFIG_H])
-
 AH_BOTTOM([#if HAVE_STRUCT_TERMIOS_C_ISPEED && HAVE_STRUCT_TERMIOS_C_OSPEED
 # define HAVE_TERMIOS_SPEED 1
 #endif
 #if HAVE_STRUCT_TERMIOS2_C_ISPEED && HAVE_STRUCT_TERMIOS2_C_OSPEED
 # define HAVE_TERMIOS2_SPEED 1
-#endif
-
 #endif])
 
 # We require at least automake 1.11 (needed for 'silent rules').
