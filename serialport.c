@@ -1421,7 +1421,9 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 	RETURN_OK();
 #else
 	struct timeval start, delta, now, end = {0, 0};
-	int started = 0;
+	const struct timeval max_delta = {
+		(INT_MAX / 1000), (INT_MAX % 1000) * 1000};
+	int started = 0, timeout_overflow = 0;
 	int result, timeout_remaining_ms;
 	struct pollfd *pollfds;
 	unsigned int i;
@@ -1461,7 +1463,8 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 		if (!timeout_ms) {
 			timeout_remaining_ms = -1;
 		} else if (!started) {
-			timeout_remaining_ms = timeout_ms;
+			timeout_overflow = (timeout_ms > INT_MAX);
+			timeout_remaining_ms = timeout_overflow ? INT_MAX : timeout_ms;
 		} else {
 			gettimeofday(&now, NULL);
 			if (timercmp(&now, &end, >)) {
@@ -1469,6 +1472,8 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 				break;
 			}
 			timersub(&end, &now, &delta);
+			if ((timeout_overflow = timercmp(&delta, &max_delta, >)))
+				delta = max_delta;
 			timeout_remaining_ms = delta.tv_sec * 1000 + delta.tv_usec / 1000;
 		}
 
@@ -1485,7 +1490,8 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			}
 		} else if (result == 0) {
 			DEBUG("poll() timed out");
-			break;
+			if (!timeout_overflow)
+				break;
 		} else {
 			DEBUG("poll() completed");
 			break;

@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <limits.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
