@@ -1234,10 +1234,11 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 
 	/* Do read. */
 	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl) == 0)
-		RETURN_FAIL("ReadFile() failed");
+		if (GetLastError() != ERROR_IO_PENDING)
+			RETURN_FAIL("ReadFile() failed");
 
 	/* Get number of bytes read. */
-	if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
+	if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, FALSE) == 0)
 		RETURN_FAIL("GetOverlappedResult() failed");
 
 	TRY(restart_wait_if_needed(port, bytes_read));
