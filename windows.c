@@ -26,7 +26,7 @@
 #define MAX_USB_PATH ((8 * 3) + (7 * 1) + 1)
 
 static void enumerate_hub(struct sp_port *port, const char *hub_name,
-                          const char *parent_path);
+                          const char *parent_path, DEVINST dev_inst);
 
 static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 {
@@ -149,7 +149,7 @@ static char *get_string_descriptor(HANDLE hub_device, ULONG connection_index,
 }
 
 static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
-                                ULONG nb_ports, const char *parent_path)
+                                ULONG nb_ports, const char *parent_path, DEVINST dev_inst)
 {
 	char path[MAX_USB_PATH];
 	ULONG index = 0;
@@ -200,7 +200,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 			if ((ext_hub_name = get_external_hub_name(hub_device, index))) {
 				snprintf(path, sizeof(path), "%s%ld.",
 				         parent_path, connection_info_ex->ConnectionIndex);
-				enumerate_hub(port, ext_hub_name, path);
+				enumerate_hub(port, ext_hub_name, path, dev_inst);
 			}
 			free(connection_info_ex);
 		} else {
@@ -224,9 +224,18 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 			if (connection_info_ex->DeviceDescriptor.iProduct)
 				port->usb_product = get_string_descriptor(hub_device, index,
 				           connection_info_ex->DeviceDescriptor.iProduct);
-			if (connection_info_ex->DeviceDescriptor.iSerialNumber)
+			if (connection_info_ex->DeviceDescriptor.iSerialNumber) {
 				port->usb_serial = get_string_descriptor(hub_device, index,
 				           connection_info_ex->DeviceDescriptor.iSerialNumber);
+				if (port->usb_serial == NULL) {
+					//composite device, get the parent's serial number
+					char device_id[MAX_DEVICE_ID_LEN];
+					if (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS) {
+						if (CM_Get_Device_IDA(dev_inst, device_id, sizeof(device_id), 0) == CR_SUCCESS)
+							port->usb_serial = strdup(strrchr(device_id, '\\')+1);
+					}
+				}
+			}
 
 			free(connection_info_ex);
 			break;
@@ -235,7 +244,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 }
 
 static void enumerate_hub(struct sp_port *port, const char *hub_name,
-                          const char *parent_path)
+                          const char *parent_path, DEVINST dev_inst)
 {
 	USB_NODE_INFORMATION hub_info;
 	HANDLE hub_device;
@@ -258,18 +267,19 @@ static void enumerate_hub(struct sp_port *port, const char *hub_name,
 	                    &hub_info, size, &hub_info, size, &size, NULL))
 		/* Enumerate the ports of the hub. */
 		enumerate_hub_ports(port, hub_device,
-		   hub_info.u.HubInformation.HubDescriptor.bNumberOfPorts, parent_path);
+		   hub_info.u.HubInformation.HubDescriptor.bNumberOfPorts, parent_path, dev_inst);
 
 	CloseHandle(hub_device);
 }
 
 static void enumerate_host_controller(struct sp_port *port,
-                                      HANDLE host_controller_device)
+                                      HANDLE host_controller_device,
+                                      DEVINST dev_inst)
 {
 	char *root_hub_name;
 
 	if ((root_hub_name = get_root_hub_name(host_controller_device))) {
-		enumerate_hub(port, root_hub_name, "");
+		enumerate_hub(port, root_hub_name, "", dev_inst);
 		free(root_hub_name);
 	}
 }
@@ -324,7 +334,7 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 		                                    GENERIC_WRITE, FILE_SHARE_WRITE,
 		                                    NULL, OPEN_EXISTING, 0, NULL);
 		if (host_controller_device != INVALID_HANDLE_VALUE) {
-			enumerate_host_controller(port, host_controller_device);
+			enumerate_host_controller(port, host_controller_device, dev_inst_match);
 			CloseHandle(host_controller_device);
 		}
 		free(device_detail_data);
