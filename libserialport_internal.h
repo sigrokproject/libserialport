@@ -23,7 +23,9 @@
 
 
 #ifdef __linux__
-#define _BSD_SOURCE /* For timeradd, timersub, timercmp. */
+/* For timeradd, timersub, timercmp. */
+#define _BSD_SOURCE 1 /* for glibc < 2.19 */
+#define _DEFAULT_SOURCE 1 /* for glibc >= 2.20 */
 #endif
 
 #include <string.h>
