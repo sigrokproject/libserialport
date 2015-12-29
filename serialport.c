@@ -389,12 +389,12 @@ SP_API void sp_free_port_list(struct sp_port **list)
 #ifdef _WIN32
 #define CHECK_PORT_HANDLE() do { \
 	if (port->hdl == INVALID_HANDLE_VALUE) \
-		RETURN_ERROR(SP_ERR_ARG, "Invalid port handle"); \
+		RETURN_ERROR(SP_ERR_ARG, "Port not open"); \
 } while (0)
 #else
 #define CHECK_PORT_HANDLE() do { \
 	if (port->fd < 0) \
-		RETURN_ERROR(SP_ERR_ARG, "Invalid port fd"); \
+		RETURN_ERROR(SP_ERR_ARG, "Port not open"); \
 } while (0)
 #endif
 #define CHECK_OPEN_PORT() do { \
