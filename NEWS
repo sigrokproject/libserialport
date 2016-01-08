@@ -1,4 +1,4 @@
-0.1.1 (2015-xx-yy)
+0.1.1 (2016-01-27)
 ------------------
 
 Note: This release does NOT change the libserialport API or ABI in
@@ -22,17 +22,23 @@ Note: This release does NOT change the libserialport API or ABI in
      SP_TRANSPORT_NATIVE, SP_TRANSPORT_USB, SP_TRANSPORT_BLUETOOTH.
  * Fix the build on platforms where port enumeration and/or port
    metadata is not available or implemented.
- * Build system: Don't set/override "user variables" such as CFLAGS or
-   LDFLAGS, since those are meant to be controlled by the "user" (bug #577).
+ * Build system:
+   - Don't set/override "user variables" such as CFLAGS or LDFLAGS, since
+     those are meant to be controlled by the "user" (bug #577).
+   - Modernize and cleanup autotools setup.
  * Remove trailing commas in libserialport.h enum definitions to allow
    the code to build with the -pedantic compiler option.
  * Fix various issues to allow successful builds with -std=c99.
  * Fix various (non-fatal) compiler warnings.
  * Fix various memory leaks (bug #419, among others).
+ * Fix a potential overflow of the timeout parameter of poll().
+ * Fix ReadFile() ERROR_IO_PENDING in sp_nonblocking_read() (bug #707).
+ * Fix a glibc >= 2.20 compiler warning for deprecated _BSD_SOURCE (bug #716).
  * Rename a 'signals' parameter to 'signal_mask' to avoid a conflict with Qt.
  * Fix two potential segfaults in sp_get_port_handle() and sp_get_config_*()
    (which only occurred if the user incorrectly passed in a NULL argument).
  * sp_list_ports(): Actually set list_ptr NULL as documented.
+ * Use "Port not open" debug message when a closed port is used (bug #710).
  * Linux:
    - The libudev requirement has been dropped (/sys is now used directly).
    - Fix a build issue in the get_termios_get_ioctl() call (bug #396).
@@ -52,14 +58,20 @@ Note: This release does NOT change the libserialport API or ABI in
    - Fix a bug wrt the SetupDiOpenDevRegKey() return code (bug #499).
    - Fix a bug wrt restart of RX/error wait operations after read (bug #421).
    - Fix a bug wrt WaitCommEvents() and/or fAbortOnError handling (bug #341).
+   - Fix USB iSerial queries on USB composite devices.
    - Strip CR/LF from end of system error messages (bug #585).
    - Avoid unnecessary calls to the SetCommTimeouts() function (bug #586).
+   - Fix a bug in the Windows implementation of sp_blocking_read_next().
+   - Fix an ERROR_SEM_TIMEOUT related issue in sp_blocking_write().
  * FreeBSD:
    - Implement serial port enumeration for FreeBSD systems.
  * Android:
    - Fix a portability issue wrt the unavailable 'serial_struct' (bug #376).
    - Fix a portability issue wrt a readlinkat() call (bug #377).
+ * Mac OS X:
+   - Fix port listing on Mac OS X 10.11 (El Capitan).
  * README: Various documentation updates and fixes.
+ * AUTHORS: Add/update list of contributors.
  * Doxygen API docs: Various documentation updates and fixes.
 
 0.1.0 (2014-05-06)
