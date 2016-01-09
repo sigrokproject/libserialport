@@ -63,9 +63,9 @@ AC_SUBST([SP_PACKAGE_VERSION], [sp_package_version])
 # Carefully read the libtool docs before updating these numbers!
 # The algorithm for determining which number to change (and how) is nontrivial!
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
-SP_LIB_VERSION_CURRENT=0
+SP_LIB_VERSION_CURRENT=1
 SP_LIB_VERSION_REVISION=0
-SP_LIB_VERSION_AGE=0
+SP_LIB_VERSION_AGE=1
 AC_SUBST([SP_LIB_VERSION],
 	["$SP_LIB_VERSION_CURRENT:$SP_LIB_VERSION_REVISION:$SP_LIB_VERSION_AGE"])
 
