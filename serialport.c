@@ -1112,9 +1112,8 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 	/* Loop until we have at least one byte, or timeout is reached. */
 	while (bytes_read == 0) {
 		/* Start read. */
-		if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl)) {
+		if (ReadFile(port->hdl, buf, count, &bytes_read, &port->read_ovl)) {
 			DEBUG("Read completed immediately");
-			bytes_read = count;
 		} else if (GetLastError() == ERROR_IO_PENDING) {
 			DEBUG("Waiting for read to complete");
 			if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
