@@ -764,8 +764,14 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		RETURN_INT(count);
 	} else if (GetLastError() == ERROR_IO_PENDING) {
 		DEBUG("Waiting for write to complete");
-		if (GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE) == 0)
-			RETURN_FAIL("GetOverlappedResult() failed");
+		if (GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE) == 0) {
+			if (GetLastError() == ERROR_SEM_TIMEOUT) {
+				DEBUG("Write timed out");
+				RETURN_INT(0);
+			} else {
+				RETURN_FAIL("GetOverlappedResult() failed");
+			}
+		}
 		DEBUG_FMT("Write completed, %d/%d bytes written", bytes_written, count);
 		RETURN_INT(bytes_written);
 	} else {
