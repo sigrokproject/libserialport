@@ -236,7 +236,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		}
 		DEBUG_FMT("Found port %s", name);
 		*list = list_append(*list, name);
-		if (!list) {
+		if (!*list) {
 			SET_ERROR(ret, SP_ERR_MEM, "List append failed");
 			break;
 		}
