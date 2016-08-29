@@ -74,7 +74,7 @@ AC_DEFINE_UNQUOTED([SP_LIB_VERSION_REVISION], [$SP_LIB_VERSION_REVISION], [.])
 AC_DEFINE_UNQUOTED([SP_LIB_VERSION_AGE], [$SP_LIB_VERSION_AGE], [.])
 AC_DEFINE_UNQUOTED([SP_LIB_VERSION_STRING], ["$SP_LIB_VERSION"], [.])
 
-AM_CONDITIONAL([LINUX], [test -z "${host_os##linux*}"])
+AM_CONDITIONAL([LINUX], [test -z "${host_os##linux*}" || test -z "${host_os##uclinux*}"])
 AM_CONDITIONAL([WIN32], [test -z "${host_os##mingw*}" || test -z "${host_os##cygwin*}"])
 AM_CONDITIONAL([MACOSX], [test -z "${host_os##darwin*}"])
 AM_CONDITIONAL([FREEBSD], [test -z "${host_os##freebsd*}"])
