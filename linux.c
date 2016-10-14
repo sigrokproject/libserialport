@@ -178,12 +178,12 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
 	char name[PATH_MAX], target[PATH_MAX];
-	struct dirent entry, *result;
+	struct dirent *entry;
 #ifdef HAVE_STRUCT_SERIAL_STRUCT
 	struct serial_struct serial_info;
 	int ioctl_result;
 #endif
-	char buf[sizeof(entry.d_name) + 23];
+	char buf[sizeof(entry->d_name) + 23];
 	int len, fd;
 	DIR *dir;
 	int ret = SP_OK;
@@ -194,19 +194,19 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		RETURN_FAIL("Could not open /sys/class/tty");
 
 	DEBUG("Iterating over results");
-	while (!readdir_r(dir, &entry, &result) && result) {
-		snprintf(buf, sizeof(buf), "/sys/class/tty/%s", entry.d_name);
+	while ((entry = readdir(dir))) {
+		snprintf(buf, sizeof(buf), "/sys/class/tty/%s", entry->d_name);
 		if (lstat(buf, &statbuf) == -1)
 			continue;
 		if (!S_ISLNK(statbuf.st_mode))
-			snprintf(buf, sizeof(buf), "/sys/class/tty/%s/device", entry.d_name);
+			snprintf(buf, sizeof(buf), "/sys/class/tty/%s/device", entry->d_name);
 		len = readlink(buf, target, sizeof(target));
 		if (len <= 0 || len >= (int)(sizeof(target) - 1))
 			continue;
 		target[len] = 0;
 		if (strstr(target, "virtual"))
 			continue;
-		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
+		snprintf(name, sizeof(name), "/dev/%s", entry->d_name);
 		DEBUG_FMT("Found device %s", name);
 		if (strstr(target, "serial8250")) {
 			/*

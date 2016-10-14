@@ -325,8 +325,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
 	DIR *dir;
-	struct dirent entry;
-	struct dirent *result;
+	struct dirent *entry;
 	struct termios tios;
 	char name[PATH_MAX];
 	int fd, ret;
@@ -336,20 +335,20 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		RETURN_FAIL("Could not open dir /dev");
 
 	DEBUG("Iterating over results");
-	while (!readdir_r(dir, &entry, &result) && result) {
+	while ((entry = readdir(dir))) {
 		ret = SP_OK;
-		if (entry.d_type != DT_CHR)
+		if (entry->d_type != DT_CHR)
 			continue;
-		if (strncmp(entry.d_name, "cuaU", 4) != 0)
-			if (strncmp(entry.d_name, "cuau", 4) != 0)
-				if (strncmp(entry.d_name, "cuad", 4) != 0)
+		if (strncmp(entry->d_name, "cuaU", 4) != 0)
+			if (strncmp(entry->d_name, "cuau", 4) != 0)
+				if (strncmp(entry->d_name, "cuad", 4) != 0)
 					continue;
-		if (strend(entry.d_name, ".init"))
+		if (strend(entry->d_name, ".init"))
 			continue;
-		if (strend(entry.d_name, ".lock"))
+		if (strend(entry->d_name, ".lock"))
 			continue;
 
-		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
+		snprintf(name, sizeof(name), "/dev/%s", entry->d_name);
 		DEBUG_FMT("Found device %s", name);
 
 		/* Check that we can open tty/cua device in rw mode - we need that. */
@@ -370,7 +369,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			continue;
 
 		DEBUG_FMT("Found port %s", name);
-		DBG("%s: %s\n", __func__, entry.d_name);
+		DBG("%s: %s\n", __func__, entry->d_name);
 
 		*list = list_append(*list, name);
 		if (!*list) {
