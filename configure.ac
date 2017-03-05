@@ -138,10 +138,10 @@ cat >&AS_MESSAGE_FD <<_EOF
 
 libserialport configuration summary:
 
- - Package version (major.minor.micro):    $SP_PACKAGE_VERSION
- - Library version (current:revision:age): $SP_LIB_VERSION
- - Prefix: $prefix
- - Building on:  $build
- - Building for: $host
+ - Package version................. $SP_PACKAGE_VERSION
+ - Library ABI version............. $SP_LIB_VERSION
+ - Prefix.......................... $prefix
+ - Building on..................... $build
+ - Building for.................... $host
 
 _EOF
