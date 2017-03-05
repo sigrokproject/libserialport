@@ -143,5 +143,6 @@ libserialport configuration summary:
  - Prefix.......................... $prefix
  - Building on..................... $build
  - Building for.................... $host
+ - Building shared / static........ $enable_shared / $enable_static
 
 _EOF
