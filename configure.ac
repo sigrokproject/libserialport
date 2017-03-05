@@ -50,6 +50,19 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
+## SP_PROG_VERSION(program, sh-var)
+## Obtain the version of <program> and store it in <sh-var>.
+AC_DEFUN([SP_PROG_VERSION],
+[dnl
+m4_assert([$# >= 2])[]dnl
+sp_prog_ver=`$1 --version 2>&AS_MESSAGE_LOG_FD | sed 1q 2>&AS_MESSAGE_LOG_FD`
+AS_CASE([[$]?:$sp_prog_ver],
+        [[0:*[0-9].[0-9]*]], [$2=$sp_prog_ver],
+        [$2=unknown])[]dnl
+])
+
+SP_PROG_VERSION([$CC], [sp_cc_version])
+
 # Initialize libtool.
 LT_INIT
 
@@ -144,5 +157,11 @@ libserialport configuration summary:
  - Building on..................... $build
  - Building for.................... $host
  - Building shared / static........ $enable_shared / $enable_static
+
+Compile configuration:
+ - C compiler...................... $CC
+ - C compiler version.............. $sp_cc_version
+ - C compiler flags................ $CFLAGS
+ - Linker flags.................... $LDFLAGS
 
 _EOF
