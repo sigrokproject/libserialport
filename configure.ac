@@ -126,6 +126,9 @@ AC_CHECK_DECLS([BOTHER],,, [[#include <linux/termios.h>]])
 # Check for serial_struct.
 AC_CHECK_TYPES([struct serial_struct],,, [[#include <linux/serial.h>]])
 
+# Check for realpath().
+AC_CHECK_FUNC([realpath], [AC_DEFINE(HAVE_REALPATH, 1, [realpath is available.])], [])
+
 AC_CACHE_CHECK([for visibility control], [sp_cv_visibility_control], [
 	sp_saved_CFLAGS=$CFLAGS
 	CFLAGS="$CFLAGS -Werror"

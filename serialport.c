@@ -75,6 +75,20 @@ SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port *
 
 	DEBUG_FMT("Building structure for port %s", portname);
 
+#if !defined(_WIN32) && defined(HAVE_REALPATH)
+	/*
+	 * get_port_details() below tries to be too smart and figure out
+	 * some transport properties from the port name which breaks with
+	 * symlinks. Therefore we canonicalize the portname first.
+	 */
+	char pathbuf[PATH_MAX + 1];
+	char *res = realpath(portname, pathbuf);
+	if (!res)
+		RETURN_ERROR(SP_ERR_ARG, "Could not retrieve realpath behind port name");
+
+	portname = pathbuf;
+#endif
+
 	if (!(port = malloc(sizeof(struct sp_port))))
 		RETURN_ERROR(SP_ERR_MEM, "Port structure malloc failed");
 
