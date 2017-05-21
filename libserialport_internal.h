@@ -37,7 +37,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <limits.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
@@ -53,7 +52,6 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include <limits.h>
 #include <poll.h>
 #endif
 #ifdef __APPLE__
