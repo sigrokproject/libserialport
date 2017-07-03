@@ -1881,6 +1881,9 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	DEBUG_FMT("Setting configuration for port %s", port->name);
 
 #ifdef _WIN32
+
+	TRY(await_write_completion(port));
+
 	if (config->baudrate >= 0) {
 		for (i = 0; i < NUM_STD_BAUDRATES; i++) {
 			if (config->baudrate == std_baudrates[i].value) {
