@@ -104,6 +104,8 @@ SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port *
 #ifdef _WIN32
 	port->usb_path = NULL;
 	port->hdl = INVALID_HANDLE_VALUE;
+	port->write_buf = NULL;
+	port->write_buf_size = 0;
 #else
 	port->fd = -1;
 #endif
@@ -310,6 +312,8 @@ SP_API void sp_free_port(struct sp_port *port)
 #ifdef _WIN32
 	if (port->usb_path)
 		free(port->usb_path);
+	if (port->write_buf)
+		free(port->write_buf);
 #endif
 
 	free(port);
@@ -643,6 +647,10 @@ SP_API enum sp_return sp_close(struct sp_port *port)
 	CLOSE_OVERLAPPED(write_ovl);
 	CLOSE_OVERLAPPED(wait_ovl);
 
+	if (port->write_buf) {
+		free(port->write_buf);
+		port->write_buf = NULL;
+	}
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	if (close(port->fd) == -1)
@@ -892,8 +900,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 		RETURN_INT(0);
 
 #ifdef _WIN32
-	DWORD written = 0;
-	BYTE *ptr = (BYTE *) buf;
+	DWORD buf_bytes;
 
 	/* Check whether previous write is complete. */
 	if (port->writing) {
@@ -914,40 +921,26 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 			RETURN_FAIL("SetCommTimeouts() failed");
 	}
 
-	/*
-	 * Keep writing data until the OS has to actually start an async IO
-	 * for it. At that point we know the buffer is full.
-	 */
-	while (written < count) {
-		/* Copy first byte of user buffer. */
-		port->pending_byte = *ptr++;
+	/* Copy data to our write buffer. */
+	buf_bytes = min(port->write_buf_size, count);
+	memcpy(port->write_buf, buf, buf_bytes);
 
-		/* Start asynchronous write. */
-		if (WriteFile(port->hdl, &port->pending_byte, 1, NULL, &port->write_ovl) == 0) {
-			if (GetLastError() == ERROR_IO_PENDING) {
-				if (HasOverlappedIoCompleted(&port->write_ovl)) {
-					DEBUG("Asynchronous write completed immediately");
-					port->writing = 0;
-					written++;
-					continue;
-				} else {
-					DEBUG("Asynchronous write running");
-					port->writing = 1;
-					RETURN_INT(++written);
-				}
-			} else {
-				/* Actual failure of some kind. */
-				RETURN_FAIL("WriteFile() failed");
-			}
+	/* Start asynchronous write. */
+	if (WriteFile(port->hdl, port->write_buf, buf_bytes, NULL, &port->write_ovl) == 0) {
+		if (GetLastError() == ERROR_IO_PENDING) {
+			if ((port->writing = !HasOverlappedIoCompleted(&port->write_ovl)))
+				DEBUG("Asynchronous write completed immediately");
+			else
+				DEBUG("Asynchronous write running");
 		} else {
-			DEBUG("Single byte written immediately");
-			written++;
+			/* Actual failure of some kind. */
+			RETURN_FAIL("WriteFile() failed");
 		}
 	}
 
 	DEBUG("All bytes written immediately");
 
-	RETURN_INT(written);
+	RETURN_INT(buf_bytes);
 #else
 	/* Returns the number of bytes written, or -1 upon failure. */
 	ssize_t written = write(port->fd, buf, count);
@@ -1894,6 +1887,14 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 		if (i == NUM_STD_BAUDRATES)
 			data->dcb.BaudRate = config->baudrate;
+
+		/* Allocate write buffer for 50ms of data at baud rate. */
+		port->write_buf_size = max(config->baudrate / (8 * 20), 1);
+		port->write_buf = realloc(port->write_buf,
+					  port->write_buf_size);
+
+		if (!port->write_buf)
+			RETURN_ERROR(SP_ERR_MEM, "Allocating write buffer failed");
 	}
 
 	if (config->bits >= 0)
