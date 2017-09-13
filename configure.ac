@@ -95,6 +95,9 @@ AM_CONDITIONAL([FREEBSD], [test -z "${host_os##freebsd*}"])
 AM_COND_IF([WIN32], [SP_LIBS='-lsetupapi'], [SP_LIBS=])
 AC_SUBST([SP_LIBS])
 
+AM_COND_IF([FREEBSD], [SP_PKGLIBS='libusb-2.0'], [SP_PKGLIBS=])
+AC_SUBST([SP_PKGLIBS])
+
 AM_COND_IF([MACOSX], [AC_CHECK_HEADER([IOKit/IOKitLib.h], [],
 	[AC_MSG_ERROR([IOKit/IOKitLib.h not found])])])
 
