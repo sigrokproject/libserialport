@@ -563,7 +563,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		RETURN_CODEVAL(ret);
 	}
 #else
-	int flags_local = O_NONBLOCK | O_NOCTTY;
+	int flags_local = O_NONBLOCK | O_NOCTTY | O_CLOEXEC;
 
 	/* Map 'flags' to the OS-specific settings. */
 	if ((flags & SP_MODE_READ_WRITE) == SP_MODE_READ_WRITE)

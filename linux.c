@@ -22,6 +22,18 @@
 #include "libserialport.h"
 #include "libserialport_internal.h"
 
+/*
+ * The 'e' modifier for O_CLOEXEC is glibc >= 2.7 only, hence not
+ * portable, so provide an own wrapper for this functionality.
+ */
+static FILE *fopen_cloexec_rdonly(const char *pathname)
+{
+	int fd;
+	if ((fd = open(pathname, O_RDONLY | O_CLOEXEC)) < 0)
+		return NULL;
+	return fdopen(fd, "r");
+}
+
 SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 {
 	/*
@@ -62,7 +74,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			strcat(sub_dir, "../");
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "busnum");
-			if (!(file = fopen(file_name, "r")))
+			if (!(file = fopen_cloexec_rdonly(file_name)))
 				continue;
 			count = fscanf(file, "%d", &bus);
 			fclose(file);
@@ -70,7 +82,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 				continue;
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "devnum");
-			if (!(file = fopen(file_name, "r")))
+			if (!(file = fopen_cloexec_rdonly(file_name)))
 				continue;
 			count = fscanf(file, "%d", &address);
 			fclose(file);
@@ -78,7 +90,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 				continue;
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "idVendor");
-			if (!(file = fopen(file_name, "r")))
+			if (!(file = fopen_cloexec_rdonly(file_name)))
 				continue;
 			count = fscanf(file, "%4x", &vid);
 			fclose(file);
@@ -86,7 +98,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 				continue;
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "idProduct");
-			if (!(file = fopen(file_name, "r")))
+			if (!(file = fopen_cloexec_rdonly(file_name)))
 				continue;
 			count = fscanf(file, "%4x", &pid);
 			fclose(file);
@@ -99,7 +111,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			port->usb_pid = pid;
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "product");
-			if ((file = fopen(file_name, "r"))) {
+			if ((file = fopen_cloexec_rdonly(file_name))) {
 				if ((ptr = fgets(description, sizeof(description), file))) {
 					ptr = description + strlen(description) - 1;
 					if (ptr >= description && *ptr == '\n')
@@ -112,7 +124,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 				port->description = strdup(dev);
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "manufacturer");
-			if ((file = fopen(file_name, "r"))) {
+			if ((file = fopen_cloexec_rdonly(file_name))) {
 				if ((ptr = fgets(manufacturer, sizeof(manufacturer), file))) {
 					ptr = manufacturer + strlen(manufacturer) - 1;
 					if (ptr >= manufacturer && *ptr == '\n')
@@ -123,7 +135,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			}
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "product");
-			if ((file = fopen(file_name, "r"))) {
+			if ((file = fopen_cloexec_rdonly(file_name))) {
 				if ((ptr = fgets(product, sizeof(product), file))) {
 					ptr = product + strlen(product) - 1;
 					if (ptr >= product && *ptr == '\n')
@@ -134,7 +146,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			}
 
 			snprintf(file_name, sizeof(file_name), dir_name, dev, sub_dir, "serial");
-			if ((file = fopen(file_name, "r"))) {
+			if ((file = fopen_cloexec_rdonly(file_name))) {
 				if ((ptr = fgets(serial, sizeof(serial), file))) {
 					ptr = serial + strlen(serial) - 1;
 					if (ptr >= serial && *ptr == '\n')
@@ -160,7 +172,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 		if (port->transport == SP_TRANSPORT_BLUETOOTH) {
 			snprintf(file_name, sizeof(file_name), dir_name, dev, "", "address");
-			if ((file = fopen(file_name, "r"))) {
+			if ((file = fopen_cloexec_rdonly(file_name))) {
 				if ((ptr = fgets(baddr, sizeof(baddr), file))) {
 					ptr = baddr + strlen(baddr) - 1;
 					if (ptr >= baddr && *ptr == '\n')
@@ -215,7 +227,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			 * is to try to open them and make an ioctl call.
 			 */
 			DEBUG("serial8250 device, attempting to open");
-			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
+			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY | O_CLOEXEC)) < 0) {
 				DEBUG("Open failed, skipping");
 				continue;
 			}

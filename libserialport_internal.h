@@ -85,6 +85,16 @@
 #define TIOCOUTQ FIONWRITE
 #endif
 
+/*
+ * O_CLOEXEC is not available everywhere, fallback to not setting the
+ * flag on those systems.
+ */
+#ifndef _WIN32
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+#endif
+
 /* Non-standard baudrates are not available everywhere. */
 #if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && HAVE_DECL_BOTHER
 #define USE_TERMIOS_SPEED
