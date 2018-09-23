@@ -64,6 +64,13 @@ static void get_time(struct timeval *time)
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	time->tv_sec = ts.tv_sec;
 	time->tv_usec = ts.tv_nsec / 1000;
+#elif defined(__APPLE__)
+	mach_timebase_info_data_t info;
+	mach_timebase_info(&info);
+	uint64_t ticks = mach_absolute_time();
+	uint64_t ns = (ticks * info.numer) / info.denom;
+	time->tv_sec = ns / 1000000000;
+	time->tv_usec = (ns % 1000000000) / 1000;
 #else
 	gettimeofday(time, NULL);
 #endif

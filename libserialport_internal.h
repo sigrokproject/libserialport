@@ -62,6 +62,7 @@
 #include <IOKit/serial/IOSerialKeys.h>
 #include <IOKit/serial/ioss.h>
 #include <sys/syslimits.h>
+#include <mach/mach_time.h>
 #endif
 #ifdef __linux__
 #include <dirent.h>
