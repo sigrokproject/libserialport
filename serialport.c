@@ -49,11 +49,18 @@ static const struct std_baudrate std_baudrates[] = {
 
 void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 
+static void get_time(struct timeval *time);
+
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config);
 
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config);
+
+static void get_time(struct timeval *time)
+{
+	gettimeofday(time, NULL);
+}
 
 SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
@@ -826,7 +833,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		gettimeofday(&start, NULL);
+		get_time(&start);
 		/* Define duration of timeout. */
 		delta.tv_sec = timeout_ms / 1000;
 		delta.tv_usec = (timeout_ms % 1000) * 1000;
@@ -845,7 +852,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		 * select() is even run.
 		 */
 		if (timeout_ms && started) {
-			gettimeofday(&now, NULL);
+			get_time(&now);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
 				break;
@@ -1046,7 +1053,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		gettimeofday(&start, NULL);
+		get_time(&start);
 		/* Define duration of timeout. */
 		delta.tv_sec = timeout_ms / 1000;
 		delta.tv_usec = (timeout_ms % 1000) * 1000;
@@ -1065,7 +1072,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		 * select() is even run.
 		 */
 		if (timeout_ms && started) {
-			gettimeofday(&now, NULL);
+			get_time(&now);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
 				break;
@@ -1183,7 +1190,7 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		gettimeofday(&start, NULL);
+		get_time(&start);
 		/* Define duration of timeout. */
 		delta.tv_sec = timeout_ms / 1000;
 		delta.tv_usec = (timeout_ms % 1000) * 1000;
@@ -1202,7 +1209,7 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 		 * select() is even run.
 		 */
 		if (timeout_ms && started) {
-			gettimeofday(&now, NULL);
+			get_time(&now);
 			if (timercmp(&now, &end, >))
 				/* Timeout has expired. */
 				break;
@@ -1485,7 +1492,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		gettimeofday(&start, NULL);
+		get_time(&start);
 		/* Define duration of timeout. */
 		delta.tv_sec = timeout_ms / 1000;
 		delta.tv_usec = (timeout_ms % 1000) * 1000;
@@ -1506,7 +1513,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			timeout_overflow = (timeout_ms > INT_MAX);
 			timeout_remaining_ms = timeout_overflow ? INT_MAX : timeout_ms;
 		} else {
-			gettimeofday(&now, NULL);
+			get_time(&now);
 			if (timercmp(&now, &end, >)) {
 				DEBUG("Wait timed out");
 				break;
