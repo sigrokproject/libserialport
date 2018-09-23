@@ -56,25 +56,69 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config);
 
 #ifndef _WIN32
-static void get_time(struct timeval *time)
+
+/* Timing abstraction */
+
+struct time {
+	struct timeval tv;
+};
+
+#define TIME_ZERO {.tv = {0, 0}}
+#define TIME_MS(ms) {.tv = {ms / 1000, (ms % 1000) * 1000}}
+
+static void time_get(struct time *time)
 {
 #ifdef HAVE_CLOCK_GETTIME
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1)
 		clock_gettime(CLOCK_REALTIME, &ts);
-	time->tv_sec = ts.tv_sec;
-	time->tv_usec = ts.tv_nsec / 1000;
+	time->tv.tv_sec = ts.tv_sec;
+	time->tv.tv_usec = ts.tv_nsec / 1000;
 #elif defined(__APPLE__)
 	mach_timebase_info_data_t info;
 	mach_timebase_info(&info);
 	uint64_t ticks = mach_absolute_time();
 	uint64_t ns = (ticks * info.numer) / info.denom;
-	time->tv_sec = ns / 1000000000;
-	time->tv_usec = (ns % 1000000000) / 1000;
+	time->tv.tv_sec = ns / 1000000000;
+	time->tv.tv_usec = (ns % 1000000000) / 1000;
 #else
-	gettimeofday(time, NULL);
+	gettimeofday(&time->tv, NULL);
 #endif
 }
+
+static void time_set_ms(struct time *time, unsigned int ms)
+{
+	time->tv.tv_sec = ms / 1000;
+	time->tv.tv_usec = (ms % 1000) * 1000;
+}
+
+static void time_add(const struct time *a,
+		const struct time *b, struct time *result)
+{
+	timeradd(&a->tv, &b->tv, &result->tv);
+}
+
+static void time_sub(const struct time *a,
+		const struct time *b, struct time *result)
+{
+	timersub(&a->tv, &b->tv, &result->tv);
+}
+
+static bool time_greater(const struct time *a, const struct time *b)
+{
+	return timercmp(&a->tv, &b->tv, >);
+}
+
+static void time_as_timeval(const struct time *time, struct timeval *tv)
+{
+	*tv = time->tv;
+}
+
+static unsigned int time_as_ms(const struct time *time)
+{
+	return time->tv.tv_sec * 1000 + time->tv.tv_usec / 1000;
+}
+
 #endif
 
 SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
@@ -843,19 +887,18 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 #else
 	size_t bytes_written = 0;
 	unsigned char *ptr = (unsigned char *) buf;
-	struct timeval start, delta, now, end = {0, 0};
+	struct time start, delta, now, end = TIME_ZERO;
 	int started = 0;
 	fd_set fds;
 	int result;
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		get_time(&start);
+		time_get(&start);
 		/* Define duration of timeout. */
-		delta.tv_sec = timeout_ms / 1000;
-		delta.tv_usec = (timeout_ms % 1000) * 1000;
+		time_set_ms(&delta, timeout_ms);
 		/* Calculate time at which we should give up. */
-		timeradd(&start, &delta, &end);
+		time_add(&start, &delta, &end);
 	}
 
 	FD_ZERO(&fds);
@@ -868,14 +911,16 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		 * to avoid any issues if a short timeout is reached before
 		 * select() is even run.
 		 */
+		struct timeval tv;
 		if (timeout_ms && started) {
-			get_time(&now);
-			if (timercmp(&now, &end, >))
+			time_get(&now);
+			if (time_greater(&now, &end))
 				/* Timeout has expired. */
 				break;
-			timersub(&end, &now, &delta);
+			time_sub(&end, &now, &delta);
+			time_as_timeval(&delta, &tv);
 		}
-		result = select(port->fd + 1, NULL, &fds, NULL, timeout_ms ? &delta : NULL);
+		result = select(port->fd + 1, NULL, &fds, NULL, timeout_ms ? &tv : NULL);
 		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
@@ -1062,20 +1107,19 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 #else
 	size_t bytes_read = 0;
-	unsigned char *ptr = (unsigned char *)buf;
-	struct timeval start, delta, now, end = {0, 0};
+	unsigned char *ptr = (unsigned char *) buf;
+	struct time start, delta, now, end = TIME_ZERO;
 	int started = 0;
 	fd_set fds;
 	int result;
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		get_time(&start);
+		time_get(&start);
 		/* Define duration of timeout. */
-		delta.tv_sec = timeout_ms / 1000;
-		delta.tv_usec = (timeout_ms % 1000) * 1000;
+		time_set_ms(&delta, timeout_ms);
 		/* Calculate time at which we should give up. */
-		timeradd(&start, &delta, &end);
+		time_add(&start, &delta, &end);
 	}
 
 	FD_ZERO(&fds);
@@ -1088,14 +1132,16 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		 * to avoid any issues if a short timeout is reached before
 		 * select() is even run.
 		 */
+		struct timeval tv;
 		if (timeout_ms && started) {
-			get_time(&now);
-			if (timercmp(&now, &end, >))
+			time_get(&now);
+			if (time_greater(&now, &end))
 				/* Timeout has expired. */
 				break;
-			timersub(&end, &now, &delta);
+			time_sub(&end, &now, &delta);
+			time_as_timeval(&delta, &tv);
 		}
-		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &delta : NULL);
+		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &tv : NULL);
 		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
@@ -1200,19 +1246,18 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 
 #else
 	size_t bytes_read = 0;
-	struct timeval start, delta, now, end = {0, 0};
+	struct time start, delta, now, end = TIME_ZERO;
 	int started = 0;
 	fd_set fds;
 	int result;
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		get_time(&start);
+		time_get(&start);
 		/* Define duration of timeout. */
-		delta.tv_sec = timeout_ms / 1000;
-		delta.tv_usec = (timeout_ms % 1000) * 1000;
+		time_set_ms(&delta, timeout_ms);
 		/* Calculate time at which we should give up. */
-		timeradd(&start, &delta, &end);
+		time_add(&start, &delta, &end);
 	}
 
 	FD_ZERO(&fds);
@@ -1225,14 +1270,16 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 		 * to avoid any issues if a short timeout is reached before
 		 * select() is even run.
 		 */
+		struct timeval tv;
 		if (timeout_ms && started) {
-			get_time(&now);
-			if (timercmp(&now, &end, >))
+			time_get(&now);
+			if (time_greater(&now, &end))
 				/* Timeout has expired. */
 				break;
-			timersub(&end, &now, &delta);
+			time_sub(&end, &now, &delta);
+			time_as_timeval(&delta, &tv);
 		}
-		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &delta : NULL);
+		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &tv : NULL);
 		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
@@ -1483,10 +1530,8 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 
 	RETURN_OK();
 #else
-	struct timeval start, delta, now, end = {0, 0};
-	const struct timeval max_delta = {
-		(INT_MAX / 1000), (INT_MAX % 1000) * 1000
-	};
+	struct time start, delta, now, end = TIME_ZERO;
+	const struct time max_delta = TIME_MS(INT_MAX);
 	int started = 0, timeout_overflow = 0;
 	int result, timeout_remaining_ms;
 	struct pollfd *pollfds;
@@ -1509,12 +1554,11 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 
 	if (timeout_ms) {
 		/* Get time at start of operation. */
-		get_time(&start);
+		time_get(&start);
 		/* Define duration of timeout. */
-		delta.tv_sec = timeout_ms / 1000;
-		delta.tv_usec = (timeout_ms % 1000) * 1000;
+		time_set_ms(&delta, timeout_ms);
 		/* Calculate time at which we should give up. */
-		timeradd(&start, &delta, &end);
+		time_add(&start, &delta, &end);
 	}
 
 	/* Loop until an event occurs. */
@@ -1530,15 +1574,15 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			timeout_overflow = (timeout_ms > INT_MAX);
 			timeout_remaining_ms = timeout_overflow ? INT_MAX : timeout_ms;
 		} else {
-			get_time(&now);
-			if (timercmp(&now, &end, >)) {
+			time_get(&now);
+			if (time_greater(&now, &end)) {
 				DEBUG("Wait timed out");
 				break;
 			}
-			timersub(&end, &now, &delta);
-			if ((timeout_overflow = timercmp(&delta, &max_delta, >)))
+			time_sub(&end, &now, &delta);
+			if ((timeout_overflow = time_greater(&delta, &max_delta)))
 				delta = max_delta;
-			timeout_remaining_ms = delta.tv_sec * 1000 + delta.tv_usec / 1000;
+			timeout_remaining_ms = time_as_ms(&delta);
 		}
 
 		result = poll(pollfds, event_set->count, timeout_remaining_ms);
