@@ -61,7 +61,8 @@ static void get_time(struct timeval *time)
 {
 #ifdef HAVE_CLOCK_GETTIME
 	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1)
+		clock_gettime(CLOCK_REALTIME, &ts);
 	time->tv_sec = ts.tv_sec;
 	time->tv_usec = ts.tv_nsec / 1000;
 #elif defined(__APPLE__)
