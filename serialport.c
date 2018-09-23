@@ -59,7 +59,14 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 static void get_time(struct timeval *time)
 {
+#ifdef HAVE_CLOCK_GETTIME
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	time->tv_sec = ts.tv_sec;
+	time->tv_usec = ts.tv_nsec / 1000;
+#else
 	gettimeofday(time, NULL);
+#endif
 }
 
 SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)

@@ -53,6 +53,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <time.h>
 #include <poll.h>
 #endif
 #ifdef __APPLE__
