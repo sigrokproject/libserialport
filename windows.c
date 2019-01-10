@@ -30,12 +30,12 @@ static void enumerate_hub(struct sp_port *port, const char *hub_name,
 
 static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 {
-	WCHAR wc_str[(size / sizeof(WCHAR)) + 1];
+	WCHAR wc_str[size + 1];
 	char *utf8_str;
 
 	/* Zero-terminate the wide char string. */
 	memcpy(wc_str, wc_buffer, size);
-	wc_str[sizeof(wc_str) - 1] = 0;
+	wc_str[wcslen(wc_buffer)] = 0;
 
 	/* Compute the size of the UTF-8 converted string. */
 	if (!(size = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
