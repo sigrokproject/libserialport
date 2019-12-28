@@ -31,8 +31,12 @@ static void enumerate_hub(struct sp_port *port, const char *hub_name,
 static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 {
 	ULONG wc_length = size / sizeof(WCHAR);
-	WCHAR wc_str[wc_length + 1];
-	char *utf8_str;
+	WCHAR *wc_str = NULL;
+	char *utf8_str = NULL;
+
+	/* Allocate aligned wide char buffer */
+	if (!(wc_str = malloc(size + sizeof(WCHAR))))
+		goto wc_to_utf8_end;
 
 	/* Zero-terminate the wide char string. */
 	memcpy(wc_str, wc_buffer, size);
@@ -41,18 +45,23 @@ static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 	/* Compute the size of the UTF-8 converted string. */
 	if (!(size = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
 	                                 NULL, 0, NULL, NULL)))
-		return NULL;
+		goto wc_to_utf8_end;
 
 	/* Allocate UTF-8 output buffer. */
 	if (!(utf8_str = malloc(size)))
-		return NULL;
+		goto wc_to_utf8_end;
 
 	/* Actually converted to UTF-8. */
 	if (!WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
 	                         utf8_str, size, NULL, NULL)) {
 		free(utf8_str);
-		return NULL;
+		utf8_str = NULL;
+		goto wc_to_utf8_end;
 	}
+
+wc_to_utf8_end:
+	if (wc_str)
+		free(wc_str);
 
 	return utf8_str;
 }
