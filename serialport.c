@@ -793,6 +793,10 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 			RETURN_FAIL("SetCommTimeouts() failed");
 	}
 
+	/* Reduce count if it exceeds the WriteFile limit. */
+	if (count > WRITEFILE_MAX_SIZE)
+		count = WRITEFILE_MAX_SIZE;
+
 	/* Start write. */
 	if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl)) {
 		DEBUG("Write completed immediately");
@@ -920,6 +924,10 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
 			RETURN_FAIL("SetCommTimeouts() failed");
 	}
+
+	/* Reduce count if it exceeds the WriteFile limit. */
+	if (count > WRITEFILE_MAX_SIZE)
+		count = WRITEFILE_MAX_SIZE;
 
 	/* Copy data to our write buffer. */
 	buf_bytes = min(port->write_buf_size, count);
