@@ -82,7 +82,7 @@ static char *get_root_hub_name(HANDLE host_controller)
 	}
 
 	/* Convert the root hub name string to UTF-8. */
-	root_hub_name_utf8 = wc_to_utf8(root_hub_name_wc->RootHubName, size);
+	root_hub_name_utf8 = wc_to_utf8(root_hub_name_wc->RootHubName, size - offsetof(USB_ROOT_HUB_NAME, RootHubName));
 	free(root_hub_name_wc);
 	return root_hub_name_utf8;
 }
@@ -117,7 +117,7 @@ static char *get_external_hub_name(HANDLE hub, ULONG connection_index)
 	}
 
 	/* Convert the external hub name string to UTF-8. */
-	ext_hub_name_utf8 = wc_to_utf8(ext_hub_name_wc->NodeName, size);
+	ext_hub_name_utf8 = wc_to_utf8(ext_hub_name_wc->NodeName, size - offsetof(USB_NODE_CONNECTION_NAME, NodeName));
 	free(ext_hub_name_wc);
 	return ext_hub_name_utf8;
 }
@@ -146,7 +146,7 @@ static char *get_string_descriptor(HANDLE hub_device, ULONG connection_index,
 	    || desc->bLength % 2)
 		return NULL;
 
-	return wc_to_utf8(desc->bString, desc->bLength);
+	return wc_to_utf8(desc->bString, desc->bLength - offsetof(USB_STRING_DESCRIPTOR, bString));
 }
 
 static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
