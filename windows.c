@@ -220,7 +220,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 			port->usb_pid = connection_info_ex->DeviceDescriptor.idProduct;
 
 			if (connection_info_ex->DeviceDescriptor.iManufacturer)
-				port->usb_manufacturer = get_string_descriptor(hub_device,index,
+				port->usb_manufacturer = get_string_descriptor(hub_device, index,
 				           connection_info_ex->DeviceDescriptor.iManufacturer);
 			if (connection_info_ex->DeviceDescriptor.iProduct)
 				port->usb_product = get_string_descriptor(hub_device, index,
@@ -381,7 +381,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			continue;
 		}
 		RegCloseKey(device_key);
-		value[sizeof(value)-1] = 0;
+		value[sizeof(value) - 1] = 0;
 		if (strcmp(value, port->name))
 			continue;
 

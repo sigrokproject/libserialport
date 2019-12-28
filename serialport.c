@@ -323,7 +323,8 @@ SP_PRIV struct sp_port **list_append(struct sp_port **list,
 	void *tmp;
 	unsigned int count;
 
-	for (count = 0; list[count]; count++);
+	for (count = 0; list[count]; count++)
+		;
 	if (!(tmp = realloc(list, sizeof(struct sp_port *) * (count + 2))))
 		goto fail;
 	list = tmp;
@@ -1031,7 +1032,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 #else
 	size_t bytes_read = 0;
-	unsigned char *ptr = (unsigned char *) buf;
+	unsigned char *ptr = (unsigned char *)buf;
 	struct timeval start, delta, now, end = {0, 0};
 	int started = 0;
 	fd_set fds;
@@ -1454,7 +1455,8 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 #else
 	struct timeval start, delta, now, end = {0, 0};
 	const struct timeval max_delta = {
-		(INT_MAX / 1000), (INT_MAX % 1000) * 1000};
+		(INT_MAX / 1000), (INT_MAX % 1000) * 1000
+	};
 	int started = 0, timeout_overflow = 0;
 	int result, timeout_remaining_ms;
 	struct pollfd *pollfds;
@@ -1464,7 +1466,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 		RETURN_ERROR(SP_ERR_MEM, "pollfds malloc() failed");
 
 	for (i = 0; i < event_set->count; i++) {
-		pollfds[i].fd = ((int *) event_set->handles)[i];
+		pollfds[i].fd = ((int *)event_set->handles)[i];
 		pollfds[i].events = 0;
 		pollfds[i].revents = 0;
 		if (event_set->masks[i] & SP_EVENT_RX_READY)
