@@ -49,14 +49,13 @@ static const struct std_baudrate std_baudrates[] = {
 
 void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 
-static void get_time(struct timeval *time);
-
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config);
 
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config);
 
+#ifndef _WIN32
 static void get_time(struct timeval *time)
 {
 #ifdef HAVE_CLOCK_GETTIME
@@ -76,6 +75,7 @@ static void get_time(struct timeval *time)
 	gettimeofday(time, NULL);
 #endif
 }
+#endif
 
 SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {
