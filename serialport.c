@@ -952,10 +952,15 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 	/* Returns the number of bytes written, or -1 upon failure. */
 	ssize_t written = write(port->fd, buf, count);
 
-	if (written < 0)
-		RETURN_FAIL("write() failed");
-	else
+	if (written < 0) {
+		if (errno == EAGAIN)
+			// Buffer is full, no bytes written.
+			RETURN_INT(0);
+		else
+			RETURN_FAIL("write() failed");
+	} else {
 		RETURN_INT(written);
+	}
 #endif
 }
 
