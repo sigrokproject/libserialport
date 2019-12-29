@@ -28,32 +28,33 @@
 static void enumerate_hub(struct sp_port *port, const char *hub_name,
                           const char *parent_path, DEVINST dev_inst);
 
-static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
+static char *wc_to_utf8(PWCHAR wc_buffer, ULONG wc_bytes)
 {
-	ULONG wc_length = size / sizeof(WCHAR);
+	ULONG wc_length = wc_bytes / sizeof(WCHAR);
+	ULONG utf8_bytes;
 	WCHAR *wc_str = NULL;
 	char *utf8_str = NULL;
 
 	/* Allocate aligned wide char buffer */
-	if (!(wc_str = malloc(size + sizeof(WCHAR))))
+	if (!(wc_str = malloc((wc_length + 1) * sizeof(WCHAR))))
 		goto wc_to_utf8_end;
 
 	/* Zero-terminate the wide char string. */
-	memcpy(wc_str, wc_buffer, size);
+	memcpy(wc_str, wc_buffer, wc_bytes);
 	wc_str[wc_length] = 0;
 
 	/* Compute the size of the UTF-8 converted string. */
-	if (!(size = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
+	if (!(utf8_bytes = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
 	                                 NULL, 0, NULL, NULL)))
 		goto wc_to_utf8_end;
 
 	/* Allocate UTF-8 output buffer. */
-	if (!(utf8_str = malloc(size)))
+	if (!(utf8_str = malloc(utf8_bytes)))
 		goto wc_to_utf8_end;
 
 	/* Actually converted to UTF-8. */
 	if (!WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
-	                         utf8_str, size, NULL, NULL)) {
+	                         utf8_str, utf8_bytes, NULL, NULL)) {
 		free(utf8_str);
 		utf8_str = NULL;
 		goto wc_to_utf8_end;
