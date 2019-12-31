@@ -46,7 +46,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	char manufacturer[128], product[128], serial[128];
 	char baddr[32];
 	const char dir_name[] = "/sys/class/tty/%s/device/%s%s";
-	char sub_dir[32] = "", file_name[PATH_MAX];
+	char sub_dir[32] = "", link_name[PATH_MAX], file_name[PATH_MAX];
 	char *ptr, *dev = port->name + 5;
 	FILE *file;
 	int i, count;
@@ -55,12 +55,12 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	if (strncmp(port->name, "/dev/", 5))
 		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 
-	snprintf(file_name, sizeof(file_name), "/sys/class/tty/%s", dev);
-	if (lstat(file_name, &statbuf) == -1)
+	snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s", dev);
+	if (lstat(link_name, &statbuf) == -1)
 		RETURN_ERROR(SP_ERR_ARG, "Device not found");
 	if (!S_ISLNK(statbuf.st_mode))
-		snprintf(file_name, sizeof(file_name), "/sys/class/tty/%s/device", dev);
-	count = readlink(file_name, file_name, sizeof(file_name));
+		snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s/device", dev);
+	count = readlink(link_name, file_name, sizeof(file_name));
 	if (count <= 0 || count >= (int)(sizeof(file_name) - 1))
 		RETURN_ERROR(SP_ERR_ARG, "Device not found");
 	file_name[count] = 0;
