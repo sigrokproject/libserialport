@@ -64,16 +64,11 @@ struct time {
 };
 
 struct timeout {
-	unsigned int ms;
-	struct time start, delta, now, end;
+	unsigned int ms, limit_ms;
+	struct time start, now, end, delta, delta_max;
 	struct timeval delta_tv;
 	bool overflow;
 };
-
-#define TIME_ZERO {.tv = {0, 0}}
-#define TIME_MS(ms) {.tv = {ms / 1000, (ms % 1000) * 1000}}
-
-const struct time max_delta = TIME_MS(INT_MAX);
 
 static void time_get(struct time *time)
 {
@@ -132,14 +127,21 @@ static void timeout_start(struct timeout *timeout, unsigned int timeout_ms)
 {
 	timeout->ms = timeout_ms;
 
-	timeout->overflow = (timeout->ms > INT_MAX);
-
 	/* Get time at start of operation. */
 	time_get(&timeout->start);
 	/* Define duration of timeout. */
 	time_set_ms(&timeout->delta, timeout_ms);
 	/* Calculate time at which we should give up. */
 	time_add(&timeout->start, &timeout->delta, &timeout->end);
+	/* Disable limit unless timeout_limit() called. */
+	timeout->limit_ms = 0;
+}
+
+static void timeout_limit(struct timeout *timeout, unsigned int limit_ms)
+{
+	timeout->limit_ms = limit_ms;
+	timeout->overflow = (timeout->ms > timeout->limit_ms);
+	time_set_ms(&timeout->delta_max, timeout->limit_ms);
 }
 
 static bool timeout_check(struct timeout *timeout)
@@ -149,8 +151,9 @@ static bool timeout_check(struct timeout *timeout)
 
 	time_get(&timeout->now);
 	time_sub(&timeout->end, &timeout->now, &timeout->delta);
-	if ((timeout->overflow = time_greater(&timeout->delta, &max_delta)))
-		timeout->delta = max_delta;
+	if (timeout->limit_ms)
+		if ((timeout->overflow = time_greater(&timeout->delta, &timeout->delta_max)))
+			timeout->delta = timeout->delta_max;
 
 	return time_greater(&timeout->now, &timeout->end);
 }
@@ -169,8 +172,8 @@ static unsigned int timeout_remaining_ms(struct timeout *timeout)
 {
 	if (timeout->ms == 0)
 		return -1;
-	else if (timeout->overflow)
-		return INT_MAX;
+	else if (timeout->limit_ms && timeout->overflow)
+		return timeout->limit_ms;
 	else
 		return time_as_ms(&timeout->delta);
 }
@@ -1570,6 +1573,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 	}
 
 	timeout_start(&timeout, timeout_ms);
+	timeout_limit(&timeout, INT_MAX);
 
 	/* Loop until an event occurs. */
 	while (1) {
