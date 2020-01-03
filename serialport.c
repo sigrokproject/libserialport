@@ -55,12 +55,14 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config);
 
-#ifndef _WIN32
-
 /* Timing abstraction */
 
 struct time {
+#ifdef _WIN32
+	int64_t ticks;
+#else
 	struct timeval tv;
+#endif
 };
 
 struct timeout {
@@ -72,7 +74,11 @@ struct timeout {
 
 static void time_get(struct time *time)
 {
-#ifdef HAVE_CLOCK_GETTIME
+#ifdef _WIN32
+	LARGE_INTEGER count;
+	QueryPerformanceCounter(&count);
+	time->ticks = count.QuadPart;
+#elif defined(HAVE_CLOCK_GETTIME)
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1)
 		clock_gettime(CLOCK_REALTIME, &ts);
@@ -92,35 +98,67 @@ static void time_get(struct time *time)
 
 static void time_set_ms(struct time *time, unsigned int ms)
 {
+#ifdef _WIN32
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	time->ticks = ms * (frequency.QuadPart / 1000);
+#else
 	time->tv.tv_sec = ms / 1000;
 	time->tv.tv_usec = (ms % 1000) * 1000;
+#endif
 }
 
 static void time_add(const struct time *a,
 		const struct time *b, struct time *result)
 {
+#ifdef _WIN32
+	result->ticks = a->ticks + b->ticks;
+#else
 	timeradd(&a->tv, &b->tv, &result->tv);
+#endif
 }
 
 static void time_sub(const struct time *a,
 		const struct time *b, struct time *result)
 {
+#ifdef _WIN32
+	result->ticks = a->ticks - b->ticks;
+#else
 	timersub(&a->tv, &b->tv, &result->tv);
+#endif
 }
 
 static bool time_greater(const struct time *a, const struct time *b)
 {
+#ifdef _WIN32
+	return (a->ticks > b->ticks);
+#else
 	return timercmp(&a->tv, &b->tv, >);
+#endif
 }
 
 static void time_as_timeval(const struct time *time, struct timeval *tv)
 {
+#ifdef _WIN32
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	tv->tv_sec = time->ticks / frequency.QuadPart;
+	tv->tv_usec = (time->ticks % frequency.QuadPart) /
+		(frequency.QuadPart / 1000000);
+#else
 	*tv = time->tv;
+#endif
 }
 
 static unsigned int time_as_ms(const struct time *time)
 {
+#ifdef _WIN32
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	return time->ticks / (frequency.QuadPart / 1000);
+#else
 	return time->tv.tv_sec * 1000 + time->tv.tv_usec / 1000;
+#endif
 }
 
 static void timeout_start(struct timeout *timeout, unsigned int timeout_ms)
@@ -158,6 +196,7 @@ static bool timeout_check(struct timeout *timeout)
 	return time_greater(&timeout->now, &timeout->end);
 }
 
+#ifndef _WIN32
 static struct timeval *timeout_timeval(struct timeout *timeout)
 {
 	if (timeout->ms == 0)
@@ -167,6 +206,7 @@ static struct timeval *timeout_timeval(struct timeout *timeout)
 
 	return &timeout->delta_tv;
 }
+#endif
 
 static unsigned int timeout_remaining_ms(struct timeout *timeout)
 {
@@ -177,8 +217,6 @@ static unsigned int timeout_remaining_ms(struct timeout *timeout)
 	else
 		return time_as_ms(&timeout->delta);
 }
-
-#endif
 
 SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
 {

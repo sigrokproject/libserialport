@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
