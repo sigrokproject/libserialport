@@ -63,8 +63,17 @@ struct time {
 	struct timeval tv;
 };
 
+struct timeout {
+	unsigned int ms;
+	struct time start, delta, now, end;
+	struct timeval delta_tv;
+	bool overflow;
+};
+
 #define TIME_ZERO {.tv = {0, 0}}
 #define TIME_MS(ms) {.tv = {ms / 1000, (ms % 1000) * 1000}}
+
+const struct time max_delta = TIME_MS(INT_MAX);
 
 static void time_get(struct time *time)
 {
@@ -117,6 +126,53 @@ static void time_as_timeval(const struct time *time, struct timeval *tv)
 static unsigned int time_as_ms(const struct time *time)
 {
 	return time->tv.tv_sec * 1000 + time->tv.tv_usec / 1000;
+}
+
+static void timeout_start(struct timeout *timeout, unsigned int timeout_ms)
+{
+	timeout->ms = timeout_ms;
+
+	timeout->overflow = (timeout->ms > INT_MAX);
+
+	/* Get time at start of operation. */
+	time_get(&timeout->start);
+	/* Define duration of timeout. */
+	time_set_ms(&timeout->delta, timeout_ms);
+	/* Calculate time at which we should give up. */
+	time_add(&timeout->start, &timeout->delta, &timeout->end);
+}
+
+static bool timeout_check(struct timeout *timeout)
+{
+	if (timeout->ms == 0)
+		return false;
+
+	time_get(&timeout->now);
+	time_sub(&timeout->end, &timeout->now, &timeout->delta);
+	if ((timeout->overflow = time_greater(&timeout->delta, &max_delta)))
+		timeout->delta = max_delta;
+
+	return time_greater(&timeout->now, &timeout->end);
+}
+
+static struct timeval *timeout_timeval(struct timeout *timeout)
+{
+	if (timeout->ms == 0)
+		return NULL;
+
+	time_as_timeval(&timeout->delta, &timeout->delta_tv);
+
+	return &timeout->delta_tv;
+}
+
+static unsigned int timeout_remaining_ms(struct timeout *timeout)
+{
+	if (timeout->ms == 0)
+		return -1;
+	else if (timeout->overflow)
+		return INT_MAX;
+	else
+		return time_as_ms(&timeout->delta);
 }
 
 #endif
@@ -887,19 +943,12 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 #else
 	size_t bytes_written = 0;
 	unsigned char *ptr = (unsigned char *) buf;
-	struct time start, delta, now, end = TIME_ZERO;
+	struct timeout timeout;
 	int started = 0;
 	fd_set fds;
 	int result;
 
-	if (timeout_ms) {
-		/* Get time at start of operation. */
-		time_get(&start);
-		/* Define duration of timeout. */
-		time_set_ms(&delta, timeout_ms);
-		/* Calculate time at which we should give up. */
-		time_add(&start, &delta, &end);
-	}
+	timeout_start(&timeout, timeout_ms);
 
 	FD_ZERO(&fds);
 	FD_SET(port->fd, &fds);
@@ -911,16 +960,10 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		 * to avoid any issues if a short timeout is reached before
 		 * select() is even run.
 		 */
-		struct timeval tv;
-		if (timeout_ms && started) {
-			time_get(&now);
-			if (time_greater(&now, &end))
-				/* Timeout has expired. */
-				break;
-			time_sub(&end, &now, &delta);
-			time_as_timeval(&delta, &tv);
-		}
-		result = select(port->fd + 1, NULL, &fds, NULL, timeout_ms ? &tv : NULL);
+		if (started && timeout_check(&timeout))
+			break;
+
+		result = select(port->fd + 1, NULL, &fds, NULL, timeout_timeval(&timeout));
 		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
@@ -1108,19 +1151,12 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 #else
 	size_t bytes_read = 0;
 	unsigned char *ptr = (unsigned char *) buf;
-	struct time start, delta, now, end = TIME_ZERO;
+	struct timeout timeout;
 	int started = 0;
 	fd_set fds;
 	int result;
 
-	if (timeout_ms) {
-		/* Get time at start of operation. */
-		time_get(&start);
-		/* Define duration of timeout. */
-		time_set_ms(&delta, timeout_ms);
-		/* Calculate time at which we should give up. */
-		time_add(&start, &delta, &end);
-	}
+	timeout_start(&timeout, timeout_ms);
 
 	FD_ZERO(&fds);
 	FD_SET(port->fd, &fds);
@@ -1132,16 +1168,11 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		 * to avoid any issues if a short timeout is reached before
 		 * select() is even run.
 		 */
-		struct timeval tv;
-		if (timeout_ms && started) {
-			time_get(&now);
-			if (time_greater(&now, &end))
-				/* Timeout has expired. */
-				break;
-			time_sub(&end, &now, &delta);
-			time_as_timeval(&delta, &tv);
-		}
-		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &tv : NULL);
+		if (started && timeout_check(&timeout))
+			/* Timeout has expired. */
+			break;
+
+		result = select(port->fd + 1, &fds, NULL, NULL, timeout_timeval(&timeout));
 		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
@@ -1246,19 +1277,12 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 
 #else
 	size_t bytes_read = 0;
-	struct time start, delta, now, end = TIME_ZERO;
+	struct timeout timeout;
 	int started = 0;
 	fd_set fds;
 	int result;
 
-	if (timeout_ms) {
-		/* Get time at start of operation. */
-		time_get(&start);
-		/* Define duration of timeout. */
-		time_set_ms(&delta, timeout_ms);
-		/* Calculate time at which we should give up. */
-		time_add(&start, &delta, &end);
-	}
+	timeout_start(&timeout, timeout_ms);
 
 	FD_ZERO(&fds);
 	FD_SET(port->fd, &fds);
@@ -1270,16 +1294,11 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 		 * to avoid any issues if a short timeout is reached before
 		 * select() is even run.
 		 */
-		struct timeval tv;
-		if (timeout_ms && started) {
-			time_get(&now);
-			if (time_greater(&now, &end))
-				/* Timeout has expired. */
-				break;
-			time_sub(&end, &now, &delta);
-			time_as_timeval(&delta, &tv);
-		}
-		result = select(port->fd + 1, &fds, NULL, NULL, timeout_ms ? &tv : NULL);
+		if (started && timeout_check(&timeout))
+			/* Timeout has expired. */
+			break;
+
+		result = select(port->fd + 1, &fds, NULL, NULL, timeout_timeval(&timeout));
 		started = 1;
 		if (result < 0) {
 			if (errno == EINTR) {
@@ -1530,10 +1549,8 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 
 	RETURN_OK();
 #else
-	struct time start, delta, now, end = TIME_ZERO;
-	const struct time max_delta = TIME_MS(INT_MAX);
-	int started = 0, timeout_overflow = 0;
-	int result, timeout_remaining_ms;
+	struct timeout timeout;
+	int started = 0, result;
 	struct pollfd *pollfds;
 	unsigned int i;
 
@@ -1552,14 +1569,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			pollfds[i].events |= POLLERR;
 	}
 
-	if (timeout_ms) {
-		/* Get time at start of operation. */
-		time_get(&start);
-		/* Define duration of timeout. */
-		time_set_ms(&delta, timeout_ms);
-		/* Calculate time at which we should give up. */
-		time_add(&start, &delta, &end);
-	}
+	timeout_start(&timeout, timeout_ms);
 
 	/* Loop until an event occurs. */
 	while (1) {
@@ -1568,24 +1578,12 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 		 * to avoid any issues if a short timeout is reached before
 		 * poll() is even run.
 		 */
-		if (!timeout_ms) {
-			timeout_remaining_ms = -1;
-		} else if (!started) {
-			timeout_overflow = (timeout_ms > INT_MAX);
-			timeout_remaining_ms = timeout_overflow ? INT_MAX : timeout_ms;
-		} else {
-			time_get(&now);
-			if (time_greater(&now, &end)) {
-				DEBUG("Wait timed out");
-				break;
-			}
-			time_sub(&end, &now, &delta);
-			if ((timeout_overflow = time_greater(&delta, &max_delta)))
-				delta = max_delta;
-			timeout_remaining_ms = time_as_ms(&delta);
+		if (started && timeout_check(&timeout)) {
+			DEBUG("Wait timed out");
+			break;
 		}
 
-		result = poll(pollfds, event_set->count, timeout_remaining_ms);
+		result = poll(pollfds, event_set->count, timeout_remaining_ms(&timeout));
 		started = 1;
 
 		if (result < 0) {
@@ -1598,7 +1596,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			}
 		} else if (result == 0) {
 			DEBUG("poll() timed out");
-			if (!timeout_overflow)
+			if (!timeout.overflow)
 				break;
 		} else {
 			DEBUG("poll() completed");
