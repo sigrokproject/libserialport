@@ -210,9 +210,7 @@ static struct timeval *timeout_timeval(struct timeout *timeout)
 
 static unsigned int timeout_remaining_ms(struct timeout *timeout)
 {
-	if (timeout->ms == 0)
-		return -1;
-	else if (timeout->limit_ms && timeout->overflow)
+	if (timeout->limit_ms && timeout->overflow)
 		return timeout->limit_ms;
 	else
 		return time_as_ms(&timeout->delta);
@@ -1625,7 +1623,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			break;
 		}
 
-		result = poll(pollfds, event_set->count, timeout_remaining_ms(&timeout));
+		result = poll(pollfds, event_set->count, timeout_remaining_ms(&timeout) || -1);
 		started = 1;
 
 		if (result < 0) {
