@@ -69,7 +69,7 @@ struct timeout {
 	unsigned int ms, limit_ms;
 	struct time start, now, end, delta, delta_max;
 	struct timeval delta_tv;
-	bool overflow;
+	bool calls_started, overflow;
 };
 
 static void time_get(struct time *time)
@@ -173,6 +173,8 @@ static void timeout_start(struct timeout *timeout, unsigned int timeout_ms)
 	time_add(&timeout->start, &timeout->delta, &timeout->end);
 	/* Disable limit unless timeout_limit() called. */
 	timeout->limit_ms = 0;
+	/* First blocking call has not yet been made. */
+	timeout->calls_started = false;
 }
 
 static void timeout_limit(struct timeout *timeout, unsigned int limit_ms)
@@ -184,6 +186,9 @@ static void timeout_limit(struct timeout *timeout, unsigned int limit_ms)
 
 static bool timeout_check(struct timeout *timeout)
 {
+	if (!timeout->calls_started)
+		return false;
+
 	if (timeout->ms == 0)
 		return false;
 
@@ -194,6 +199,11 @@ static bool timeout_check(struct timeout *timeout)
 			timeout->delta = timeout->delta_max;
 
 	return time_greater(&timeout->now, &timeout->end);
+}
+
+static void timeout_update(struct timeout *timeout)
+{
+	timeout->calls_started = true;
 }
 
 #ifndef _WIN32
@@ -983,7 +993,6 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	size_t bytes_written = 0;
 	unsigned char *ptr = (unsigned char *) buf;
 	struct timeout timeout;
-	int started = 0;
 	fd_set fds;
 	int result;
 
@@ -994,16 +1003,14 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 
 	/* Loop until we have written the requested number of bytes. */
 	while (bytes_written < count) {
-		/*
-		 * Check timeout only if we have run select() at least once,
-		 * to avoid any issues if a short timeout is reached before
-		 * select() is even run.
-		 */
-		if (started && timeout_check(&timeout))
+
+		if (timeout_check(&timeout))
 			break;
 
 		result = select(port->fd + 1, NULL, &fds, NULL, timeout_timeval(&timeout));
-		started = 1;
+
+		timeout_update(&timeout);
+
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("select() call was interrupted, repeating");
@@ -1191,7 +1198,6 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	size_t bytes_read = 0;
 	unsigned char *ptr = (unsigned char *) buf;
 	struct timeout timeout;
-	int started = 0;
 	fd_set fds;
 	int result;
 
@@ -1202,17 +1208,15 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 	/* Loop until we have the requested number of bytes. */
 	while (bytes_read < count) {
-		/*
-		 * Check timeout only if we have run select() at least once,
-		 * to avoid any issues if a short timeout is reached before
-		 * select() is even run.
-		 */
-		if (started && timeout_check(&timeout))
+
+		if (timeout_check(&timeout))
 			/* Timeout has expired. */
 			break;
 
 		result = select(port->fd + 1, &fds, NULL, NULL, timeout_timeval(&timeout));
-		started = 1;
+
+		timeout_update(&timeout);
+
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("select() call was interrupted, repeating");
@@ -1317,7 +1321,6 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 #else
 	size_t bytes_read = 0;
 	struct timeout timeout;
-	int started = 0;
 	fd_set fds;
 	int result;
 
@@ -1328,17 +1331,15 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 
 	/* Loop until we have at least one byte, or timeout is reached. */
 	while (bytes_read == 0) {
-		/*
-		 * Check timeout only if we have run select() at least once,
-		 * to avoid any issues if a short timeout is reached before
-		 * select() is even run.
-		 */
-		if (started && timeout_check(&timeout))
+
+		if (timeout_check(&timeout))
 			/* Timeout has expired. */
 			break;
 
 		result = select(port->fd + 1, &fds, NULL, NULL, timeout_timeval(&timeout));
-		started = 1;
+
+		timeout_update(&timeout);
+
 		if (result < 0) {
 			if (errno == EINTR) {
 				DEBUG("select() call was interrupted, repeating");
@@ -1589,7 +1590,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 	RETURN_OK();
 #else
 	struct timeout timeout;
-	int started = 0, result;
+	int result;
 	struct pollfd *pollfds;
 	unsigned int i;
 
@@ -1613,18 +1614,15 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 
 	/* Loop until an event occurs. */
 	while (1) {
-		/*
-		 * Check timeout only if we have run poll() at least once,
-		 * to avoid any issues if a short timeout is reached before
-		 * poll() is even run.
-		 */
-		if (started && timeout_check(&timeout)) {
+
+		if (timeout_check(&timeout)) {
 			DEBUG("Wait timed out");
 			break;
 		}
 
 		result = poll(pollfds, event_set->count, timeout_remaining_ms(&timeout) || -1);
-		started = 1;
+
+		timeout_update(&timeout);
 
 		if (result < 0) {
 			if (errno == EINTR) {
