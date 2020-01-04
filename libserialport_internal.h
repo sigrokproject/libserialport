@@ -68,8 +68,9 @@
 #endif
 #ifdef __linux__
 #include <dirent.h>
-#ifndef __ANDROID__
-#include "linux/serial.h"
+/* Android only has linux/serial.h from platform 21 onwards. */
+#if !(defined(__ANDROID__) && (__ANDROID_API__ < 21))
+#include <linux/serial.h>
 #endif
 #include "linux_termios.h"
 

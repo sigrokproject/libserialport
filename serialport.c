@@ -742,7 +742,9 @@ SP_API enum sp_return sp_drain(struct sp_port *port)
 #else
 	int result;
 	while (1) {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && (__ANDROID_API__ < 21)
+		/* Android only has tcdrain from platform 21 onwards.
+		 * On previous API versions, use the ioctl directly. */
 		int arg = 1;
 		result = ioctl(port->fd, TCSBRK, &arg);
 #else
