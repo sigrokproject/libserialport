@@ -27,7 +27,7 @@ AM_CFLAGS = -std=c99 -Wall -Wextra -pedantic -Wmissing-prototypes -Wshadow
 
 lib_LTLIBRARIES = libserialport.la
 
-libserialport_la_SOURCES = serialport.c libserialport_internal.h
+libserialport_la_SOURCES = serialport.c timing.c libserialport_internal.h
 if LINUX
 libserialport_la_SOURCES += linux.c linux_termios.c linux_termios.h
 endif

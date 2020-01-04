@@ -251,4 +251,35 @@ SP_PRIV struct sp_port **list_append(struct sp_port **list, const char *portname
 SP_PRIV enum sp_return get_port_details(struct sp_port *port);
 SP_PRIV enum sp_return list_ports(struct sp_port ***list);
 
+/* Timing abstraction */
+
+struct time {
+#ifdef _WIN32
+	int64_t ticks;
+#else
+	struct timeval tv;
+#endif
+};
+
+struct timeout {
+	unsigned int ms, limit_ms;
+	struct time start, now, end, delta, delta_max;
+	struct timeval delta_tv;
+	bool calls_started, overflow;
+};
+
+SP_PRIV void time_get(struct time *time);
+SP_PRIV void time_set_ms(struct time *time, unsigned int ms);
+SP_PRIV void time_add(const struct time *a, const struct time *b, struct time *result);
+SP_PRIV void time_sub(const struct time *a, const struct time *b, struct time *result);
+SP_PRIV bool time_greater(const struct time *a, const struct time *b);
+SP_PRIV void time_as_timeval(const struct time *time, struct timeval *tv);
+SP_PRIV unsigned int time_as_ms(const struct time *time);
+SP_PRIV void timeout_start(struct timeout *timeout, unsigned int timeout_ms);
+SP_PRIV void timeout_limit(struct timeout *timeout, unsigned int limit_ms);
+SP_PRIV bool timeout_check(struct timeout *timeout);
+SP_PRIV void timeout_update(struct timeout *timeout);
+SP_PRIV struct timeval *timeout_timeval(struct timeout *timeout);
+SP_PRIV unsigned int timeout_remaining_ms(struct timeout *timeout);
+
 #endif
