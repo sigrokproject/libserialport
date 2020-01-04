@@ -26,6 +26,8 @@
 /* For timeradd, timersub, timercmp, realpath. */
 #define _BSD_SOURCE 1 /* for glibc < 2.19 */
 #define _DEFAULT_SOURCE 1 /* for glibc >= 2.20 */
+/* For clock_gettime and associated types. */
+#define _POSIX_C_SOURCE 199309L
 #endif
 
 #include <string.h>
