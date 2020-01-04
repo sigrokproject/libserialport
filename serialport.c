@@ -784,40 +784,62 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		RETURN_INT(0);
 
 #ifdef _WIN32
-	DWORD bytes_written = 0;
+	DWORD remaining_ms, write_size, bytes_written, total_bytes_written = 0;
+	const uint8_t *write_ptr = (uint8_t *) buf;
+	bool result;
+	struct timeout timeout;
+
+	timeout_start(&timeout, timeout_ms);
 
 	TRY(await_write_completion(port));
 
-	/* Set timeout. */
-	if (port->timeouts.WriteTotalTimeoutConstant != timeout_ms) {
-		port->timeouts.WriteTotalTimeoutConstant = timeout_ms;
-		if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
-			RETURN_FAIL("SetCommTimeouts() failed");
-	}
+	while (total_bytes_written < count) {
 
-	/* Reduce count if it exceeds the WriteFile limit. */
-	if (count > WRITEFILE_MAX_SIZE)
-		count = WRITEFILE_MAX_SIZE;
+		if (timeout_check(&timeout))
+			break;
 
-	/* Start write. */
-	if (WriteFile(port->hdl, buf, count, NULL, &port->write_ovl)) {
-		DEBUG("Write completed immediately");
-		RETURN_INT(count);
-	} else if (GetLastError() == ERROR_IO_PENDING) {
-		DEBUG("Waiting for write to complete");
-		if (GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE) == 0) {
-			if (GetLastError() == ERROR_SEM_TIMEOUT) {
-				DEBUG("Write timed out");
-				RETURN_INT(0);
-			} else {
-				RETURN_FAIL("GetOverlappedResult() failed");
-			}
+		remaining_ms = timeout_remaining_ms(&timeout);
+
+		if (port->timeouts.WriteTotalTimeoutConstant != remaining_ms) {
+			port->timeouts.WriteTotalTimeoutConstant = remaining_ms;
+			if (SetCommTimeouts(port->hdl, &port->timeouts) == 0)
+				RETURN_FAIL("SetCommTimeouts() failed");
 		}
-		DEBUG_FMT("Write completed, %d/%d bytes written", bytes_written, count);
-		RETURN_INT(bytes_written);
-	} else {
-		RETURN_FAIL("WriteFile() failed");
+
+		/* Reduce write size if it exceeds the WriteFile limit. */
+		write_size = count - total_bytes_written;
+		if (write_size > WRITEFILE_MAX_SIZE)
+			write_size = WRITEFILE_MAX_SIZE;
+
+		/* Start write. */
+
+		result = WriteFile(port->hdl, write_ptr, write_size, NULL, &port->write_ovl);
+
+		timeout_update(&timeout);
+
+		if (result) {
+			DEBUG("Write completed immediately");
+			bytes_written = write_size;
+		} else if (GetLastError() == ERROR_IO_PENDING) {
+			DEBUG("Waiting for write to complete");
+			if (GetOverlappedResult(port->hdl, &port->write_ovl, &bytes_written, TRUE) == 0) {
+				if (GetLastError() == ERROR_SEM_TIMEOUT) {
+					DEBUG("Write timed out");
+					break;
+				} else {
+					RETURN_FAIL("GetOverlappedResult() failed");
+				}
+			}
+			DEBUG_FMT("Write completed, %d/%d bytes written", bytes_written, write_size);
+		} else {
+			RETURN_FAIL("WriteFile() failed");
+		}
+
+		write_ptr += bytes_written;
+		total_bytes_written += bytes_written;
 	}
+
+	RETURN_INT(total_bytes_written);
 #else
 	size_t bytes_written = 0;
 	unsigned char *ptr = (unsigned char *) buf;
