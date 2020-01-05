@@ -59,7 +59,19 @@
  * to restructure things somewhat, or do without some specialised features.
  * For particular notes on porting existing code, see @ref Porting.
  *
- * The following subsections will help explain the principles of the API.
+ * Examples
+ * --------
+ *
+ * Some simple example programs using libserialport are included in the
+ * @c examples directory in the source package:
+ *
+ * - @ref list_ports.c - Getting a list of ports present on the system.
+ * - @ref port_info.c - Getting information on a particular serial port.
+ *
+ * These examples are linked with the API documentation. Each function
+ * in the API reference includes links to where it is used in an example
+ * program, and each appearance of a function in the examples links
+ * to that function's entry in the API reference.
  *
  * Headers
  * -------
@@ -445,6 +457,8 @@ struct sp_event_set {
  *
  * Enumerating the serial ports of a system.
  *
+ * See @ref list_ports.c for a working example of port enumeration.
+ *
  * @{
  */
 
@@ -533,6 +547,8 @@ void sp_free_port_list(struct sp_port **ports);
  * @defgroup Ports Port handling
  *
  * Opening, closing and querying ports.
+ *
+ * See @ref port_info.c for a working example of getting port information.
  *
  * @{
  */
@@ -1705,6 +1721,11 @@ int sp_get_age_lib_version(void);
 const char *sp_get_lib_version_string(void);
 
 /** @} */
+
+/**
+ * @example list_ports.c Getting a list of ports present on the system.
+ * @example port_info.c Getting information on a particular serial port.
+*/
 
 #ifdef __cplusplus
 }
