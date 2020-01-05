@@ -77,13 +77,13 @@
  * -------
  *
  * To use libserialport functions in your code, you should include the
- * libserialport.h header, i.e. "#include <libserialport.h>".
+ * libserialport.h header, i.e. {@code #include <libserialport.h>}
  *
  * Namespace
  * ---------
  *
  * All identifiers defined by the public libserialport headers use the prefix
- * sp_ (for functions and data types) or SP_ (for macros and constants).
+ * @c sp_ (for functions and data types) or @c SP_ (for macros and constants).
  *
  * Functions
  * ---------
@@ -144,12 +144,12 @@
  * numeric result, e.g. sp_blocking_read() or sp_blocking_write().
  *
  * An error message is only available via sp_last_error_message() in the case
- * where SP_ERR_FAIL was returned by the previous function call. The error
+ * where @ref SP_ERR_FAIL was returned by the previous function call. The error
  * message returned is that provided by the OS, using the current language
  * settings. It is an error to call sp_last_error_code() or
  * sp_last_error_message() except after a previous function call returned
- * SP_ERR_FAIL. The library does not define its own error codes or messages
- * to accompany other return codes.
+ * @ref SP_ERR_FAIL. The library does not define its own error codes or
+ * messages to accompany other return codes.
  *
  * Thread safety
  * -------------
@@ -190,7 +190,7 @@
  *
  * The library can output extensive tracing and debugging information. The
  * simplest way to use this is to set the environment variable
- * LIBSERIALPORT_DEBUG to any value; messages will then be output to the
+ * @c LIBSERIALPORT_DEBUG to any value; messages will then be output to the
  * standard error stream.
  *
  * This behaviour is implemented by a default debug message handling
@@ -218,21 +218,21 @@
  * libserialport provides only a raw binary channel with no special handling.
  *
  * The second relates to blocking versus non-blocking I/O behaviour. In
- * Unix-like systems this is normally specified by setting the O_NONBLOCK
- * flag on the file descriptor, affecting the semantics of subsequent read()
- * and write() calls.
+ * Unix-like systems this is normally specified by setting the @c O_NONBLOCK
+ * flag on the file descriptor, affecting the semantics of subsequent @c read()
+ * and @c write() calls.
  *
  * In libserialport, blocking and nonblocking operations are both available at
- * any time. If your existing code ѕets O_NONBLOCK, you should use
+ * any time. If your existing code ѕets @c O_NONBLOCK, you should use
  * sp_nonblocking_read() and sp_nonblocking_write() to get the same behaviour
- * as your existing read() and write() calls. If it does not, you should use
- * sp_blocking_read() and sp_blocking_write() instead. You may also find
+ * as your existing @c read() and @c write() calls. If it does not, you should
+ * use sp_blocking_read() and sp_blocking_write() instead. You may also find
  * sp_blocking_read_next() useful, which reproduces the semantics of a blocking
- * read() with VTIME = 0 and VMIN = 1 set in termios.
+ * read() with @c VTIME=0 and @c VMIN=1 set in termios.
  *
  * Finally, you should take care if your program uses custom signal handlers.
  * The blocking calls provided by libserialport will restart system calls that
- * return with EINTR, so you will need to make your own arrangements if you
+ * return with @c EINTR, so you will need to make your own arrangements if you
  * need to interrupt blocking operations when your signal handlers are called.
  * This is not an issue if you only use the default handlers.
  *
@@ -243,23 +243,23 @@
  *
  * If your program does not use overlapped I/O, you can simply use
  * sp_blocking_read() and sp_blocking_write() as direct equivalents for
- * ReadFile() and WriteFile(). You may also find sp_blocking_read_next()
- * useful, which reproduces the special semantics of ReadFile() with
- * ReadIntervalTimeout and ReadTotalTimeoutMultiplier set to MAXDWORD
- * and 0 < ReadTotalTimeoutConstant < MAXDWORD.
+ * @c ReadFile() and @c WriteFile(). You may also find sp_blocking_read_next()
+ * useful, which reproduces the special semantics of @c ReadFile() with
+ * @c ReadIntervalTimeout and @c ReadTotalTimeoutMultiplier set to @c MAXDWORD
+ * and @c ReadTotalTimeoutConstant set to between @c 1 and @c MAXDWORD-1 .
  *
  * If your program makes use of overlapped I/O to continue work while a serial
  * operation is in progress, then you can achieve the same results using
  * sp_nonblocking_read() and sp_nonblocking_write().
  *
  * Generally, overlapped I/O is combined with either waiting for completion
- * once there is no more background work to do (using WaitForSingleObject() or
- * WaitForMultipleObjects()), or periodically checking for completion with
- * GetOverlappedResult(). If the aim is to start a new operation for further
- * data once the previous one has completed, you can instead simply call the
- * nonblocking functions again with the next data. If you need to wait for
- * completion, use sp_wait() to determine when the port is ready to send or
- * receive further data.
+ * once there is no more background work to do (using @c WaitForSingleObject()
+ * or @c WaitForMultipleObjects()), or periodically checking for completion
+ * with @c GetOverlappedResult(). If the aim is to start a new operation for
+ * further data once the previous one has completed, you can instead simply
+ * call the nonblocking functions again with the next data. If you need to
+ * wait for completion, use sp_wait() to determine when the port is ready to
+ * send or receive further data.
  */
 
 #ifndef LIBSERIALPORT_LIBSERIALPORT_H
