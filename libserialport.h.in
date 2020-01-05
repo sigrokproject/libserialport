@@ -77,7 +77,10 @@
  * -------
  *
  * To use libserialport functions in your code, you should include the
- * libserialport.h header, i.e. {@code #include <libserialport.h>}
+ * libserialport.h header, i.e.
+ * @code
+ * #include <libserialport.h>
+ * @endcode
  *
  * Namespace
  * ---------
