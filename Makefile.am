@@ -53,7 +53,11 @@ nodist_include_HEADERS = libserialport.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libserialport.pc
 
-EXTRA_DIST = Doxyfile
+EXTRA_DIST = Doxyfile \
+	examples/Makefile \
+	examples/README \
+	examples/list_ports.c \
+	examples/port_info.c
 
 MAINTAINERCLEANFILES = ChangeLog
 
