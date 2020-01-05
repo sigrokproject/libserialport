@@ -1,7 +1,9 @@
 #include <libserialport.h>
 #include <stdio.h>
 
-/* Example of how to get a list of serial ports on the system. */
+/* Example of how to get a list of serial ports on the system.
+ *
+ * This example file is released to the public domain. */
 
 int main(int argc, char **argv)
 {

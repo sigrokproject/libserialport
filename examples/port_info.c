@@ -1,7 +1,9 @@
 #include <libserialport.h>
 #include <stdio.h>
 
-/* Example of how to get information about a serial port. */
+/* Example of how to get information about a serial port.
+ *
+ * This example file is released to the public domain. */
 
 int main(int argc, char **argv)
 {

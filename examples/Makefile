@@ -1,3 +1,7 @@
+# A simple Makefile to build the examples in this directory.
+#
+# This example file is released to the public domain.
+
 CC = gcc
 PKG_CONFIG = pkg-config
 CFLAGS = -g -Wall $(shell $(PKG_CONFIG) --cflags libserialport)

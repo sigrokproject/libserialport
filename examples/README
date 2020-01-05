@@ -22,3 +22,5 @@ paths in your environment to suit your system.
 You can also build these examples using any other compiler, IDE or build
 system. You just need the libserialport.h header available to compile them,
 and the libserialport library available to link and run them.
+
+These example files are hereby released into the public domain by the author.
