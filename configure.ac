@@ -29,7 +29,7 @@ m4_define([sp_package_version], [sp_package_version_major.sp_package_version_min
 
 AC_INIT([libserialport], [sp_package_version], [martin-libserialport@earth.li],
 	[libserialport], [http://sigrok.org/wiki/Libserialport])
-AC_CONFIG_HEADERS([config.h libserialport.h])
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
