@@ -68,6 +68,7 @@
  * - @ref list_ports.c - Getting a list of ports present on the system.
  * - @ref port_info.c - Getting information on a particular serial port.
  * - @ref port_config.c - Accessing configuration settings of a port.
+ * - @ref handle_errors.c - Handling errors returned from the library.
  *
  * These examples are linked with the API documentation. Each function
  * in the API reference includes links to where it is used in an example
@@ -1596,6 +1597,8 @@ SP_API enum sp_return sp_end_break(struct sp_port *port);
  *
  * Obtaining error information.
  *
+ * See @ref handle_errors.c for an example of error handling.
+ *
  * @{
  */
 
@@ -1806,6 +1809,7 @@ SP_API const char *sp_get_lib_version_string(void);
  * @example list_ports.c Getting a list of ports present on the system.
  * @example port_info.c Getting information on a particular serial port.
  * @example port_config.c Accessing configuration settings of a port.
+ * @example handle_errors.c - Handling errors returned from the library.
 */
 
 #ifdef __cplusplus
