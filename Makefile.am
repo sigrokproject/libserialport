@@ -53,6 +53,11 @@ nodist_include_HEADERS = libserialport.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libserialport.pc
 
+TESTS = test_timing
+check_PROGRAMS = test_timing
+test_timing_SOURCES = timing.c test_timing.c
+test_timing_CFLAGS = $(AM_CFLAGS)
+
 EXTRA_DIST = Doxyfile \
 	examples/Makefile \
 	examples/README \
