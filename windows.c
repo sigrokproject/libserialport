@@ -483,19 +483,22 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 	DWORD max_value_len, max_data_size, max_data_len;
 	DWORD value_len, data_size, data_len;
 	DWORD type, index = 0;
+	LSTATUS result;
 	char *name;
 	int name_len;
 	int ret = SP_OK;
 
 	DEBUG("Opening registry key");
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
-			0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) {
+	if ((result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
+			0, KEY_QUERY_VALUE, &key)) != ERROR_SUCCESS) {
+		SetLastError(result);
 		SET_FAIL(ret, "RegOpenKeyEx() failed");
 		goto out_done;
 	}
 	DEBUG("Querying registry key value and data sizes");
-	if (RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-				&max_value_len, &max_data_size, NULL, NULL) != ERROR_SUCCESS) {
+	if ((result = RegQueryInfoKey(key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+				&max_value_len, &max_data_size, NULL, NULL)) != ERROR_SUCCESS) {
+		SetLastError(result);
 		SET_FAIL(ret, "RegQueryInfoKey() failed");
 		goto out_close;
 	}
