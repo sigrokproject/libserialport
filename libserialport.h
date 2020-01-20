@@ -761,6 +761,63 @@ SP_API enum sp_return sp_get_port_handle(const struct sp_port *port, void *resul
  * @defgroup Configuration Configuration
  *
  * Setting and querying serial port parameters.
+ *
+ * See @ref port_config.c for a working example of port configuration.
+ *
+ * You should always configure all settings before using a port.
+ * There are no default settings applied by libserialport.
+ * When you open a port it may have default settings from the OS or
+ * driver, or the settings left over by the last program to use it.
+ *
+ * You should always set baud rate, data bits, parity and stop bits.
+ *
+ * You should normally also set one of the preset @ref sp_flowcontrol
+ * flow control modes, which will set up the RTS, CTS, DTR and DSR pin
+ * behaviours and enable or disable XON/XOFF. If you need an unusual
+ * configuration not covered by the preset flow control modes, you
+ * will need to configure these settings individually, and avoid
+ * calling sp_set_flowcontrol() or sp_set_config_flowcontrol() which
+ * will overwrite these settings.
+ *
+ * A port must be opened before you can change its settings.
+ *
+ * There are two ways of accessing port settings:
+ *
+ * Configuration structures
+ * ------------------------
+ *
+ * You can read and write a whole configuration (all settings at once)
+ * using sp_get_config() and sp_set_config(). This is handy if you want
+ * to change between some preset combinations, or save and restore an
+ * existing configuration. It also ensures the changes are made
+ * together, via an efficient set of calls into the OS - in some cases
+ * a single system call can be used.
+ *
+ * Use accessor functions like sp_get_config_baudrate() and
+ * sp_set_config_baudrate() to get and set individual settings
+ * from a configuration.
+ *
+ * For each setting in a port configuration, a special value of -1 can
+ * be used, which will cause that setting to be left alone when the
+ * configuration is applied by sp_set_config().
+ *
+ * This value is also be used by sp_get_config() for any settings
+ * which are unconfigured at the OS level, or in a state that is
+ * not representable within the libserialport API.
+ *
+ * Configurations are allocated using sp_new_config() and freed
+ * with sp_free_config(). You need to manage them yourself. When
+ * a new configuration is allocated by sp_new_config(), all of
+ * its settings are initially set to the special -1 value.
+ *
+ * Direct functions for changing port settings
+ * -------------------------------------------
+ *
+ * As a shortcut, you can set individual settings on a port directly
+ * by calling functions like sp_set_baudrate() and sp_set_parity().
+ * This saves you the work of allocating a temporary config, setting it
+ * up, applying it to a port and then freeing it.
+ *
  * @{
  */
 
