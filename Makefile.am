@@ -65,7 +65,8 @@ EXTRA_DIST = Doxyfile \
 	examples/Makefile \
 	examples/README \
 	examples/list_ports.c \
-	examples/port_info.c
+	examples/port_info.c \
+	examples/port_config.c
 
 MAINTAINERCLEANFILES = ChangeLog
 

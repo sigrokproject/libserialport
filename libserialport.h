@@ -67,6 +67,7 @@
  *
  * - @ref list_ports.c - Getting a list of ports present on the system.
  * - @ref port_info.c - Getting information on a particular serial port.
+ * - @ref port_config.c - Accessing configuration settings of a port.
  *
  * These examples are linked with the API documentation. Each function
  * in the API reference includes links to where it is used in an example
@@ -1747,6 +1748,7 @@ SP_API const char *sp_get_lib_version_string(void);
 /**
  * @example list_ports.c Getting a list of ports present on the system.
  * @example port_info.c Getting information on a particular serial port.
+ * @example port_config.c Accessing configuration settings of a port.
 */
 
 #ifdef __cplusplus
