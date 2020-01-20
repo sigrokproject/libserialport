@@ -491,8 +491,12 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 	DEBUG("Opening registry key");
 	if ((result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("HARDWARE\\DEVICEMAP\\SERIALCOMM"),
 			0, KEY_QUERY_VALUE, &key)) != ERROR_SUCCESS) {
-		SetLastError(result);
-		SET_FAIL(ret, "RegOpenKeyEx() failed");
+		/* It's possible for this key to not exist if there are no serial ports
+		 * at all. In that case we're done. Return a failure for any other error. */
+		if (result != ERROR_FILE_NOT_FOUND) {
+			SetLastError(result);
+			SET_FAIL(ret, "RegOpenKeyEx() failed");
+		}
 		goto out_done;
 	}
 	DEBUG("Querying registry key value and data sizes");
