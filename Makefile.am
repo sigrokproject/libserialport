@@ -32,7 +32,7 @@ if LINUX
 libserialport_la_SOURCES += linux.c linux_termios.c linux_termios.h
 endif
 if WIN32
-libserialport_la_SOURCES += windows.c windows_ddk.c windows_ddk.h
+libserialport_la_SOURCES += windows.c
 endif
 if MACOSX
 libserialport_la_SOURCES += macosx.c

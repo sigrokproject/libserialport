@@ -51,7 +51,11 @@
 	static const GUID name = { l,w1,w2,{ b1,b2,b3,b4,b5,b6,b7,b8 } }
 #include <usbioctl.h>
 #include <usbiodef.h>
-#include "windows_ddk.h"
+/* The largest size that can be passed to WriteFile() safely
+ * on any architecture. This arises from the expression:
+ * PAGE_SIZE * (65535 - sizeof(MDL)) / sizeof(ULONG_PTR)
+ * and this worst-case value is found on x64. */
+#define WRITEFILE_MAX_SIZE 33525760
 #else
 #include <limits.h>
 #include <termios.h>
