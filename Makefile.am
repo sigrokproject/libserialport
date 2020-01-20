@@ -24,6 +24,9 @@ GNUMAKEFLAGS = --no-print-directory
 
 # Enable more compiler warnings.
 AM_CFLAGS = -std=c99 -Wall -Wextra -pedantic -Wmissing-prototypes -Wshadow
+# Set flag used in libserialport.h to indicate we are building the library
+# using autotools.
+AM_CFLAGS += -DLIBSERIALPORT_ATBUILD
 
 lib_LTLIBRARIES = libserialport.la
 
