@@ -67,6 +67,7 @@ EXTRA_DIST = Doxyfile \
 	examples/list_ports.c \
 	examples/port_info.c \
 	examples/port_config.c \
+	examples/await_events.c \
 	examples/handle_errors.c
 
 MAINTAINERCLEANFILES = ChangeLog

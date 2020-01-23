@@ -68,6 +68,7 @@
  * - @ref list_ports.c - Getting a list of ports present on the system.
  * - @ref port_info.c - Getting information on a particular serial port.
  * - @ref port_config.c - Accessing configuration settings of a port.
+ * - @ref await_events.c - Awaiting events on multiple ports.
  * - @ref handle_errors.c - Handling errors returned from the library.
  *
  * These examples are linked with the API documentation. Each function
@@ -1478,6 +1479,8 @@ SP_API enum sp_return sp_drain(struct sp_port *port);
  *
  * Waiting for events and timeout handling.
  *
+ * See @ref await_events.c for an example of awaiting events on multiple ports.
+ *
  * @{
  */
 
@@ -1809,6 +1812,7 @@ SP_API const char *sp_get_lib_version_string(void);
  * @example list_ports.c Getting a list of ports present on the system.
  * @example port_info.c Getting information on a particular serial port.
  * @example port_config.c Accessing configuration settings of a port.
+ * @example await_events.c - Awaiting events on multiple ports.
  * @example handle_errors.c - Handling errors returned from the library.
 */
 
