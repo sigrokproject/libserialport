@@ -102,7 +102,7 @@ SP_PRIV unsigned int time_as_ms(const struct time *time)
 #ifdef _WIN32
 	LARGE_INTEGER frequency;
 	QueryPerformanceFrequency(&frequency);
-	return time->ticks / (frequency.QuadPart / 1000);
+	return (unsigned int) (time->ticks / (frequency.QuadPart / 1000));
 #else
 	return time->tv.tv_sec * 1000 + time->tv.tv_usec / 1000;
 #endif
