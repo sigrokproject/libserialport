@@ -143,7 +143,7 @@ static char *get_string_descriptor(HANDLE hub_device, ULONG connection_index,
 	desc_req->SetupPacket.wValue = (USB_STRING_DESCRIPTOR_TYPE << 8)
 	                               | descriptor_index;
 	desc_req->SetupPacket.wIndex = 0;
-	desc_req->SetupPacket.wLength = size - sizeof(*desc_req);
+	desc_req->SetupPacket.wLength = (USHORT) (size - sizeof(*desc_req));
 
 	if (!DeviceIoControl(hub_device,
 	                     IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION,
