@@ -18,8 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
-#include "libserialport.h"
 #include "libserialport_internal.h"
 
 /* USB path is a string of at most 8 decimal numbers < 128 separated by dots. */

@@ -21,7 +21,13 @@
 #ifndef LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 #define LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 
+/* These MSVC-specific defines must appear before other headers.*/
+#ifdef _MSC_VER
+#define _CRT_NONSTDC_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
+/* These Linux/glibc specific defines must appear before other headers.*/
 #ifdef __linux__
 /* For timeradd, timersub, timercmp, realpath. */
 #define _BSD_SOURCE 1 /* for glibc < 2.19 */
@@ -29,6 +35,19 @@
 /* For clock_gettime and associated types. */
 #define _POSIX_C_SOURCE 199309L
 #endif
+
+#ifdef LIBSERIALPORT_ATBUILD
+/* If building with autoconf, include the generated config.h. */
+#include <config.h>
+#endif
+
+#ifdef LIBSERIALPORT_MSBUILD
+/* If building with MS tools, define necessary things that
+   would otherwise appear in config.h. */
+#define SP_PRIV
+#endif
+
+#include "libserialport.h"
 
 #include <string.h>
 #include <sys/types.h>

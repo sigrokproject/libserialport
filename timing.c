@@ -17,8 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
-#include "libserialport.h"
 #include "libserialport_internal.h"
 
 SP_PRIV void time_get(struct time *time)
