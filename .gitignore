@@ -15,3 +15,8 @@
 /libserialport.pc
 /libtool
 stamp-h?
+.vs/
+Debug/
+Release/
+x64/
+libserialport.vcxproj.user
