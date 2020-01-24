@@ -488,7 +488,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	if (flags & SP_MODE_WRITE)
 		desired_access |= GENERIC_WRITE;
 
-	port->hdl = CreateFile(escaped_port_name, desired_access, 0, 0,
+	port->hdl = CreateFileA(escaped_port_name, desired_access, 0, 0,
 			 OPEN_EXISTING, flags_and_attributes, 0);
 
 	free(escaped_port_name);
