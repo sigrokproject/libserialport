@@ -59,7 +59,7 @@ SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port *
 #ifndef NO_PORT_METADATA
 	enum sp_return ret;
 #endif
-	int len;
+	size_t len;
 
 	TRACE("%s, %p", portname, port_ptr);
 
@@ -323,7 +323,7 @@ SP_PRIV struct sp_port **list_append(struct sp_port **list,
                                      const char *portname)
 {
 	void *tmp;
-	unsigned int count;
+	size_t count;
 
 	for (count = 0; list[count]; count++)
 		;
