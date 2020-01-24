@@ -782,7 +782,8 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		RETURN_INT(0);
 
 #ifdef _WIN32
-	DWORD remaining_ms, write_size, bytes_written, total_bytes_written = 0;
+	DWORD remaining_ms, write_size, bytes_written;
+	size_t remaining_bytes, total_bytes_written = 0;
 	const uint8_t *write_ptr = (uint8_t *) buf;
 	bool result;
 	struct timeout timeout;
@@ -805,9 +806,11 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		}
 
 		/* Reduce write size if it exceeds the WriteFile limit. */
-		write_size = count - total_bytes_written;
-		if (write_size > WRITEFILE_MAX_SIZE)
+		remaining_bytes = count - total_bytes_written;
+		if (remaining_bytes > WRITEFILE_MAX_SIZE)
 			write_size = WRITEFILE_MAX_SIZE;
+		else
+			write_size = (DWORD) remaining_bytes;
 
 		/* Start write. */
 
@@ -837,7 +840,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 		total_bytes_written += bytes_written;
 	}
 
-	RETURN_INT(total_bytes_written);
+	RETURN_INT((int) total_bytes_written);
 #else
 	size_t bytes_written = 0;
 	unsigned char *ptr = (unsigned char *) buf;
@@ -911,7 +914,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 		RETURN_INT(0);
 
 #ifdef _WIN32
-	DWORD buf_bytes;
+	size_t buf_bytes;
 
 	/* Check whether previous write is complete. */
 	if (port->writing) {
@@ -941,7 +944,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 	memcpy(port->write_buf, buf, buf_bytes);
 
 	/* Start asynchronous write. */
-	if (WriteFile(port->hdl, port->write_buf, buf_bytes, NULL, &port->write_ovl) == 0) {
+	if (WriteFile(port->hdl, port->write_buf, (DWORD) buf_bytes, NULL, &port->write_ovl) == 0) {
 		if (GetLastError() == ERROR_IO_PENDING) {
 			if ((port->writing = !HasOverlappedIoCompleted(&port->write_ovl)))
 				DEBUG("Asynchronous write completed immediately");
@@ -955,7 +958,7 @@ SP_API enum sp_return sp_nonblocking_write(struct sp_port *port,
 
 	DEBUG("All bytes written immediately");
 
-	RETURN_INT(buf_bytes);
+	RETURN_INT((int) buf_bytes);
 #else
 	/* Returns the number of bytes written, or -1 upon failure. */
 	ssize_t written = write(port->fd, buf, count);
@@ -1013,7 +1016,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 		RETURN_INT(0);
 
 #ifdef _WIN32
-	DWORD bytes_read = 0;
+	DWORD bytes_read;
 
 	/* Set timeout. */
 	if (port->timeouts.ReadIntervalTimeout != 0 ||
@@ -1027,9 +1030,9 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	}
 
 	/* Start read. */
-	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl)) {
+	if (ReadFile(port->hdl, buf, (DWORD) count, NULL, &port->read_ovl)) {
 		DEBUG("Read completed immediately");
-		bytes_read = count;
+		bytes_read = (DWORD) count;
 	} else if (GetLastError() == ERROR_IO_PENDING) {
 		DEBUG("Waiting for read to complete");
 		if (GetOverlappedResult(port->hdl, &port->read_ovl, &bytes_read, TRUE) == 0)
@@ -1041,7 +1044,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 
 	TRY(restart_wait_if_needed(port, bytes_read));
 
-	RETURN_INT(bytes_read);
+	RETURN_INT((int) bytes_read);
 
 #else
 	size_t bytes_read = 0;
@@ -1144,7 +1147,7 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 	/* Loop until we have at least one byte, or timeout is reached. */
 	while (bytes_read == 0) {
 		/* Start read. */
-		if (ReadFile(port->hdl, buf, count, &bytes_read, &port->read_ovl)) {
+		if (ReadFile(port->hdl, buf, (DWORD) count, &bytes_read, &port->read_ovl)) {
 			DEBUG("Read completed immediately");
 		} else if (GetLastError() == ERROR_IO_PENDING) {
 			DEBUG("Waiting for read to complete");
@@ -1250,7 +1253,7 @@ SP_API enum sp_return sp_nonblocking_read(struct sp_port *port, void *buf,
 	}
 
 	/* Do read. */
-	if (ReadFile(port->hdl, buf, count, NULL, &port->read_ovl) == 0)
+	if (ReadFile(port->hdl, buf, (DWORD) count, NULL, &port->read_ovl) == 0)
 		if (GetLastError() != ERROR_IO_PENDING)
 			RETURN_FAIL("ReadFile() failed");
 
