@@ -1838,6 +1838,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	DEBUG_FMT("Setting configuration for port %s", port->name);
 
 #ifdef _WIN32
+	BYTE* new_buf;
 
 	TRY(await_write_completion(port));
 
@@ -1854,11 +1855,10 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 
 		/* Allocate write buffer for 50ms of data at baud rate. */
 		port->write_buf_size = max(config->baudrate / (8 * 20), 1);
-		port->write_buf = realloc(port->write_buf,
-					  port->write_buf_size);
-
-		if (!port->write_buf)
+		new_buf = realloc(port->write_buf, port->write_buf_size);
+		if (!new_buf)
 			RETURN_ERROR(SP_ERR_MEM, "Allocating write buffer failed");
+		port->write_buf = new_buf;
 	}
 
 	if (config->bits >= 0)
