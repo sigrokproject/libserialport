@@ -20,7 +20,9 @@ int main(int argc, char **argv)
 	char **port_names = argv + 1;
 
 	/* The ports we will use. */
-	struct sp_port *ports[num_ports];
+	struct sp_port **ports = malloc(num_ports * sizeof(struct sp_port *));
+	if (!ports)
+		abort();
 
 	/* The set of events we will wait for. */
 	struct sp_event_set *event_set;
