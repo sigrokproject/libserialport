@@ -2478,17 +2478,17 @@ SP_API char *sp_last_error_message(void)
 	TRACE_VOID();
 
 #ifdef _WIN32
-	TCHAR *message;
+	char *message;
 	DWORD error = GetLastError();
 
-	DWORD length = FormatMessage(
+	DWORD length = FormatMessageA(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER |
 		FORMAT_MESSAGE_FROM_SYSTEM |
 		FORMAT_MESSAGE_IGNORE_INSERTS,
 		NULL,
 		error,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR) &message,
+		(LPSTR) &message,
 		0, NULL );
 
 	if (length >= 2 && message[length - 2] == '\r')
