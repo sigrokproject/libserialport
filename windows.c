@@ -265,8 +265,8 @@ static void enumerate_hub(struct sp_port *port, const char *hub_name,
 		return;
 	strcpy(device_name, "\\\\.\\");
 	strcat(device_name, hub_name);
-	hub_device = CreateFile(device_name, GENERIC_WRITE, FILE_SHARE_WRITE,
-	                        NULL, OPEN_EXISTING, 0, NULL);
+	hub_device = CreateFileA(device_name, GENERIC_WRITE, FILE_SHARE_WRITE,
+	                         NULL, OPEN_EXISTING, 0, NULL);
 	free(device_name);
 	if (hub_device == INVALID_HANDLE_VALUE)
 		return;
