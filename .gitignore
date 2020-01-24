@@ -19,4 +19,4 @@ stamp-h?
 Debug/
 Release/
 x64/
-libserialport.vcxproj.user
+*.vcxproj.user

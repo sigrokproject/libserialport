@@ -8,6 +8,9 @@ port_info.c - displays info about a particular port on the system.
 The programs themselves are completely OS-independent, and require only a
 C compiler and libserialport.
 
+The 'examples.sln' file is a solution file for Microsoft Visual Studio 2019
+which will build libserialport and all of the example programs.
+
 The Makefile in this directory will attempt to build all the examples,
 using 'gcc' to compile them and 'pkg-config' to discover the include
 paths and linker settings needed to build with libserialport. It provides
