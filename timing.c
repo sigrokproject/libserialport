@@ -89,9 +89,9 @@ SP_PRIV void time_as_timeval(const struct time *time, struct timeval *tv)
 #ifdef _WIN32
 	LARGE_INTEGER frequency;
 	QueryPerformanceFrequency(&frequency);
-	tv->tv_sec = time->ticks / frequency.QuadPart;
-	tv->tv_usec = (time->ticks % frequency.QuadPart) /
-		(frequency.QuadPart / 1000000);
+	tv->tv_sec = (long) (time->ticks / frequency.QuadPart);
+	tv->tv_usec = (long) ((time->ticks % frequency.QuadPart) /
+		(frequency.QuadPart / 1000000));
 #else
 	*tv = time->tv;
 #endif
