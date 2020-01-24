@@ -40,17 +40,19 @@ No other libraries are required.
 Building
 ========
 
-The package uses a GNU style build system and requires a Unix style shell.
+On Windows, libserialport can be built with Visual Studio 2019 or with
+the standalone MSBuild tool, using the solution and project files provided.
 
-Windows builds can be created natively with the MinGW-w64 toolchain and
-MSYS2 environment, or cross-compiled using a MinGW-w64 toolchain:
-
-  http://mingw-w64.sourceforge.net/
-
-The "old" MinGW from http://mingw.org/ is not supported.
+For other environments, the package uses a GNU style build based on autotools.
 
 Run "./autogen.sh" to generate the build system, "./configure" to setup, then
 "make" to build the library and "make install" to install it.
+
+Windows builds can also be created using the autotools build system, using the
+MinGW-w64 toolchain from http://mingw-w64.sourceforge.net/ - either natively
+in Windows with the MSYS2 environment, or cross-compiling from another system.
+
+The "old" MinGW from http://mingw.org/ is not supported.
 
 API
 ===
