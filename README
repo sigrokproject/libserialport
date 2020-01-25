@@ -56,7 +56,10 @@ To build from MSYS2, the following packages must be installed: autoconf,
 automake-wrapper, libtool, make, and either mingw-w64-i686-gcc (for 32-bit)
 or mingw-w64-x86_64-gcc (for 64-bit). Open either the "MSYS2 MinGW 32-bit" or
 "MSYS2 MinGW 64-bit" command window from the Start menu and use this when
-configuring and building the package. The "MSYS2 MSYS" shell will not work.
+configuring and building the package. Using the "MSYS2 MSYS" shell will build
+against the Cygwin compatibility layer; this works, but port enumeration and
+metadata will not be available, and binaries will depend on Cygwin. The builds
+produced by MinGW-w64 are normal Windows DLLs without additional dependencies.
 
 The "old" MinGW from http://mingw.org/ is not supported.
 
