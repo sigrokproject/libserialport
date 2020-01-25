@@ -27,8 +27,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-/* These Linux/glibc specific defines must appear before other headers.*/
-#ifdef __linux__
+/* These feature test macros must appear before other headers.*/
+#if defined(__linux__) || defined(__CYGWIN__)
 /* For timeradd, timersub, timercmp, realpath. */
 #define _BSD_SOURCE 1 /* for glibc < 2.19 */
 #define _DEFAULT_SOURCE 1 /* for glibc >= 2.20 */

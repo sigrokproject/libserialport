@@ -1307,6 +1307,11 @@ SP_API enum sp_return sp_output_waiting(struct sp_port *port)
 {
 	TRACE("%p", port);
 
+#ifdef __CYGWIN__
+	/* TIOCOUTQ is not defined in Cygwin headers */
+	RETURN_ERROR(SP_ERR_SUPP,
+			"Getting output bytes waiting is not supported on Cygwin");
+#else
 	CHECK_OPEN_PORT();
 
 	DEBUG_FMT("Checking output bytes waiting on port %s", port->name);
@@ -1323,6 +1328,7 @@ SP_API enum sp_return sp_output_waiting(struct sp_port *port)
 	if (ioctl(port->fd, TIOCOUTQ, &bytes_waiting) < 0)
 		RETURN_FAIL("TIOCOUTQ ioctl failed");
 	RETURN_INT(bytes_waiting);
+#endif
 #endif
 }
 
