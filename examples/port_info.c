@@ -24,8 +24,7 @@ int main(int argc, char **argv)
 	 * pointer will be updated to refer to the port found. */
 	enum sp_return result = sp_get_port_by_name(port_name, &port);
 
-	if (result != SP_OK)
-	{
+	if (result != SP_OK) {
 		printf("sp_get_port_by_name() failed!\n");
 		return -1;
 	}
@@ -38,14 +37,11 @@ int main(int argc, char **argv)
 	 * e.g. native port, USB or Bluetooth. */
 	enum sp_transport transport = sp_get_port_transport(port);
 
-	if (transport == SP_TRANSPORT_NATIVE)
-	{
+	if (transport == SP_TRANSPORT_NATIVE) {
 		/* This is a "native" port, usually directly connected
 		 * to the system rather than some external interface. */
 		printf("Type: Native\n");
-	}
-	else if (transport == SP_TRANSPORT_USB)
-	{
+	} else if (transport == SP_TRANSPORT_USB) {
 		/* This is a USB to serial converter of some kind. */
 		printf("Type: USB\n");
 
@@ -63,9 +59,7 @@ int main(int argc, char **argv)
 		int usb_bus, usb_address;
 		sp_get_port_usb_bus_address(port, &usb_bus, &usb_address);
 		printf("Bus: %d Address: %d\n", usb_bus, usb_address);
-	}
-	else if (transport == SP_TRANSPORT_BLUETOOTH)
-	{
+	} else if (transport == SP_TRANSPORT_BLUETOOTH) {
 		/* This is a Bluetooth serial port. */
 		printf("Type: Bluetooth\n");
 

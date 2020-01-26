@@ -33,7 +33,6 @@ int main(int argc, char **argv)
 	/* Open and configure each port, and then add its RX event
 	 * to the event set. */
 	for (int i = 0; i < num_ports; i++) {
-
 		printf("Looking for port %s.\n", port_names[i]);
 		check(sp_get_port_by_name(port_names[i], &ports[i]));
 
@@ -79,23 +78,24 @@ int check(enum sp_return result)
 {
 	/* For this example we'll just exit on any error by calling abort(). */
 	char *error_message;
+
 	switch (result) {
-		case SP_ERR_ARG:
-			printf("Error: Invalid argument.\n");
-			abort();
-		case SP_ERR_FAIL:
-			error_message = sp_last_error_message();
-			printf("Error: Failed: %s\n", error_message);
-			sp_free_error_message(error_message);
-			abort();
-		case SP_ERR_SUPP:
-			printf("Error: Not supported.\n");
-			abort();
-		case SP_ERR_MEM:
-			printf("Error: Couldn't allocate memory.\n");
-			abort();
-		case SP_OK:
-		default:
-			return result;
+	case SP_ERR_ARG:
+		printf("Error: Invalid argument.\n");
+		abort();
+	case SP_ERR_FAIL:
+		error_message = sp_last_error_message();
+		printf("Error: Failed: %s\n", error_message);
+		sp_free_error_message(error_message);
+		abort();
+	case SP_ERR_SUPP:
+		printf("Error: Not supported.\n");
+		abort();
+	case SP_ERR_MEM:
+		printf("Error: Couldn't allocate memory.\n");
+		abort();
+	case SP_OK:
+	default:
+		return result;
 	}
 }

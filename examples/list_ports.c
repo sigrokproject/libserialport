@@ -17,8 +17,7 @@ int main(int argc, char **argv)
 	 * pointer will be updated to refer to the array created. */
 	enum sp_return result = sp_list_ports(&port_list);
 
-	if (result != SP_OK)
-	{
+	if (result != SP_OK) {
 		printf("sp_list_ports() failed!\n");
 		return -1;
 	}
@@ -26,8 +25,7 @@ int main(int argc, char **argv)
 	/* Iterate through the ports. When port_list[i] is NULL
 	 * this indicates the end of the list. */
 	int i;
-	for (i = 0; port_list[i] != NULL; i++)
-	{
+	for (i = 0; port_list[i] != NULL; i++) {
 		struct sp_port *port = port_list[i];
 
 		/* Get the name of the port. */

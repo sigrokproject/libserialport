@@ -11,6 +11,7 @@ int main(int argc, char *argv[])
 	struct time a, b, c;
 	struct timeval tv;
 	struct timeout to;
+
 	printf("Testing arithmetic\n");
 	time_set_ms(&a, 10050);
 	time_set_ms(&b, 100);
@@ -63,5 +64,6 @@ int main(int argc, char *argv[])
 	timeout_update(&to);
 	assert(timeout_check(&to));
 	printf("Timeout expired\n");
+
 	return 0;
 }
