@@ -4,6 +4,10 @@ The examples currently included are:
 
 list_ports.c - displays a list of ports on the system.
 port_info.c - displays info about a particular port on the system.
+port_config.c - sets and displays configuration settings on a port.
+send_receive.c - loopback test sending & receiving data on 1 or 2 ports.
+await_events.c - awaits receive events on multiple ports simultaneously.
+handle_errors.c - demonstrates handling errors returned from the library.
 
 The programs themselves are completely OS-independent, and require only a
 C compiler and libserialport.
