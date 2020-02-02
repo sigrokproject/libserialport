@@ -1448,6 +1448,7 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 	RETURN_OK();
 #else
 	struct timeout timeout;
+	int poll_timeout;
 	int result;
 	struct pollfd *pollfds;
 	unsigned int i;
@@ -1478,7 +1479,11 @@ SP_API enum sp_return sp_wait(struct sp_event_set *event_set,
 			break;
 		}
 
-		result = poll(pollfds, event_set->count, timeout_remaining_ms(&timeout) || -1);
+		poll_timeout = (int) timeout_remaining_ms(&timeout);
+		if (poll_timeout == 0)
+			poll_timeout = -1;
+
+		result = poll(pollfds, event_set->count, poll_timeout);
 
 		timeout_update(&timeout);
 
