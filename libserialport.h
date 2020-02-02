@@ -68,6 +68,7 @@
  * - @ref list_ports.c - Getting a list of ports present on the system.
  * - @ref port_info.c - Getting information on a particular serial port.
  * - @ref port_config.c - Accessing configuration settings of a port.
+ * - @ref send_receive.c - Sending and receiving data.
  * - @ref await_events.c - Awaiting events on multiple ports.
  * - @ref handle_errors.c - Handling errors returned from the library.
  *
@@ -1289,6 +1290,8 @@ SP_API enum sp_return sp_set_flowcontrol(struct sp_port *port, enum sp_flowcontr
  *
  * Reading, writing, and flushing data.
  *
+ * See @ref send_receive.c for an example of sending and receiving data.
+ *
  * @{
  */
 
@@ -1812,6 +1815,7 @@ SP_API const char *sp_get_lib_version_string(void);
  * @example list_ports.c Getting a list of ports present on the system.
  * @example port_info.c Getting information on a particular serial port.
  * @example port_config.c Accessing configuration settings of a port.
+ * @example send_receive.c Sending and receiving data.
  * @example await_events.c - Awaiting events on multiple ports.
  * @example handle_errors.c - Handling errors returned from the library.
 */
