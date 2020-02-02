@@ -1816,8 +1816,8 @@ SP_API const char *sp_get_lib_version_string(void);
  * @example port_info.c Getting information on a particular serial port.
  * @example port_config.c Accessing configuration settings of a port.
  * @example send_receive.c Sending and receiving data.
- * @example await_events.c - Awaiting events on multiple ports.
- * @example handle_errors.c - Handling errors returned from the library.
+ * @example await_events.c Awaiting events on multiple ports.
+ * @example handle_errors.c Handling errors returned from the library.
 */
 
 #ifdef __cplusplus
