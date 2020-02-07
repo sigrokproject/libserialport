@@ -61,8 +61,6 @@ against the Cygwin compatibility layer; this works, but port enumeration and
 metadata will not be available, and binaries will depend on Cygwin. The builds
 produced by MinGW-w64 are normal Windows DLLs without additional dependencies.
 
-The "old" MinGW from http://mingw.org/ is not supported.
-
 API
 ===
 
