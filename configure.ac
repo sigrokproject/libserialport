@@ -88,7 +88,7 @@ AC_DEFINE_UNQUOTED([SP_LIB_VERSION_AGE], [$SP_LIB_VERSION_AGE], [.])
 AC_DEFINE_UNQUOTED([SP_LIB_VERSION_STRING], ["$SP_LIB_VERSION"], [.])
 
 AM_CONDITIONAL([LINUX], [test -z "${host_os##linux*}" || test -z "${host_os##uclinux*}"])
-AM_CONDITIONAL([WIN32], [test -z "${host_os##mingw*}" || test -z "${host_os##cygwin*}"])
+AM_CONDITIONAL([WIN32], [test -z "${host_os##mingw*}"])
 AM_CONDITIONAL([MACOSX], [test -z "${host_os##darwin*}"])
 AM_CONDITIONAL([FREEBSD], [test -z "${host_os##freebsd*}"])
 
@@ -101,7 +101,7 @@ AC_SUBST([SP_PKGLIBS])
 AM_COND_IF([MACOSX], [AC_CHECK_HEADER([IOKit/IOKitLib.h], [],
 	[AC_MSG_ERROR([IOKit/IOKitLib.h not found])])])
 
-AS_CASE([$host_os], [linux*|darwin*|mingw*|cygwin*|freebsd*],, [
+AS_CASE([$host_os], [linux*|darwin*|mingw*|freebsd*],, [
 	AC_DEFINE([NO_ENUMERATION], [1], [Enumeration is unsupported.])
 	AC_DEFINE([NO_PORT_METADATA], [1], [Port metadata is unavailable.])
 ])
