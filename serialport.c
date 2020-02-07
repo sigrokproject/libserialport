@@ -1648,28 +1648,25 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 
 	config->bits = data->dcb.ByteSize;
 
-	if (data->dcb.fParity)
-		switch (data->dcb.Parity) {
-		case NOPARITY:
-			config->parity = SP_PARITY_NONE;
-			break;
-		case ODDPARITY:
-			config->parity = SP_PARITY_ODD;
-			break;
-		case EVENPARITY:
-			config->parity = SP_PARITY_EVEN;
-			break;
-		case MARKPARITY:
-			config->parity = SP_PARITY_MARK;
-			break;
-		case SPACEPARITY:
-			config->parity = SP_PARITY_SPACE;
-			break;
-		default:
-			config->parity = -1;
-		}
-	else
+	switch (data->dcb.Parity) {
+	case NOPARITY:
 		config->parity = SP_PARITY_NONE;
+		break;
+	case ODDPARITY:
+		config->parity = SP_PARITY_ODD;
+		break;
+	case EVENPARITY:
+		config->parity = SP_PARITY_EVEN;
+		break;
+	case MARKPARITY:
+		config->parity = SP_PARITY_MARK;
+		break;
+	case SPACEPARITY:
+		config->parity = SP_PARITY_SPACE;
+		break;
+	default:
+		config->parity = -1;
+	}
 
 	switch (data->dcb.StopBits) {
 	case ONESTOPBIT:
