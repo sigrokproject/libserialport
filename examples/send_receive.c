@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 			printf("Timed out, %d/%d bytes sent.\n", result, size);
 
 		/* Allocate a buffer to receive data. */
-		char buf[size + 1];
+		char *buf = malloc(size + 1);
 
 		/* Try to receive the data on the other port. */
 		printf("Receiving %d bytes on port %s.\n",
@@ -97,6 +97,9 @@ int main(int argc, char **argv)
 		/* Check if we received the same data we sent. */
 		buf[result] = '\0';
 		printf("Received '%s'.\n", buf);
+
+		/* Free receive buffer. */
+		free(buf);
 	}
 
 	/* Close ports and free resources. */
