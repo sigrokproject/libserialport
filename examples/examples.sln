@@ -15,6 +15,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "await_events", "projects\aw
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "handle_errors", "projects\handle_errors.vcxproj", "{09EC5FFB-4DB0-4FE8-BF1E-050F03EC7ED4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "send_receive", "projects\send_receive.vcxproj", "{F0B68251-C73A-4B7F-AA62-6778586A72A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -71,6 +73,14 @@ Global
 		{09EC5FFB-4DB0-4FE8-BF1E-050F03EC7ED4}.Release|x64.Build.0 = Release|x64
 		{09EC5FFB-4DB0-4FE8-BF1E-050F03EC7ED4}.Release|x86.ActiveCfg = Release|Win32
 		{09EC5FFB-4DB0-4FE8-BF1E-050F03EC7ED4}.Release|x86.Build.0 = Release|Win32
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Debug|x64.ActiveCfg = Debug|x64
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Debug|x64.Build.0 = Debug|x64
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Debug|x86.ActiveCfg = Debug|Win32
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Debug|x86.Build.0 = Debug|Win32
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Release|x64.ActiveCfg = Release|x64
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Release|x64.Build.0 = Release|x64
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Release|x86.ActiveCfg = Release|Win32
+		{F0B68251-C73A-4B7F-AA62-6778586A72A0}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
