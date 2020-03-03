@@ -129,6 +129,10 @@ AC_CHECK_TYPES([struct serial_struct],,, [[#include <linux/serial.h>]])
 # Check for realpath().
 AC_CHECK_FUNC([realpath], [AC_DEFINE(HAVE_REALPATH, 1, [realpath is available.])], [])
 
+# Check for flock().
+AC_CHECK_HEADER([sys/file.h], [AC_DEFINE(HAVE_SYS_FILE_H, 1, [sys/file.h is available.])], [])
+AC_CHECK_FUNC([flock], [AC_DEFINE(HAVE_FLOCK, 1, [flock is available.])], [])
+
 # Check for clock_gettime().
 AC_CHECK_FUNC([clock_gettime],
 	[AC_DEFINE(HAVE_CLOCK_GETTIME, 1, [clock_gettime is available.])], [])

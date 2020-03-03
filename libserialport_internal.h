@@ -82,6 +82,9 @@
 #include <time.h>
 #include <poll.h>
 #include <unistd.h>
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
 #endif
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
