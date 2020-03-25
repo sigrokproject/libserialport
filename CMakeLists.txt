@@ -60,7 +60,12 @@ set(
     LSP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/serialport.c
     ${CMAKE_CURRENT_SOURCE_DIR}/timing.c
+)
+
+set(
+    LSP_HEADER
     ${CMAKE_CURRENT_SOURCE_DIR}/libserialport_internal.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libserialport.h
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -68,6 +73,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
         LSP_SOURCES ${LSP_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/linux.c
         ${CMAKE_CURRENT_SOURCE_DIR}/linux_termios.c
+    )
+
+    set(
+        LSP_HEADER ${LSP_HEADER}
         ${CMAKE_CURRENT_SOURCE_DIR}/linux_termios.h
     )
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
@@ -96,13 +105,31 @@ else()
 endif()
 
 string(REPLACE "lib" "" LIBRARY_NAME ${PROJECT_NAME})
-add_library(${LIBRARY_NAME} SHARED ${LSP_SOURCES})
-add_library(${LIBRARY_NAME}_static STATIC ${LSP_SOURCES})
+
+add_library(
+    ${LIBRARY_NAME} SHARED
+    ${LSP_SOURCES} ${LSP_HEADER}
+)
+
+add_library(
+    ${LIBRARY_NAME}_static STATIC
+    ${LSP_SOURCES} ${LSP_HEADER}
+)
+
+target_include_directories(
+    ${LIBRARY_NAME}
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_include_directories(
+    ${LIBRARY_NAME}_static
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 if (UNIX)
     set_target_properties(
         ${LIBRARY_NAME}_static
-        PROPERTIES OUTPUT_NAME ${PROJECT_NAME}
+        PROPERTIES OUTPUT_NAME ${LIBRARY_NAME}
     )
 
     configure_file(
@@ -133,15 +160,24 @@ set_target_properties(
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_link_libraries(${LIBRARY_NAME} setupapi)
+    target_link_libraries(${LIBRARY_NAME}_static setupapi)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     find_library(IOKit IOKit)
     find_library(CoreFoundation CoreFoundation)
     target_link_libraries(${LIBRARY_NAME} ${IOKit} ${CoreFoundation})
+    target_link_libraries(${LIBRARY_NAME}_static ${IOKit} ${CoreFoundation})
 endif()
 
 install(
     TARGETS ${LIBRARY_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(
+    TARGETS ${LIBRARY_NAME}_static
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(
