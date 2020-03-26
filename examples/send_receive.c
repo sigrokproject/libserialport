@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 		/* Try to receive the data on the other port. */
 		printf("Receiving %d bytes on port %s.\n",
 				size, sp_get_port_name(rx_port));
-		check(sp_blocking_read(rx_port, buf, size, timeout));
+		result = check(sp_blocking_read(rx_port, buf, size, timeout));
 
 		/* Check whether we received the number of bytes we wanted. */
 		if (result == size)
