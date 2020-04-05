@@ -155,10 +155,7 @@ SP_API enum sp_transport sp_get_port_transport(const struct sp_port *port)
 {
 	TRACE("%p", port);
 
-	if (!port)
-		RETURN_ERROR(SP_ERR_ARG, "Null port");
-
-	RETURN_INT(port->transport);
+	RETURN_INT(port ? port->transport : SP_TRANSPORT_NATIVE);
 }
 
 SP_API enum sp_return sp_get_port_usb_bus_address(const struct sp_port *port,
