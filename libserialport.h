@@ -450,7 +450,9 @@ enum sp_transport {
 	/** USB serial port adapter. @since 0.1.1 */
 	SP_TRANSPORT_USB,
 	/** Bluetooth serial port adapter. @since 0.1.1 */
-	SP_TRANSPORT_BLUETOOTH
+	SP_TRANSPORT_BLUETOOTH,
+	/** Pseudo serial port. @since 0.1.2 */
+	SP_TRANSPORT_PSEUDO
 };
 
 /**
