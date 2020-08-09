@@ -680,6 +680,10 @@ SP_API enum sp_return sp_close(struct sp_port *port)
 		port->write_buf = NULL;
 	}
 #else
+#ifdef TIOCNXCL
+	ioctl(port->fd, TIOCNXCL);
+#endif
+
 	/* Returns 0 upon success, -1 upon failure. */
 	if (close(port->fd) == -1)
 		RETURN_FAIL("close() failed");
