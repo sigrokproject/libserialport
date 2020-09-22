@@ -633,7 +633,8 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 	data.term.c_cc[VTIME] = 0;
 
 	/* Ignore modem status lines; enable receiver; leave control lines alone on close. */
-	data.term.c_cflag |= (CLOCAL | CREAD | HUPCL);
+	data.term.c_cflag |= (CLOCAL | CREAD);
+	data.term.c_cflag &= ~(HUPCL);
 #endif
 
 #ifdef _WIN32
