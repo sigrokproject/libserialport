@@ -189,7 +189,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
-	char name[PATH_MAX], target[PATH_MAX];
+	char name[PATH_MAX], target[PATH_MAX], link[PATH_MAX], device[PATH_MAX];
 	struct dirent *entry;
 #ifdef HAVE_STRUCT_SERIAL_STRUCT
 	struct serial_struct serial_info;
@@ -197,7 +197,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 #endif
 	char buf[sizeof(entry->d_name) + 23];
 	int len, fd;
-	DIR *dir;
+	DIR *dir, *dirdev;
 	int ret = SP_OK;
 	struct stat statbuf;
 
@@ -252,6 +252,31 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			SET_ERROR(ret, SP_ERR_MEM, "List append failed");
 			break;
 		}
+
+		// Search for symlinks that point to this device
+		strncpy(device, entry->d_name, sizeof(device));
+		if ((dirdev = opendir("/dev"))) {
+			while ((entry = readdir(dirdev))) {
+				snprintf(link, sizeof(link), "/dev/%s", entry->d_name);
+				if (lstat(link, &statbuf) == -1)
+					continue;
+				if (!(S_ISLNK(statbuf.st_mode)))
+					continue;
+				DEBUG_FMT("Checking link %s", link);
+				memset(target, 0, sizeof(target));
+				len = readlink(link, target, sizeof(target));
+				target[len] = '\0';
+				if (strcmp(target, device) == 0) {
+					DEBUG_FMT("%s has symlink %s", name, link);
+					*list = list_append(*list, link);
+					if (!*list) {
+						SET_ERROR(ret, SP_ERR_MEM, "List append failed");
+						break;
+					}
+				}
+			}
+		}
+		(void) closedir(dirdev);
 	}
 	closedir(dir);
 
