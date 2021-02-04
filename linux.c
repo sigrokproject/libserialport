@@ -40,6 +40,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	 * Description limited to 127 char, anything longer
 	 * would not be user friendly anyway.
 	 */
+	char name[PATH_MAX + 1];
 	char description[128];
 	int bus, address;
 	unsigned int vid, pid;
@@ -47,12 +48,17 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	char baddr[32];
 	const char dir_name[] = "/sys/class/tty/%s/device/%s%s";
 	char sub_dir[32] = "", link_name[PATH_MAX], file_name[PATH_MAX];
-	char *ptr, *dev = port->name + 5;
+	char *ptr, *dev;
 	FILE *file;
 	int i, count;
 	struct stat statbuf;
 
-	if (strncmp(port->name, "/dev/", 5))
+	char *res = realpath(port->name, name);
+	if (!res)
+		RETURN_ERROR(SP_ERR_ARG, "Could not retrieve realpath behind port name");
+	dev = name + 5;
+
+	if (strncmp(name, "/dev/", 5))
 		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 
 	snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s", dev);
