@@ -112,7 +112,7 @@ AC_SYS_LARGEFILE
 AC_TYPE_SIZE_T
 
 # Check for specific termios structures.
-AC_CHECK_TYPES([struct termios2, struct termiox],,,
+AC_CHECK_TYPES([struct termios2],,,
 	[[#include <linux/termios.h>]])
 AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed,
 		struct termios2.c_ispeed, struct termios2.c_ospeed],,,
