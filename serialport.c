@@ -590,6 +590,12 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 		RETURN_CODEVAL(ret);
 	}
 
+	// When the OS gives an invalid baudrate we need to set it to a sane value
+	// See https://sigrok.org/bugzilla/show_bug.cgi?id=1632
+	if (config.baudrate == 0) {
+		config.baudrate = 9600;
+	}
+
 	/* Set sane port settings. */
 #ifdef _WIN32
 	data.dcb.fBinary = TRUE;
