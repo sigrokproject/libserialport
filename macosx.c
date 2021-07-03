@@ -121,8 +121,8 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			DEBUG_FMT("Found matching USB VID:PID %04X:%04X", vid, pid);
 			port->usb_vid = vid;
 			port->usb_pid = pid;
-            port->transport = SP_TRANSPORT_USB;
-        }
+			port->transport = SP_TRANSPORT_USB;
+		}
 		if (cf_vendor)
 			CFRelease(cf_vendor);
 		if (cf_product)
