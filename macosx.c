@@ -33,10 +33,10 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	char manufacturer[128], product[128], serial[128];
 	CFMutableDictionaryRef classes;
 	io_iterator_t iter;
-	io_object_t ioport, ioparent;
+	io_object_t ioport;
 	CFTypeRef cf_property, cf_bus, cf_address, cf_vendor, cf_product;
 	Boolean result;
-	char path[PATH_MAX], class[16];
+	char path[PATH_MAX];
 
 	DEBUG("Getting serial port list");
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
@@ -61,31 +61,6 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			continue;
 		}
 		DEBUG_FMT("Found port %s", path);
-
-		IORegistryEntryGetParentEntry(ioport, kIOServicePlane, &ioparent);
-		if ((cf_property=IORegistryEntrySearchCFProperty(ioparent,kIOServicePlane,
-		           CFSTR("IOClass"), kCFAllocatorDefault,
-		           kIORegistryIterateRecursively | kIORegistryIterateParents))) {
-			if (CFStringGetCString(cf_property, class, sizeof(class),
-			                       kCFStringEncodingASCII) &&
-			    strstr(class, "USB")) {
-				DEBUG("Found USB class device");
-				port->transport = SP_TRANSPORT_USB;
-			}
-			CFRelease(cf_property);
-		}
-		if ((cf_property=IORegistryEntrySearchCFProperty(ioparent,kIOServicePlane,
-		           CFSTR("IOProviderClass"), kCFAllocatorDefault,
-		           kIORegistryIterateRecursively | kIORegistryIterateParents))) {
-			if (CFStringGetCString(cf_property, class, sizeof(class),
-			                       kCFStringEncodingASCII) &&
-			    strstr(class, "USB")) {
-				DEBUG("Found USB class device");
-				port->transport = SP_TRANSPORT_USB;
-			}
-			CFRelease(cf_property);
-		}
-		IOObjectRelease(ioparent);
 
 		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
 		         CFSTR("USB Interface Name"), kCFAllocatorDefault,
@@ -146,7 +121,8 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			DEBUG_FMT("Found matching USB VID:PID %04X:%04X", vid, pid);
 			port->usb_vid = vid;
 			port->usb_pid = pid;
-		}
+            port->transport = SP_TRANSPORT_USB;
+        }
 		if (cf_vendor)
 			CFRelease(cf_vendor);
 		if (cf_product)
