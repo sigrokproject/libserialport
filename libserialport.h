@@ -578,7 +578,7 @@ SP_API enum sp_return sp_copy_port(const struct sp_port *port, struct sp_port **
  *
  * @since 0.1.0
  */
-SP_API void  sp_free_port_list(struct sp_port **ports);
+SP_API void sp_free_port_list(struct sp_port **ports);
 
 /**
  * @}
@@ -629,7 +629,7 @@ SP_API enum sp_return sp_close(struct sp_port *port);
  *
  * @since 0.1.0
  */
-SP_API char* sp_get_port_name(const struct sp_port *port);
+SP_API char *sp_get_port_name(const struct sp_port *port);
 
 /**
  * Get a description for a port, to present to end user.
@@ -642,7 +642,7 @@ SP_API char* sp_get_port_name(const struct sp_port *port);
  *
  * @since 0.1.1
  */
-SP_API char* sp_get_port_description(const struct sp_port *port);
+SP_API char *sp_get_port_description(const struct sp_port *port);
 
 /**
  * Get the transport type used by a port.
@@ -697,7 +697,7 @@ SP_API enum sp_return sp_get_port_usb_vid_pid(const struct sp_port *port, int *u
  *
  * @since 0.1.1
  */
-SP_API char* sp_get_port_usb_manufacturer(const struct sp_port *port);
+SP_API char *sp_get_port_usb_manufacturer(const struct sp_port *port);
 
 /**
  * Get the USB product string of a USB serial adapter port.
@@ -710,7 +710,7 @@ SP_API char* sp_get_port_usb_manufacturer(const struct sp_port *port);
  *
  * @since 0.1.1
  */
-SP_API char* sp_get_port_usb_product(const struct sp_port *port);
+SP_API char *sp_get_port_usb_product(const struct sp_port *port);
 
 /**
  * Get the USB serial number string of a USB serial adapter port.
@@ -723,7 +723,7 @@ SP_API char* sp_get_port_usb_product(const struct sp_port *port);
  *
  * @since 0.1.1
  */
-SP_API char* sp_get_port_usb_serial(const struct sp_port *port);
+SP_API char *sp_get_port_usb_serial(const struct sp_port *port);
 
 /**
  * Get the MAC address of a Bluetooth serial adapter port.
@@ -736,7 +736,7 @@ SP_API char* sp_get_port_usb_serial(const struct sp_port *port);
  *
  * @since 0.1.1
  */
-SP_API char* sp_get_port_bluetooth_address(const struct sp_port *port);
+SP_API char *sp_get_port_bluetooth_address(const struct sp_port *port);
 
 /**
  * Get the operating system handle for a port.
@@ -1649,7 +1649,7 @@ SP_API int sp_last_error_code(void);
  *
  * @since 0.1.0
  */
-SP_API char* sp_last_error_message(void);
+SP_API char *sp_last_error_message(void);
 
 /**
  * Free an error message returned by sp_last_error_message().
@@ -1782,7 +1782,7 @@ SP_API int sp_get_micro_package_version(void);
  *
  * @since 0.1.0
  */
-SP_API const char* sp_get_package_version_string(void);
+SP_API const char *sp_get_package_version_string(void);
 
 /**
  * Get the "current" part of the libserialport library version number.
@@ -1819,7 +1819,7 @@ SP_API int sp_get_age_lib_version(void);
  *
  * @since 0.1.0
  */
-SP_API const char* sp_get_lib_version_string(void);
+SP_API const char *sp_get_lib_version_string(void);
 
 /** @} */
 
