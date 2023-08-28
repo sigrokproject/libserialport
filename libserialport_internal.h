@@ -93,6 +93,11 @@
 #include <IOKit/serial/ioss.h>
 #include <sys/syslimits.h>
 #include <mach/mach_time.h>
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED < 120000) /* Before macOS 12 */
+#define kIOMainPortDefault kIOMasterPortDefault
+#endif
+
 #endif
 #ifdef __linux__
 #include <dirent.h>
