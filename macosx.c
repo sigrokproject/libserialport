@@ -42,7 +42,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
 		RETURN_FAIL("IOServiceMatching() failed");
 
-	if (IOServiceGetMatchingServices(kIOMasterPortDefault, classes,
+	if (IOServiceGetMatchingServices(kIOMainPortDefault, classes,
 	                                 &iter) != KERN_SUCCESS)
 		RETURN_FAIL("IOServiceGetMatchingServices() failed");
 
@@ -210,7 +210,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 	}
 
 	DEBUG("Getting matching services");
-	if (IOServiceGetMatchingServices(kIOMasterPortDefault, classes,
+	if (IOServiceGetMatchingServices(kIOMainPortDefault, classes,
 	                                 &iter) != KERN_SUCCESS) {
 		SET_FAIL(ret, "IOServiceGetMatchingServices() failed");
 		goto out_done;
