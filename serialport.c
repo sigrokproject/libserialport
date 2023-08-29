@@ -886,7 +886,7 @@ SP_API enum sp_return sp_blocking_write(struct sp_port *port, const void *buf,
 	unsigned char *ptr = (unsigned char *) buf;
 	struct timeout timeout;
 	fd_set fds;
-	int result;
+	ssize_t result;
 
 	timeout_start(&timeout, timeout_ms);
 
@@ -1091,7 +1091,7 @@ SP_API enum sp_return sp_blocking_read(struct sp_port *port, void *buf,
 	unsigned char *ptr = (unsigned char *) buf;
 	struct timeout timeout;
 	fd_set fds;
-	int result;
+	ssize_t result;
 
 	timeout_start(&timeout, timeout_ms);
 
@@ -1214,7 +1214,7 @@ SP_API enum sp_return sp_blocking_read_next(struct sp_port *port, void *buf,
 	size_t bytes_read = 0;
 	struct timeout timeout;
 	fd_set fds;
-	int result;
+	ssize_t result;
 
 	timeout_start(&timeout, timeout_ms);
 
