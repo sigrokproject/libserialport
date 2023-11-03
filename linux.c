@@ -56,18 +56,22 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 
 	snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s", dev);
-	if (lstat(link_name, &statbuf) == -1)
-		RETURN_ERROR(SP_ERR_ARG, "Device not found");
-	if (!S_ISLNK(statbuf.st_mode))
-		snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s/device", dev);
-	count = readlink(link_name, file_name, sizeof(file_name));
-	if (count <= 0 || count >= (int)(sizeof(file_name) - 1))
-		RETURN_ERROR(SP_ERR_ARG, "Device not found");
-	file_name[count] = 0;
-	if (strstr(file_name, "bluetooth"))
-		port->transport = SP_TRANSPORT_BLUETOOTH;
-	else if (strstr(file_name, "usb"))
-		port->transport = SP_TRANSPORT_USB;
+	if (lstat(link_name, &statbuf) == -1) {
+		if (strncmp(port->name + 5, "pts/", 4))
+			RETURN_ERROR(SP_ERR_ARG, "Device not found");
+		port->transport = SP_TRANSPORT_PSEUDO;
+	} else {
+		if (!S_ISLNK(statbuf.st_mode))
+			snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s/device", dev);
+		count = readlink(link_name, file_name, sizeof(file_name));
+		if (count <= 0 || count >= (int)(sizeof(file_name) - 1))
+			RETURN_ERROR(SP_ERR_ARG, "Device not found");
+		file_name[count] = 0;
+		if (strstr(file_name, "bluetooth"))
+			port->transport = SP_TRANSPORT_BLUETOOTH;
+		else if (strstr(file_name, "usb"))
+			port->transport = SP_TRANSPORT_USB;
+	}
 
 	if (port->transport == SP_TRANSPORT_USB) {
 		for (i = 0; i < 5; i++) {

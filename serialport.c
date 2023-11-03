@@ -47,6 +47,8 @@ static const struct std_baudrate std_baudrates[] = {
 
 void (*sp_debug_handler)(const char *format, ...) = sp_default_debug_handler;
 
+static void init_config(struct sp_port_config *config);
+
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config);
 
@@ -1662,6 +1664,18 @@ static enum sp_return set_flow(int fd, struct port_data *data)
 }
 #endif /* USE_TERMIOX */
 
+static void init_config(struct sp_port_config *config)
+{
+	config->baudrate = -1;
+	config->bits = -1;
+	config->parity = -1;
+	config->stopbits = -1;
+	config->rts = -1;
+	config->cts = -1;
+	config->dtr = -1;
+	config->dsr = -1;
+}
+
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config)
 {
@@ -1670,6 +1684,8 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	TRACE("%p, %p, %p", port, data, config);
 
 	DEBUG_FMT("Getting configuration for port %s", port->name);
+
+	init_config(config);
 
 #ifdef _WIN32
 	if (!GetCommState(port->hdl, &data->dcb))
@@ -1768,7 +1784,8 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	if (tcgetattr(port->fd, &data->term) < 0)
 		RETURN_FAIL("tcgetattr() failed");
 
-	if (ioctl(port->fd, TIOCMGET, &data->controlbits) < 0)
+	if (port->transport != SP_TRANSPORT_PSEUDO && ioctl(port->fd, TIOCMGET,
+			&data->controlbits) < 0)
 		RETURN_FAIL("TIOCMGET ioctl failed");
 
 #ifdef USE_TERMIOX
@@ -1834,7 +1851,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	if (data->term.c_cflag & CRTSCTS) {
 		config->rts = SP_RTS_FLOW_CONTROL;
 		config->cts = SP_CTS_FLOW_CONTROL;
-	} else {
+	} else if (port->transport != SP_TRANSPORT_PSEUDO) {
 		if (data->termiox_supported && data->rts_flow)
 			config->rts = SP_RTS_FLOW_CONTROL;
 		else
@@ -1846,11 +1863,12 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 
 	if (data->termiox_supported && data->dtr_flow)
 		config->dtr = SP_DTR_FLOW_CONTROL;
-	else
+	else if (port->transport != SP_TRANSPORT_PSEUDO)
 		config->dtr = (data->controlbits & TIOCM_DTR) ? SP_DTR_ON : SP_DTR_OFF;
 
-	config->dsr = (data->termiox_supported && data->dsr_flow) ?
-		SP_DSR_FLOW_CONTROL : SP_DSR_IGNORE;
+	if (port->transport != SP_TRANSPORT_PSEUDO)
+		config->dsr = (data->termiox_supported && data->dsr_flow) ?
+			SP_DSR_FLOW_CONTROL : SP_DSR_IGNORE;
 
 	if (data->term.c_iflag & IXOFF) {
 		if (data->term.c_iflag & IXON)
@@ -2282,14 +2300,7 @@ SP_API enum sp_return sp_new_config(struct sp_port_config **config_ptr)
 	if (!(config = malloc(sizeof(struct sp_port_config))))
 		RETURN_ERROR(SP_ERR_MEM, "Config malloc failed");
 
-	config->baudrate = -1;
-	config->bits = -1;
-	config->parity = -1;
-	config->stopbits = -1;
-	config->rts = -1;
-	config->cts = -1;
-	config->dtr = -1;
-	config->dsr = -1;
+	init_config(config);
 
 	*config_ptr = config;
 
