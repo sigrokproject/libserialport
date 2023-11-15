@@ -36,7 +36,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	io_object_t ioport, ioparent;
 	CFTypeRef cf_property, cf_bus, cf_address, cf_vendor, cf_product;
 	Boolean result;
-	char path[PATH_MAX], class[16];
+	char path[PATH_MAX], class[64];
 
 	DEBUG("Getting serial port list");
 	if (!(classes = IOServiceMatching(kIOSerialBSDServiceValue)))
