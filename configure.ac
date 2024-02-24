@@ -26,7 +26,8 @@ m4_pattern_forbid([sp_package_])
 m4_define([sp_package_version_major], [0])
 m4_define([sp_package_version_minor], [1])
 m4_define([sp_package_version_micro], [1])
-m4_define([sp_package_version], [sp_package_version_major.sp_package_version_minor.sp_package_version_micro])
+m4_define([sp_package_version_suffix], [avrdude1])
+m4_define([sp_package_version], [sp_package_version_major.sp_package_version_minor.sp_package_version_micro]m4_ifdef([sp_package_version_suffix], [-][sp_package_version_suffix]))
 
 AC_INIT([avrdudes bugfix fork of sigrok libserialport],
 	[sp_package_version],
