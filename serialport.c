@@ -2290,6 +2290,7 @@ SP_API enum sp_return sp_new_config(struct sp_port_config **config_ptr)
 	config->cts = -1;
 	config->dtr = -1;
 	config->dsr = -1;
+	config->xon_xoff = -1;
 
 	*config_ptr = config;
 
