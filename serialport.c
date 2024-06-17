@@ -421,14 +421,18 @@ SP_API void sp_free_port_list(struct sp_port **list)
 static enum sp_return restart_wait(struct sp_port *port)
 {
 	DWORD wait_result;
-
+	DWORD last_error_code = 0;
 	if (port->wait_running) {
 		/* Check status of running wait operation. */
 		if (GetOverlappedResult(port->hdl, &port->wait_ovl,
 				&wait_result, FALSE)) {
 			DEBUG("Previous wait completed");
 			port->wait_running = FALSE;
-		} else if (GetLastError() == ERROR_IO_INCOMPLETE) {
+		} else if ((last_error_code = GetLastError()) == ERROR_OPERATION_ABORTED) {
+			DEBUG("Previous wait aborted");
+			port->wait_running = FALSE;
+		}
+		else if (last_error_code == ERROR_IO_INCOMPLETE) {
 			DEBUG("Previous wait still running");
 			RETURN_OK();
 		} else {
