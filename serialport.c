@@ -420,7 +420,7 @@ SP_API void sp_free_port_list(struct sp_port **list)
 /** To be called after port receive buffer is emptied. */
 static enum sp_return restart_wait(struct sp_port *port)
 {
-	DWORD wait_result;
+	DWORD wait_result, last_error_code;
 
 	if (port->wait_running) {
 		/* Check status of running wait operation. */
@@ -428,7 +428,10 @@ static enum sp_return restart_wait(struct sp_port *port)
 				&wait_result, FALSE)) {
 			DEBUG("Previous wait completed");
 			port->wait_running = FALSE;
-		} else if (GetLastError() == ERROR_IO_INCOMPLETE) {
+		} else if ((last_error_code = GetLastError()) == ERROR_OPERATION_ABORTED) {
+			DEBUG("Previous wait aborted");
+			port->wait_running = FALSE;
+		} else if (last_error_code == ERROR_IO_INCOMPLETE) {
 			DEBUG("Previous wait still running");
 			RETURN_OK();
 		} else {
