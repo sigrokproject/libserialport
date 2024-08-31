@@ -158,6 +158,7 @@ struct sp_port {
 	DWORD write_buf_size;
 	BOOL writing;
 	BOOL wait_running;
+	BOOL last_wait_thread_exited;
 #else
 	int fd;
 #endif

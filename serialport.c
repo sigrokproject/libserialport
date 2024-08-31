@@ -420,19 +420,35 @@ SP_API void sp_free_port_list(struct sp_port **list)
 /** To be called after port receive buffer is emptied. */
 static enum sp_return restart_wait(struct sp_port *port)
 {
-	DWORD wait_result, last_error_code;
+	DWORD wait_result;
 
 	if (port->wait_running) {
 		/* Check status of running wait operation. */
 		if (GetOverlappedResult(port->hdl, &port->wait_ovl,
 				&wait_result, FALSE)) {
 			DEBUG("Previous wait completed");
+			port->last_wait_thread_exited = FALSE;
 			port->wait_running = FALSE;
-		} else if ((last_error_code = GetLastError()) == ERROR_OPERATION_ABORTED) {
-			DEBUG("Previous wait aborted");
+		} else if (GetLastError() == ERROR_OPERATION_ABORTED) {
+			/* This error is returned if the last thread that called
+			 * restart_wait() has exited while WaitCommEvent() was
+			 * still active. In that case we don't consider that to
+			 * be an error. Just restart the wait procedure instead.
+			 */
+			DEBUG("Previous wait ended due to previous thread exiting");
+			/* We need to record that the wait thread exited before
+			 * we called WaitCommEvent(). This is because the exit of
+			 * the previous thread always generates a spurious wakeup,
+			 * and if no data has been received in the mean time, the
+			 * WaitCommEvent() wouldn't be restarted a second time by
+			 * restart_wait_if_needed() after a read call after the
+			 * spurious wakeup.
+			 */
+			port->last_wait_thread_exited = TRUE;
 			port->wait_running = FALSE;
-		} else if (last_error_code == ERROR_IO_INCOMPLETE) {
+		} else if (GetLastError() == ERROR_IO_INCOMPLETE) {
 			DEBUG("Previous wait still running");
+			port->last_wait_thread_exited = FALSE;
 			RETURN_OK();
 		} else {
 			RETURN_FAIL("GetOverlappedResult() failed");
@@ -1029,7 +1045,11 @@ static enum sp_return restart_wait_if_needed(struct sp_port *port, unsigned int 
 	DWORD errors;
 	COMSTAT comstat;
 
-	if (bytes_read == 0)
+	/* Only skip restarting the wait operation if we didn't have a
+	 * wakeup immediately following the exit of the last thread that
+	 * re-initiated the wait loop.
+	 */
+	if (!port->last_wait_thread_exited && bytes_read == 0)
 		RETURN_OK();
 
 	if (ClearCommError(port->hdl, &errors, &comstat) == 0)
