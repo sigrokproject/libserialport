@@ -69,7 +69,10 @@ EXTRA_DIST = Doxyfile \
 	examples/port_info.c \
 	examples/port_config.c \
 	examples/await_events.c \
-	examples/handle_errors.c
+	examples/handle_errors.c \
+	examples/send_receive.c \
+	examples/examples.sln \
+	examples/projects
 
 DISTCLEANFILES = ChangeLog
 
