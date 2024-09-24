@@ -24,7 +24,7 @@ AC_PREREQ([2.63])
 # libserialport package version number (NOT the same as shared lib version!).
 m4_define([sp_package_version_major], [0])
 m4_define([sp_package_version_minor], [1])
-m4_define([sp_package_version_micro], [1])
+m4_define([sp_package_version_micro], [2])
 m4_define([sp_package_version], [sp_package_version_major.sp_package_version_minor.sp_package_version_micro])
 
 AC_INIT([libserialport], [sp_package_version], [martin-libserialport@earth.li],
@@ -77,7 +77,7 @@ AC_SUBST([SP_PACKAGE_VERSION], [sp_package_version])
 # The algorithm for determining which number to change (and how) is nontrivial!
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
 SP_LIB_VERSION_CURRENT=1
-SP_LIB_VERSION_REVISION=0
+SP_LIB_VERSION_REVISION=1
 SP_LIB_VERSION_AGE=1
 AC_SUBST([SP_LIB_VERSION],
 	["$SP_LIB_VERSION_CURRENT:$SP_LIB_VERSION_REVISION:$SP_LIB_VERSION_AGE"])
