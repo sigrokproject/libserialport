@@ -1,3 +1,44 @@
+0.1.2 (2024-09-10)
+------------------
+
+Note: This release does NOT change the libserialport API or ABI in
+      backwards-incompatible ways. Programs using libserialport should
+      continue to work fine without recompiling or relinking.
+
+ * No changes to the API
+ * Add examples to showcase libserialport usage.
+ * Fix handling of EAGAIN in sp_nonblocking_write().
+ * Fix calculation of poll() timeout in sp_wait().
+ * File descriptors of a serial port on POSIX systems are now opened
+   exclusively.
+ * Refactor timing code and add unit tests.
+ * Fix building on Cygwin.
+ * A default baudrate of 9600 is now assumed if the OS does not provide one.
+ * Linux:
+   - Fix buildroot build for ucLinux.
+   - Fix build for alpha target.
+   - Allow users to use symlinks created by e.g. udev rules.
+   - O_CLOEXEC is used where available.
+ * Windows:
+   - Fix a WCHAR-related issue causing crashes in sp_list_ports().
+   - Fix a WCHAR-related issue causing crashes in get_root_hub_name().
+   - Await completion of previous write before changing config via
+     set_config().
+   - Use architecture-specific size limit for WriteFile calls.
+   - Loop over WriteFile() if write size exceeds limit.
+   - Use correct variants of CreateFile() and FormatMessage().
+   - Ignore fParity flag which is always 0 after GetCommState().
+   - Don't fail if WaitCommEvent was aborted due to thread exit by
+     handling ERROR_OPERATION_ABORTED.
+ * FreeBSD:
+   - Add missing libusb-2.0 dependency.
+ * Android:
+   - Fix build for platform 21 and higher.
+ * Mac OS X:
+   - Max class string length is increased to 64, solving device discovery
+     issues.
+
+
 0.1.1 (2016-01-27)
 ------------------
 
