@@ -280,20 +280,32 @@ extern "C" {
 
 /** @cond */
 #ifdef _MSC_VER
-/* Microsoft Visual C/C++ compiler in use */
-#ifdef LIBSERIALPORT_MSBUILD
-/* Building the library - need to export DLL symbols */
-#define SP_API __declspec(dllexport)
+	/* Microsoft Visual C/C++ compiler in use */
+	#ifdef LIBSERIALPORT_MSBUILD
+		// Building the library - need to export DLL symbols
+		#define SP_API __declspec(dllexport)
+	#else
+		// Using the library - need to import DLL symbols
+		#define SP_API __declspec(dllimport)
+	#endif
+	// #define SP_CALL
+#elif defined(__MINGW32__)
+	// You should define LIBSERIALPORT_MINGW64BUILD *only* when building the DLL.
+	#ifdef LIBSERIALPORT_MINGW64BUILD
+		#define SP_API __declspec(dllexport)
+	#else
+		#define SP_API __declspec(dllimport)
+	#endif
+	// Define calling convention in one place, for convenience.
+	// On MinGW64 "__cdecl" is default value.
+	// #define SP_CALL __cdecl
 #else
-/* Using the library - need to import DLL symbols */
-#define SP_API __declspec(dllimport)
-#endif
-#else
-/* Some other compiler in use */
-#ifndef LIBSERIALPORT_ATBUILD
-/* Not building the library itself - don't need any special prefixes. */
-#define SP_API
-#endif
+	/* Some other compiler in use */
+	#ifndef LIBSERIALPORT_ATBUILD
+		/* Not building the library itself - don't need any special prefixes. */
+		#define SP_API
+	#endif
+	// #define SP_CALL
 #endif
 /** @endcond */
 

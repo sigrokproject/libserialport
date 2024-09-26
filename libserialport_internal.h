@@ -47,6 +47,16 @@
 #define SP_PRIV
 #endif
 
+#ifdef LIBSERIALPORT_MINGW64BUILD
+/* If building with MinGW64 tools, define necessary things that
+   would otherwise appear in config.h. */
+#define SP_PRIV
+#endif
+
+#ifndef SP_PRIV
+#error "You should define one of LIBSERIALPORT_ATBUILD, LIBSERIALPORT_MSBUILD, LIBSERIALPORT_MINGW64BUILD"
+#endif
+
 #include "libserialport.h"
 
 #include <string.h>
