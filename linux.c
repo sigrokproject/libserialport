@@ -40,6 +40,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	 * Description limited to 127 char, anything longer
 	 * would not be user friendly anyway.
 	 */
+	char name[PATH_MAX + 1];
 	char description[128];
 	int bus, address;
 	unsigned int vid, pid;
@@ -47,12 +48,17 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	char baddr[32];
 	const char dir_name[] = "/sys/class/tty/%s/device/%s%s";
 	char sub_dir[32] = "", link_name[PATH_MAX], file_name[PATH_MAX];
-	char *ptr, *dev = port->name + 5;
+	char *ptr, *dev;
 	FILE *file;
 	int i, count;
 	struct stat statbuf;
 
-	if (strncmp(port->name, "/dev/", 5))
+	char *res = realpath(port->name, name);
+	if (!res)
+		RETURN_ERROR(SP_ERR_ARG, "Could not retrieve realpath behind port name");
+	dev = name + 5;
+
+	if (strncmp(name, "/dev/", 5))
 		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 
 	snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s", dev);
@@ -189,7 +195,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
-	char name[PATH_MAX], target[PATH_MAX];
+	char name[PATH_MAX], target[PATH_MAX], link[PATH_MAX], device[PATH_MAX];
 	struct dirent *entry;
 #ifdef HAVE_STRUCT_SERIAL_STRUCT
 	struct serial_struct serial_info;
@@ -197,7 +203,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 #endif
 	char buf[sizeof(entry->d_name) + 23];
 	int len, fd;
-	DIR *dir;
+	DIR *dir, *dirdev;
 	int ret = SP_OK;
 	struct stat statbuf;
 
@@ -252,6 +258,31 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 			SET_ERROR(ret, SP_ERR_MEM, "List append failed");
 			break;
 		}
+
+		// Search for symlinks that point to this device
+		strncpy(device, entry->d_name, sizeof(device));
+		if ((dirdev = opendir("/dev"))) {
+			while ((entry = readdir(dirdev))) {
+				snprintf(link, sizeof(link), "/dev/%s", entry->d_name);
+				if (lstat(link, &statbuf) == -1)
+					continue;
+				if (!(S_ISLNK(statbuf.st_mode)))
+					continue;
+				DEBUG_FMT("Checking link %s", link);
+				memset(target, 0, sizeof(target));
+				len = readlink(link, target, sizeof(target));
+				target[len] = '\0';
+				if (strcmp(target, device) == 0) {
+					DEBUG_FMT("%s has symlink %s", name, link);
+					*list = list_append(*list, link);
+					if (!*list) {
+						SET_ERROR(ret, SP_ERR_MEM, "List append failed");
+						break;
+					}
+				}
+			}
+		}
+		(void) closedir(dirdev);
 	}
 	closedir(dir);
 
