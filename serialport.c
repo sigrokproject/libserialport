@@ -689,6 +689,11 @@ SP_API enum sp_return sp_close(struct sp_port *port)
 	DEBUG_FMT("Closing port %s", port->name);
 
 #ifdef _WIN32
+	/* Abort WaitCommEvent() */
+	if (SetCommMask(port->hdl, 0) == 0) {
+		RETURN_FAIL("SetCommMask() failed");
+	}
+
 	/* Returns non-zero upon success, 0 upon failure. */
 	if (CloseHandle(port->hdl) == 0)
 		RETURN_FAIL("Port CloseHandle() failed");
