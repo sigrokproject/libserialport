@@ -210,6 +210,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 				snprintf(path, sizeof(path), "%s%ld.",
 				         parent_path, connection_info_ex->ConnectionIndex);
 				enumerate_hub(port, ext_hub_name, path, dev_inst);
+				free(ext_hub_name);
 			}
 			free(connection_info_ex);
 		} else {
