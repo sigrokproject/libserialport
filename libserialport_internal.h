@@ -93,9 +93,10 @@
 #include <IOKit/serial/ioss.h>
 #include <sys/syslimits.h>
 #include <mach/mach_time.h>
-#if MAC_OS_X_VERSION_MAX_ALLOWED < 120000 /* Before macOS 12 */
-#define kIOMainPortDefault kIOMasterPortDefault
-#endif
+/* kIOMainPortDefault (kIOMasterPortDefault <= macOS 11) is a
+ * synonym for NULL. Fixes segfault when building on macOS 12+
+ * with an older macOS deployment target. */
+#define kIOMainPortDefault 0
 #endif
 #ifdef __linux__
 #include <dirent.h>
