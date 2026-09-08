@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2026 H. Peter Anvin <hpa@zytor.com>
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 
 project(libserialport VERSION 0.1.3 LANGUAGES C)
 
@@ -162,6 +162,11 @@ else()
 endif()
 
 if(APPLE)
+    # Match Libtool's 1:1:1 Mach-O versions, not its ELF version mapping.
+    set_target_properties(libserialport PROPERTIES
+        MACHO_COMPATIBILITY_VERSION 2.0.0
+        MACHO_CURRENT_VERSION 2.1.0
+    )
     target_sources(libserialport PRIVATE macosx.c)
     find_library(COREFOUNDATION_FRAMEWORK CoreFoundation REQUIRED)
     find_library(IOKIT_FRAMEWORK IOKit REQUIRED)
@@ -260,6 +265,13 @@ if(BUILD_TESTING)
     )
     target_compile_features(test_feature_guards PRIVATE c_std_99)
     add_test(NAME feature_guards COMMAND test_feature_guards)
+
+    if(APPLE AND BUILD_SHARED_LIBS)
+        add_test(NAME macho_version COMMAND "${CMAKE_COMMAND}"
+            "-DLIBRARY=$<TARGET_FILE:libserialport>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check-macho-version.cmake"
+        )
+    endif()
 endif()
 
 install(TARGETS libserialport
