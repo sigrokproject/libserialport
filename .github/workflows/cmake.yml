@@ -26,7 +26,7 @@ jobs:
           -DBUILD_SHARED_LIBS=${{ matrix.shared }}
           -DBUILD_TESTING=ON
           -DLIBSERIALPORT_BUILD_EXAMPLES=ON
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          ${{ runner.os != 'Windows' && format('-DCMAKE_BUILD_TYPE={0}', matrix.build_type) || '' }}
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel
@@ -41,7 +41,7 @@ jobs:
         run: >-
           cmake -S tests/cmake-package -B package-test
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install"
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          ${{ runner.os != 'Windows' && format('-DCMAKE_BUILD_TYPE={0}', matrix.build_type) || '' }}
 
       - name: Build installed-package consumer
         run: cmake --build package-test --config ${{ matrix.build_type }} --parallel
