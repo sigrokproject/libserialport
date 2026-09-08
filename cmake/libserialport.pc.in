@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libserialport
+Description: Cross-platform serial port access library.
+URL: https://github.com/hpax/libserialport
+Requires.private: @LIBSERIALPORT_PC_REQUIRES_PRIVATE@
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -l@LIBSERIALPORT_PC_LIBRARY@
+Libs.private: @LIBSERIALPORT_PC_LIBS_PRIVATE@
+Cflags: -I${includedir} @LIBSERIALPORT_PC_CFLAGS@

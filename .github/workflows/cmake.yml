@@ -45,3 +45,13 @@ jobs:
 
       - name: Build installed-package consumer
         run: cmake --build package-test --config ${{ matrix.build_type }} --parallel
+
+      - name: Test installed pkg-config consumer
+        if: runner.os != 'Windows'
+        run: >-
+          cmake
+          -DPREFIX="${{ github.workspace }}/install"
+          -DSOURCE_DIR="${{ github.workspace }}"
+          -DBINARY_DIR="${{ github.workspace }}/pkg-config-test"
+          -DSHARED=${{ matrix.shared }}
+          -P tests/check-pkg-config.cmake

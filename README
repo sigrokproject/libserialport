@@ -63,6 +63,11 @@ packages can be consumed with find_package(libserialport CONFIG) and the
 libserialport::libserialport target. The source tree can also be added directly
 with add_subdirectory() and linked through libserialport.
 
+CMake also installs lib/pkgconfig/libserialport.pc. Add this directory to
+PKG_CONFIG_PATH when the installation is outside the default search paths.
+Use pkg-config --cflags --libs libserialport for a shared-library consumer.
+Add --static when linking the static library to include its dependencies.
+
 Windows builds can also be created using the autotools build system, using the
 MinGW-w64 toolchain from http://mingw-w64.sourceforge.net/ - either natively
 in Windows with the MSYS2 environment, or cross-compiling from another system.

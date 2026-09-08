@@ -37,6 +37,10 @@ set_target_properties(libserialport PROPERTIES
 set(SP_API "")
 set(SP_PRIV "")
 set(LIBSERIALPORT_NEEDS_LIBUSB OFF)
+set(LIBSERIALPORT_PC_LIBRARY serialport)
+set(LIBSERIALPORT_PC_LIBS_PRIVATE "")
+set(LIBSERIALPORT_PC_REQUIRES_PRIVATE "")
+set(LIBSERIALPORT_PC_CFLAGS "")
 
 if(NOT MSVC)
     target_compile_definitions(libserialport PRIVATE LIBSERIALPORT_ATBUILD)
@@ -148,11 +152,14 @@ endif()
 if(WIN32 AND NOT CYGWIN)
     target_sources(libserialport PRIVATE windows.c serialport_win32.c)
     target_link_libraries(libserialport PRIVATE setupapi cfgmgr32)
+    set(LIBSERIALPORT_PC_LIBS_PRIVATE "-lsetupapi -lcfgmgr32")
 
     if(MSVC)
+        set(LIBSERIALPORT_PC_LIBRARY libserialport)
         target_compile_definitions(libserialport PRIVATE LIBSERIALPORT_MSBUILD)
         if(NOT BUILD_SHARED_LIBS)
             target_compile_definitions(libserialport PUBLIC LIBSERIALPORT_STATIC)
+            set(LIBSERIALPORT_PC_CFLAGS "-DLIBSERIALPORT_STATIC")
         endif()
     elseif(BUILD_SHARED_LIBS)
         set_target_properties(libserialport PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -174,12 +181,16 @@ if(APPLE)
         "${COREFOUNDATION_FRAMEWORK}"
         "${IOKIT_FRAMEWORK}"
     )
+    set(LIBSERIALPORT_PC_LIBS_PRIVATE
+        "-framework CoreFoundation -framework IOKit"
+    )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     target_sources(libserialport PRIVATE freebsd.c)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBUSB REQUIRED IMPORTED_TARGET libusb-2.0)
     target_link_libraries(libserialport PRIVATE PkgConfig::LIBUSB)
     set(LIBSERIALPORT_NEEDS_LIBUSB ON)
+    set(LIBSERIALPORT_PC_REQUIRES_PRIVATE libusb-2.0)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(libserialport PRIVATE linux.c linux_termios.c linux_termios.h)
 
@@ -282,6 +293,10 @@ install(TARGETS libserialport
     INCLUDES DESTINATION include
 )
 install(FILES libserialport.h DESTINATION include)
+configure_file(cmake/libserialport.pc.in libserialport.pc @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libserialport.pc"
+    DESTINATION lib/pkgconfig
+)
 install(EXPORT libserialportTargets
     FILE libserialportTargets.cmake
     NAMESPACE libserialport::
