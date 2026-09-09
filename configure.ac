@@ -52,15 +52,14 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
 AC_SYS_LARGEFILE
 
-AH_BOTTOM([#if HAVE_STRUCT_TERMIOS_C_ISPEED && HAVE_STRUCT_TERMIOS_C_OSPEED
+AH_BOTTOM([
+#if HAVE_STRUCT_TERMIOS_C_ISPEED && HAVE_STRUCT_TERMIOS_C_OSPEED
 # define HAVE_TERMIOS_SPEED 1
 #endif
 #if HAVE_STRUCT_TERMIOS2_C_ISPEED && HAVE_STRUCT_TERMIOS2_C_OSPEED
 # define HAVE_TERMIOS2_SPEED 1
 #endif
-#ifndef HAVE_CFSETOBAUD
-# undef HAVE_BAUD_T
-#endif])
+])
 
 # We require at least automake 1.11 (needed for 'silent rules').
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror no-define check-news])
@@ -132,8 +131,7 @@ AC_SYS_LARGEFILE
 # Define size_t if not defined as standard.
 AC_TYPE_SIZE_T
 
-# Check for baud_t and cf[gs]et[io]baud()
-AC_CHECK_TYPES([baud_t],,,[[#include <termios.h>]])
+# Check for cf[gs]et[io]baud()
 AC_CHECK_FUNCS([cfsetobaud])
 
 # Check for raw Linux kernel termios structures.

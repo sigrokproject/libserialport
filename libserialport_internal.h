@@ -30,13 +30,42 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-/* These feature test macros must appear before other headers.*/
-#if defined(__linux__) || defined(__CYGWIN__)
-/* For timeradd, timersub, timercmp, realpath. */
-#define _BSD_SOURCE 1 /* for glibc < 2.19 */
-#define _DEFAULT_SOURCE 1 /* for glibc >= 2.20 */
-/* For clock_gettime and associated types. */
-#define _POSIX_C_SOURCE 199309L
+/* Feature enable macros for various platforms, must come first */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+#ifndef _ALL_SOURCE
+#define _ALL_SOURCE 1
+#endif
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE 1
+#endif
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE 1
+#endif
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE 1
+#endif
+#ifndef _OPENBSD_SOURCE
+#define _OPENBSD_SOURCE 1
+#endif
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
+#endif
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 202405L
+#endif
+#ifndef _TIME_BITS
+#define _TIME_BITS 64
+#endif
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
+#ifndef _REENTRANT
+#define _REENTRANT 1
+#endif
+#ifdef _THREAD_SAFE
+#define _THREAD_SAFE 1
 #endif
 
 #ifdef LIBSERIALPORT_ATBUILD
@@ -133,7 +162,7 @@
 #endif
 
 /* Non-standard baudrates are not available everywhere. */
-#if defined(HAVE_BAUD_T) || defined(HAVE_SANE_TERMIOS)
+#if defined(HAVE_CFSETOBAUD) || defined(HAVE_SANE_TERMIOS)
 /* Directly supported by termios */
 # undef USE_TERMIOS_SPEED
 #elif (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) \
@@ -204,13 +233,13 @@ typedef int event_handle;
 #endif
 
 /* If HAVE_SANE_TERMIOS is set, speed_t emulates baud_t */
-#if !defined(HAVE_BAUD_T) && defined(HAVE_SANE_TERMIOS)
+#if !defined(HAVE_CFSETOBAUD) && defined(HAVE_SANE_TERMIOS)
 #endif
 
 /* Standard baud rates. */
 #ifdef _WIN32
 #define BAUD_TYPE DWORD
-#elif defined(HAVE_BAUD_T)
+#elif defined(HAVE_CFSETOBAUD)
 #define BAUD_TYPE baud_t
 #else
 #define BAUD_TYPE speed_t

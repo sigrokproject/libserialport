@@ -8,7 +8,6 @@
 #cmakedefine HAVE_FLOCK 1
 #cmakedefine HAVE_CLOCK_GETTIME 1
 #cmakedefine HAVE_TCDRAIN 1
-#cmakedefine HAVE_BAUD_T 1
 #cmakedefine HAVE_CFSETOBAUD 1
 #cmakedefine HAVE_STRUCT_SERIAL_STRUCT 1
 #cmakedefine HAVE_STRUCT_TERMIOS2 1

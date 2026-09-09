@@ -26,7 +26,7 @@
 
 #include "libserialport_internal.h"
 
-#if !defined(HAVE_BAUD_T)
+#ifndef HAVE_CFSETOBAUD
 #define MAKE_BAUD_TABLE std_baudrates
 #include "baudrates.h"
 
@@ -35,7 +35,7 @@
 #define cfsetobaud cfsetospeed
 #define cfgetibaud cfgetispeed
 #define cfgetobaud cfgetospeed
-#define HAVE_BAUD_T 1
+#define HAVE_CFSETOBAUD 1
 #endif
 #endif
 
@@ -316,7 +316,7 @@ static enum sp_return set_flow(int fd, struct port_data *data)
 static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	struct sp_port_config *config)
 {
-#if !defined(HAVE_BAUD_T)
+#if !defined(HAVE_CFSETOBAUD)
 	unsigned int i;
 #endif
 
@@ -344,7 +344,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	data->termiox_supported = 0;
 #endif
 
-#ifdef HAVE_BAUD_T
+#ifdef HAVE_CFSETOBAUD
 	config->baudrate = cfgetobaud(&data->term);
 #else
 	{
@@ -366,7 +366,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 		config->baudrate = -1;
 #endif
 	}
-#endif /* HAVE_BAUD_T */
+#endif /* HAVE_CFSETOBAUD */
 
 	switch (data->term.c_cflag & CSIZE) {
 	case CS8:
@@ -437,7 +437,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config)
 {
-#if !defined(HAVE_BAUD_T)
+#if !defined(HAVE_CFSETOBAUD)
 	size_t i;
 #endif
 
@@ -458,7 +458,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	int controlbits;
 
 	if (config->baudrate >= 0) {
-#ifdef HAVE_BAUD_T
+#ifdef HAVE_CFSETOBAUD
 		if (cfsetobaud(&data->term, config->baudrate) < 0)
 			RETURN_FAIL(STRING(cfsetobaud)"() failed");
 		if (cfsetibaud(&data->term, config->baudrate) < 0)
@@ -495,7 +495,7 @@ static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 			RETURN_ERROR(SP_ERR_SUPP, "Non-standard baudrate not supported");
 #endif
 		}
-#endif /* HAVE_BAUD_T */
+#endif /* HAVE_CFSETOBAUD */
 	}
 
 	if (config->bits >= 0) {

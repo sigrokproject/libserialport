@@ -30,7 +30,7 @@ set_target_properties(libserialport PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     PREFIX ""
     IMPORT_PREFIX ""
-    VERSION 0.1.1
+    VERSION 0.1.3
     SOVERSION 0
 )
 
@@ -72,20 +72,22 @@ if(NOT MSVC)
 endif()
 
 if(UNIX)
-    check_c_source_compiles(
-        "#include <termios.h>\nint main(void) { baud_t value = 0; (void)value; return 0; }"
-        HAVE_BAUD_T
+    # Magic definitions needed to enable extensions on various systems
+    list(APPEND CMAKE_REQUIRED_DEFINITIONS
+      -D_GNU_SOURCE=1 -D_DEFAULT_SOURCE=1 -D_ALL_SOURCE=1
+      -D_BSD_SOURCE -D_NETBSD_SOURCE=1 -D_OPENBSD_SOURCE=1
+      -D__EXTENSIONS__=1 -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=202405L
+      -D_TIME_BITS=64 -D_FILE_OFFSET_BITS=64
+      -D_REENTRANT=1 -D_THREAD_SAFE=1
     )
-    check_symbol_exists(cfsetobaud "termios.h" HAVE_CFSETOBAUD)
-    if(NOT HAVE_CFSETOBAUD)
-        set(HAVE_BAUD_T FALSE)
-    endif()
 
     check_include_file("sys/file.h" HAVE_SYS_FILE_H)
     check_symbol_exists(realpath "stdlib.h" HAVE_REALPATH)
     check_symbol_exists(flock "sys/file.h" HAVE_FLOCK)
     check_symbol_exists(clock_gettime "time.h" HAVE_CLOCK_GETTIME)
     check_symbol_exists(tcdrain "termios.h" HAVE_TCDRAIN)
+
+    check_symbol_exists(cfsetobaud "termios.h" HAVE_CFSETOBAUD)
 
     set(libserialport_baudrates
         50 75 110 134 150 200 300 600 1200 1800 2400 4800 7200 9600
@@ -195,10 +197,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(libserialport PRIVATE linux.c linux_termios.c linux_termios.h)
 
     set(libserialport_saved_required_definitions "${CMAKE_REQUIRED_DEFINITIONS}")
-    list(APPEND CMAKE_REQUIRED_DEFINITIONS
-        -D_DEFAULT_SOURCE=1
-        -D_POSIX_C_SOURCE=199309L
-    )
 
     check_struct_has_member(
         "struct serial_struct" flags "linux/serial.h"

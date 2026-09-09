@@ -40,7 +40,7 @@
 #include <linux/termios.h>
 #include "linux_termios.h"
 
-#ifndef HAVE_BAUD_T
+#ifndef HAVE_CFSETOBAUD
 
 #if defined(__powerpc__) && !defined(HAVE_STRUCT_TERMIOS2)
 /*
@@ -110,7 +110,7 @@ SP_PRIV void set_termios_speed(void *data, int speed)
 }
 #endif
 
-#endif /* !HAVE_BAUD_T */
+#endif /* !HAVE_CFSETOBAUD */
 
 #ifdef HAVE_STRUCT_TERMIOX
 SP_PRIV size_t get_termiox_size(void)
