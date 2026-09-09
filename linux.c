@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
  * This file is part of the libserialport project.
  *
  * Copyright (C) 2013 Martin Ling <martin-libserialport@earth.li>
@@ -50,19 +52,22 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	char *ptr, *dev = port->name + 5;
 	FILE *file;
 	int i, count;
-	struct stat statbuf;
 
 	if (strncmp(port->name, "/dev/", 5))
 		RETURN_ERROR(SP_ERR_ARG, "Device name not recognized");
 
 	snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s", dev);
-	if (lstat(link_name, &statbuf) == -1)
-		RETURN_ERROR(SP_ERR_ARG, "Device not found");
-	if (!S_ISLNK(statbuf.st_mode))
-		snprintf(link_name, sizeof(link_name), "/sys/class/tty/%s/device", dev);
+	ptr = link_name + sizeof("/sys/class/tty"); /* sizeof() will return length+1 */
+	/* Escape slashes in the device name as ! */
+	while ((ptr = strchr(ptr, '/')))
+		*ptr++ = '!';
 	count = readlink(link_name, file_name, sizeof(file_name));
-	if (count <= 0 || count >= (int)(sizeof(file_name) - 1))
+	if (count == -1 && errno == EINVAL) {
+		/* Not a symbolic link */
+		count = snprintf(file_name, sizeof(file_name), "%s/device", link_name);
+	} else if ((size_t)count >= sizeof(file_name)-1) {
 		RETURN_ERROR(SP_ERR_ARG, "Device not found");
+	}
 	file_name[count] = 0;
 	if (strstr(file_name, "bluetooth"))
 		port->transport = SP_TRANSPORT_BLUETOOTH;
@@ -189,17 +194,10 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 {
-	char name[PATH_MAX], target[PATH_MAX];
+	char name[PATH_MAX], sysname[PATH_MAX + 10 + 7];
 	struct dirent *entry;
-#ifdef HAVE_STRUCT_SERIAL_STRUCT
-	struct serial_struct serial_info;
-	int ioctl_result;
-#endif
-	char buf[sizeof(entry->d_name) + 23];
-	int len, fd;
 	DIR *dir;
 	int ret = SP_OK;
-	struct stat statbuf;
 
 	DEBUG("Enumerating tty devices");
 	if (!(dir = opendir("/sys/class/tty")))
@@ -207,45 +205,59 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 
 	DEBUG("Iterating over results");
 	while ((entry = readdir(dir))) {
-		snprintf(buf, sizeof(buf), "/sys/class/tty/%s", entry->d_name);
-		if (lstat(buf, &statbuf) == -1)
+		char *p;
+		struct stat statbuf;
+		FILE *typefh;
+
+		if ((size_t)snprintf(name, sizeof(name), "/dev/%s", entry->d_name)
+		    >= sizeof(name))
 			continue;
-		if (!S_ISLNK(statbuf.st_mode))
-			snprintf(buf, sizeof(buf), "/sys/class/tty/%s/device", entry->d_name);
-		len = readlink(buf, target, sizeof(target));
-		if (len <= 0 || len >= (int)(sizeof(target) - 1))
+
+		/* sysfs by necessity escapes slashes as ! in pathnames */
+		p = name+5;
+		while ((p = strchr(p, '!')))
+			*p++ = '/';
+
+		if (stat(name, &statbuf) || !S_ISCHR(statbuf.st_mode))
 			continue;
-		target[len] = 0;
-		if (strstr(target, "virtual"))
+
+		p = sysname + snprintf(sysname, sizeof(sysname),
+				       "/sys/class/tty/%s/device", entry->d_name);
+		p -= 6;		/* Point to the first character of "device" */
+
+		/*
+		 * If this is a real physical device, it will have a link to its
+		 * physical device description directory.
+		 */
+		if (stat(sysname, &statbuf) || !S_ISDIR(statbuf.st_mode))
 			continue;
-		snprintf(name, sizeof(name), "/dev/%s", entry->d_name);
+
 		DEBUG_FMT("Found device %s", name);
-		if (strstr(target, "serial8250")) {
-			/*
-			 * The serial8250 driver has a hardcoded number of ports.
-			 * The only way to tell which actually exist on a given system
-			 * is to try to open them and make an ioctl call.
-			 */
-			DEBUG("serial8250 device, attempting to open");
-			if ((fd = open(name, O_RDWR | O_NONBLOCK | O_NOCTTY | O_CLOEXEC)) < 0) {
-				DEBUG("Open failed, skipping");
+		/*
+		 * The serial8250 driver has a hardcoded number of ports.
+		 * If the "type" file entry exists in the sysfs directory
+		 * and it contains 0, it is a placeholder and should be
+		 * ignored. If the "type" entry doesn't exist, it is not
+		 * an 8250 serial port.
+		 *
+		 * Earlier versions of this library tried to open all
+		 * ports and call TIOCGSERIAL, this would result in
+		 * RTS and DTR being pulsed on every port!
+		 */
+		strcpy(p, "type");
+		DEBUG("checking if serial type is enumerated");
+		typefh = fopen_cloexec_rdonly(sysname);
+		if (typefh) {
+			int type;
+			int rv = fscanf(typefh, "%i", &type);
+			fclose(typefh);
+			if (rv == 1 && type == 0) {
+				/* PORT_UNKNOWN, it is a placeholder port */
+				DEBUG("serial type 0, skipping port");
 				continue;
 			}
-#ifdef HAVE_STRUCT_SERIAL_STRUCT
-			ioctl_result = ioctl(fd, TIOCGSERIAL, &serial_info);
-#endif
-			close(fd);
-#ifdef HAVE_STRUCT_SERIAL_STRUCT
-			if (ioctl_result != 0) {
-				DEBUG("ioctl failed, skipping");
-				continue;
-			}
-			if (serial_info.type == PORT_UNKNOWN) {
-				DEBUG("Port type is unknown, skipping");
-				continue;
-			}
-#endif
 		}
+
 		DEBUG_FMT("Found port %s", name);
 		*list = list_append(*list, name);
 		if (!*list) {

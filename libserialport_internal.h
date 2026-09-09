@@ -1,8 +1,11 @@
 /*
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
  * This file is part of the libserialport project.
  *
  * Copyright (C) 2014 Martin Ling <martin-libserialport@earth.li>
  * Copyright (C) 2014 Aurelien Jacobs <aurel@gnuage.org>
+ * Copyright (C) 2026 H. Peter Anvin <hpa@zytor.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -27,13 +30,42 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-/* These feature test macros must appear before other headers.*/
-#if defined(__linux__) || defined(__CYGWIN__)
-/* For timeradd, timersub, timercmp, realpath. */
-#define _BSD_SOURCE 1 /* for glibc < 2.19 */
-#define _DEFAULT_SOURCE 1 /* for glibc >= 2.20 */
-/* For clock_gettime and associated types. */
-#define _POSIX_C_SOURCE 199309L
+/* Feature enable macros for various platforms, must come first */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+#ifndef _ALL_SOURCE
+#define _ALL_SOURCE 1
+#endif
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE 1
+#endif
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE 1
+#endif
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE 1
+#endif
+#ifndef _OPENBSD_SOURCE
+#define _OPENBSD_SOURCE 1
+#endif
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
+#endif
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 202405L
+#endif
+#ifndef _TIME_BITS
+#define _TIME_BITS 64
+#endif
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
+#ifndef _REENTRANT
+#define _REENTRANT 1
+#endif
+#ifdef _THREAD_SAFE
+#define _THREAD_SAFE 1
 #endif
 
 #ifdef LIBSERIALPORT_ATBUILD
@@ -129,11 +161,6 @@
 #endif
 #endif
 
-/* Non-standard baudrates are not available everywhere. */
-#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) && HAVE_DECL_BOTHER
-#define USE_TERMIOS_SPEED
-#endif
-
 struct sp_port {
 	char *name;
 	char *description;
@@ -196,13 +223,17 @@ typedef HANDLE event_handle;
 typedef int event_handle;
 #endif
 
+/* If HAVE_SANE_TERMIOS is set, speed_t emulates baud_t */
+#if !defined(HAVE_CFSETOBAUD) && defined(HAVE_SANE_TERMIOS)
+#endif
+
 /* Standard baud rates. */
 #ifdef _WIN32
 #define BAUD_TYPE DWORD
-#define BAUD(n) {CBR_##n, n}
+#elif defined(HAVE_CFSETOBAUD)
+#define BAUD_TYPE baud_t
 #else
 #define BAUD_TYPE speed_t
-#define BAUD(n) {B##n, n}
 #endif
 
 struct std_baudrate {
@@ -211,6 +242,7 @@ struct std_baudrate {
 };
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define STRING(x) #x		/* Expand macros to string */
 
 extern void (*sp_debug_handler)(const char *format, ...);
 
@@ -275,11 +307,36 @@ extern void (*sp_debug_handler)(const char *format, ...);
 
 #define TRY(x) do { int retval = x; if (retval != SP_OK) RETURN_CODEVAL(retval); } while (0)
 
+#define CHECK_PORT() do { \
+	if (!port) \
+		RETURN_ERROR(SP_ERR_ARG, "Null port"); \
+	if (!port->name) \
+		RETURN_ERROR(SP_ERR_ARG, "Null port name"); \
+} while (0)
+#define CHECK_OPEN_PORT() do { \
+	CHECK_PORT(); \
+	if (!sp_platform_port_is_open(port)) \
+		RETURN_ERROR(SP_ERR_ARG, "Port not open"); \
+} while (0)
+
 SP_PRIV struct sp_port **list_append(struct sp_port **list, const char *portname);
 
 /* OS-specific Helper functions. */
 SP_PRIV enum sp_return get_port_details(struct sp_port *port);
 SP_PRIV enum sp_return list_ports(struct sp_port ***list);
+SP_PRIV void sp_platform_init_port(struct sp_port *port);
+SP_PRIV enum sp_return sp_platform_canonicalize_port_name(const char *portname,
+		char **canonical_name);
+SP_PRIV bool sp_platform_port_is_open(const struct sp_port *port);
+SP_PRIV void sp_platform_free_port(struct sp_port *port);
+SP_PRIV enum sp_return sp_platform_open(struct sp_port *port,
+		enum sp_mode flags);
+SP_PRIV enum sp_return sp_platform_set_default_config(struct sp_port *port,
+		struct port_data *data);
+SP_PRIV enum sp_return sp_platform_get_config(struct sp_port *port,
+		struct port_data *data, struct sp_port_config *config);
+SP_PRIV enum sp_return sp_platform_set_config(struct sp_port *port,
+		struct port_data *data, const struct sp_port_config *config);
 
 /* Timing abstraction */
 

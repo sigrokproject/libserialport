@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
  * This file is part of the libserialport project.
  *
  * Copyright (C) 2015 Uffe Jakobsen <uffe@uffe.org>

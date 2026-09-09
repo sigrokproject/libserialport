@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
  * This file is part of the libserialport project.
  *
  * Copyright (C) 2013, 2015 Martin Ling <martin-libserialport@earth.li>
@@ -33,14 +35,12 @@
  *
  * libserialport is an open source project released under the LGPL3+ license.
  *
- * The library is maintained by the [sigrok](http://sigrok.org/) project. See
- * the [libserialport homepage](http://sigrok.org/wiki/Libserialport) for the
- * latest information.
+ * The library is a fork of the one by the
+ * [sigrok](http://sigrok.org/) project, maintained by
+ * H. Peter Anvin <hpa@zytor.com>.
  *
- * Source code is maintained in git at
- * [git://sigrok.org/libserialport](http://sigrok.org/gitweb/?p=libserialport.git).
- *
- * Bugs are tracked at http://sigrok.org/bugzilla/.
+ * Source code and bug tracking are available at
+ * [https://github.com/hpax/libserialport](https://github.com/hpax/libserialport).
  *
  * The library was conceived and designed by Martin Ling, is maintained by
  * Uwe Hermann, and has received contributions from several other developers.
@@ -281,11 +281,14 @@ extern "C" {
 /** @cond */
 #ifdef _MSC_VER
 /* Microsoft Visual C/C++ compiler in use */
-#ifdef LIBSERIALPORT_MSBUILD
-/* Building the library - need to export DLL symbols */
+#ifdef LIBSERIALPORT_STATIC
+/* Static library build or consumer - no DLL decoration is required. */
+#define SP_API
+#elif defined(LIBSERIALPORT_MSBUILD)
+/* Building the shared library - need to export DLL symbols. */
 #define SP_API __declspec(dllexport)
 #else
-/* Using the library - need to import DLL symbols */
+/* Using the shared library - need to import DLL symbols. */
 #define SP_API __declspec(dllimport)
 #endif
 #else
@@ -1714,10 +1717,10 @@ SP_API void sp_default_debug_handler(const char *format, ...);
 #define SP_PACKAGE_VERSION_MINOR 1
 
 /** The libserialport package 'micro' version number. */
-#define SP_PACKAGE_VERSION_MICRO 1
+#define SP_PACKAGE_VERSION_MICRO 3
 
 /** The libserialport package version ("major.minor.micro") as string. */
-#define SP_PACKAGE_VERSION_STRING "0.1.1"
+#define SP_PACKAGE_VERSION_STRING "0.1.3"
 
 /*
  * Library/libtool version macros (can be used for conditional compilation).
@@ -1727,13 +1730,13 @@ SP_API void sp_default_debug_handler(const char *format, ...);
 #define SP_LIB_VERSION_CURRENT 1
 
 /** The libserialport libtool 'revision' version number. */
-#define SP_LIB_VERSION_REVISION 0
+#define SP_LIB_VERSION_REVISION 1
 
 /** The libserialport libtool 'age' version number. */
 #define SP_LIB_VERSION_AGE 1
 
 /** The libserialport libtool version ("current:revision:age") as string. */
-#define SP_LIB_VERSION_STRING "1:0:1"
+#define SP_LIB_VERSION_STRING "1:1:1"
 
 /**
  * Get the major libserialport package version number.

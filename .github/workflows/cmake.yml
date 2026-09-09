@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+name: CMake
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.build_type }} / shared=${{ matrix.shared }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        shared: [OFF, ON]
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure
+        run: >-
+          cmake -S . -B build
+          -DBUILD_SHARED_LIBS=${{ matrix.shared }}
+          -DBUILD_TESTING=ON
+          -DLIBSERIALPORT_BUILD_EXAMPLES=ON
+          ${{ runner.os != 'Windows' && format('-DCMAKE_BUILD_TYPE={0}', matrix.build_type) || '' }}
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.build_type }} --output-on-failure
+
+      - name: Install
+        run: cmake --install build --config ${{ matrix.build_type }} --prefix "${{ github.workspace }}/install"
+
+      - name: Configure installed-package consumer
+        run: >-
+          cmake -S tests/cmake-package -B package-test
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install"
+          ${{ runner.os != 'Windows' && format('-DCMAKE_BUILD_TYPE={0}', matrix.build_type) || '' }}
+
+      - name: Build installed-package consumer
+        run: cmake --build package-test --config ${{ matrix.build_type }} --parallel
+
+      - name: Test installed pkg-config consumer
+        if: runner.os != 'Windows'
+        run: >-
+          cmake
+          -DPREFIX="${{ github.workspace }}/install"
+          -DSOURCE_DIR="${{ github.workspace }}"
+          -DBINARY_DIR="${{ github.workspace }}/pkg-config-test"
+          -DSHARED=${{ matrix.shared }}
+          -P tests/check-pkg-config.cmake

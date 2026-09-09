@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
  * This file is part of the libserialport project.
  *
  * Copyright (C) 2013 Martin Ling <martin-libserialport@earth.li>
@@ -18,10 +20,10 @@
  */
 
 /*
- * At the time of writing, glibc does not support the Linux kernel interfaces
- * for setting non-standard baud rates and flow control. We therefore have to
- * prepare the correct ioctls ourselves, for which we need the declarations in
- * linux/termios.h.
+ * glibc before version 2.42 does not support the Linux kernel
+ * interfaces for setting non-standard baud rates and flow control. We
+ * therefore have to prepare the correct ioctls ourselves, for which
+ * we need the declarations in linux/termios.h.
  *
  * We can't include linux/termios.h in serialport.c however, because its
  * contents conflict with the termios.h provided by glibc. So this file exists
@@ -37,6 +39,22 @@
 #include <stdlib.h>
 #include <linux/termios.h>
 #include "linux_termios.h"
+
+#ifndef HAVE_CFSETOBAUD
+
+#if defined(__powerpc__) && !defined(HAVE_STRUCT_TERMIOS2)
+/*
+ * PowerPC doesn't have termios2, but glibc intercepts ioctl and invokes
+ * a nonstandard version for the standard ioctl names. Therefore, assign
+ * the name "termios2" to the real kernel interface.
+ */
+#define termios2 termios
+#define TCGETS2  _IOR('t', 19, struct termios2)
+#define TCSETS2  _IOW('t', 20, struct termios2)
+#define TCSETSW2 _IOW('t', 21, struct termios2)
+#define TCSETSF2 _IOW('t', 22, struct termios2)
+#define HAVE_STRUCT_TERMIOS2 1
+#endif
 
 SP_PRIV unsigned long get_termios_get_ioctl(void)
 {
@@ -86,11 +104,13 @@ SP_PRIV void set_termios_speed(void *data, int speed)
 #else
 	struct termios *term = (struct termios *) data;
 #endif
-	term->c_cflag &= ~CBAUD;
+	term->c_cflag &= ~(CBAUD | CIBAUD);
 	term->c_cflag |= BOTHER;
 	term->c_ispeed = term->c_ospeed = speed;
 }
 #endif
+
+#endif /* !HAVE_CFSETOBAUD */
 
 #ifdef HAVE_STRUCT_TERMIOX
 SP_PRIV size_t get_termiox_size(void)

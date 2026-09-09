@@ -1,3 +1,4 @@
+## SPDX-License-Identifier: LGPL-3.0-or-later
 ##
 ## This file is part of the libserialport project.
 ##
@@ -30,12 +31,21 @@ AM_CFLAGS += -DLIBSERIALPORT_ATBUILD
 
 lib_LTLIBRARIES = libserialport.la
 
+# Cross-platform sources
 libserialport_la_SOURCES = serialport.c timing.c libserialport_internal.h
+
+# Win32 versus POSIX
+if WIN32
+libserialport_la_SOURCES += windows.c serialport_win32.c
+else
+libserialport_la_SOURCES	+= serialport_posix.c
+nodist_libserialport_la_SOURCES	 = baudrates.h
+BUILT_SOURCES			 = baudrates.h
+endif
+
+# Additional sources for specific POSIX systems
 if LINUX
 libserialport_la_SOURCES += linux.c linux_termios.c linux_termios.h
-endif
-if WIN32
-libserialport_la_SOURCES += windows.c
 endif
 if MACOSX
 libserialport_la_SOURCES += macosx.c
@@ -51,18 +61,52 @@ if MACOSX
 libserialport_la_LDFLAGS += -framework IOKit -framework CoreFoundation
 endif
 
+# Target-specific termios baud rate file. This is opportunistic; if
+# $(CC) -E doesn't support any of the macro extraction options, the
+# baudrates.sh script still includes an extensive fallback list of
+# common constants.
+#
+# Garbage in the generated output is harmless; all that matters are
+# #define Bxxx directives.
+
+# List of options used by various compilers to extract macro definitions;
+# these are tried in the order listed until the compiler exits successfully.
+# -dM: gcc, clang and derived compilers, icc classic
+# -xdumpmacros: Sun Studio (writes to stderr!)
+# -qshowmacros: IBM XL classic
+# -PD: MSVC (usable with a wrapper such as cccl from the SWIG project)
+getmacopts = -dM -xdumpmacros -qshowmacros -PD
+
+CLEANFILES			= baudrates.h
+
+baudrates.h: termios.c config.h baudrates.sh
+	$(AM_V_GEN)rm -f $@
+	$(AM_V_at)( for opt in $(getmacopts); do \
+			$(COMPILE) -E $$opt $< 2>&1 \
+			  && break; \
+		    done ) | $(SHELL) $(<D)/baudrates.sh $@t
+	$(AM_V_at)chmod a-w $@t
+	$(AM_V_at)mv $@t $@
+
 library_includedir = $(includedir)
 library_include_HEADERS = libserialport.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libserialport.pc
 
-TESTS = test_timing
-check_PROGRAMS = test_timing
+TESTS = test_timing test_feature_guards test_baud_termiox.sh
+check_PROGRAMS = test_timing test_feature_guards
 test_timing_SOURCES = timing.c test_timing.c
 test_timing_CFLAGS = $(AM_CFLAGS)
+test_feature_guards_SOURCES = test_feature_guards.c
+test_feature_guards_CFLAGS = -std=c99 -Wall -Wextra -pedantic
 
 EXTRA_DIST = Doxyfile \
+	baudrates.sh \
+	termios.c \
+	test_baud_termiox.sh \
+	tests/baud-termiox/config.h \
+	tests/baud-termiox/linux/termios.h \
 	examples/Makefile \
 	examples/README \
 	examples/list_ports.c \

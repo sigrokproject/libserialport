@@ -1,0 +1,13 @@
+/* SPDX-License-Identifier: LGPL-3.0-or-later */
+
+#if B0 == 0@libserialport_baud_condition@
+#define SPEED_T_IS_SANE 1
+#else
+
+#ifdef MAKE_BAUD_TABLE
+static const struct std_baudrate MAKE_BAUD_TABLE [] = {
+@libserialport_baud_table@};
+#define NUM_STD_BAUDRATES ARRAY_SIZE(MAKE_BAUD_TABLE)
+#endif /* MAKE_BAUD_TABLE */
+
+#endif /* SPEED_T_IS_SANE */

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
 # A simple Makefile to build the examples in this directory.
 #
 # This example file is released to the public domain.

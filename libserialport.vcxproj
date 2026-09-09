@@ -24,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="serialport.c" />
+    <ClCompile Include="serialport_win32.c" />
     <ClCompile Include="timing.c" />
     <ClCompile Include="windows.c" />
   </ItemGroup>

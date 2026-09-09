@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
  * This file is part of the libserialport project.
  *
  * Copyright (C) 2013-2014 Martin Ling <martin-libserialport@earth.li>
@@ -293,30 +295,102 @@ static void enumerate_host_controller(struct sp_port *port,
 	}
 }
 
-static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
+static enum sp_return get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 {
 	HDEVINFO device_info;
+	DEVINST dev_inst;
 	SP_DEVINFO_DATA device_info_data;
 	ULONG i, size = 0;
+	char *usb_path = malloc(MAX_USB_PATH); /* To avoid expensive reallocation */
+	size_t usb_path_len = 0;
+	char device_id[MAX_DEVICE_ID_LEN];
+
+	if (!usb_path)
+		RETURN_ERROR(SP_ERR_MEM, "USB path malloc failed");
+
+	*usb_path = '\0';
+
+	/* Recurse over parents to build the USB device path. */
+	dev_inst = dev_inst_match;
+	do {
+		/* Verify that this layer of the tree is USB related. */
+		if (CM_Get_Device_IDA(dev_inst, device_id,
+				      sizeof(device_id), 0) != CR_SUCCESS
+		    || strncmp(device_id, "USB\\", 4))
+			continue;
+
+		/* Discard one layer for composite devices. */
+		char compat_ids[512], *p = compat_ids;
+		size = sizeof(compat_ids);
+		if (CM_Get_DevNode_Registry_PropertyA(dev_inst,
+						      CM_DRP_COMPATIBLEIDS, 0,
+						      &compat_ids,
+						      &size, 0) == CR_SUCCESS) {
+			while (*p) {
+				if (!strncmp(p, "USB\\COMPOSITE", 13))
+					break;
+				p += strlen(p) + 1;
+			}
+			if (*p)
+				continue;
+		}
+
+		/* Stop the recursion when reaching the USB root. */
+		if (!strncmp(device_id, "USB\\ROOT", 8))
+			break;
+
+		/* Prepend the address of current USB layer to the USB path. */
+		int32_t address;
+		size = sizeof(address);
+		if (CM_Get_DevNode_Registry_PropertyA(dev_inst, CM_DRP_ADDRESS,
+						      0, &address, &size, 0) == CR_SUCCESS) {
+			char addrbuf[13]; /* Max possible output */
+			size_t addrlen = snprintf(addrbuf, sizeof addrbuf, "%d%s",
+						   address, usb_path_len ? "." : "");
+			char *tmp = usb_path;
+			if (!(usb_path = realloc(usb_path, usb_path_len + addrlen + 1))) {
+				free(tmp);
+				RETURN_ERROR(SP_ERR_MEM, "USB path malloc failed");
+			}
+			memmove(usb_path + addrlen, usb_path, usb_path_len + 1);
+			memcpy(usb_path, addrbuf, addrlen);
+			usb_path_len += addrlen;
+		}
+	} while (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS);
+
+	port->usb_path = usb_path;
+
+	/* Wake up the USB device to be able to read string descriptor. */
+	char *escaped_port_name;
+	HANDLE handle;
+	if (!(escaped_port_name = malloc(strlen(port->name) + 5)))
+		RETURN_ERROR(SP_ERR_MEM, "Escaped port name malloc failed");
+	sprintf(escaped_port_name, "\\\\.\\%s", port->name);
+	handle = CreateFileA(escaped_port_name, GENERIC_READ, 0, 0,
+			     OPEN_EXISTING,
+			     FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OVERLAPPED, 0);
+	free(escaped_port_name);
+	CloseHandle(handle);
 
 	device_info = SetupDiGetClassDevs(&GUID_CLASS_USB_HOST_CONTROLLER, NULL, NULL,
-	                                  DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+					  DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 	device_info_data.cbSize = sizeof(device_info_data);
 
 	for (i = 0; SetupDiEnumDeviceInfo(device_info, i, &device_info_data); i++) {
 		SP_DEVICE_INTERFACE_DATA device_interface_data;
 		PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data;
-		DEVINST dev_inst = dev_inst_match;
 		HANDLE host_controller_device;
+
+		dev_inst = dev_inst_match;
 
 		device_interface_data.cbSize = sizeof(device_interface_data);
 		if (!SetupDiEnumDeviceInterfaces(device_info, 0,
-		                                 &GUID_CLASS_USB_HOST_CONTROLLER,
-		                                 i, &device_interface_data))
+						 &GUID_CLASS_USB_HOST_CONTROLLER,
+						 i, &device_interface_data))
 			continue;
 
 		if (!SetupDiGetDeviceInterfaceDetail(device_info,&device_interface_data,
-		                                     NULL, 0, &size, NULL)
+						     NULL, 0, &size, NULL)
 		    && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
 			continue;
 
@@ -324,8 +398,8 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 			continue;
 		device_detail_data->cbSize = sizeof(*device_detail_data);
 		if (!SetupDiGetDeviceInterfaceDetail(device_info,&device_interface_data,
-		                                     device_detail_data, size, &size,
-		                                     NULL)) {
+						     device_detail_data, size, &size,
+						     NULL)) {
 			free(device_detail_data);
 			continue;
 		}
@@ -340,8 +414,8 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 		port->usb_bus = i + 1;
 
 		host_controller_device = CreateFile(device_detail_data->DevicePath,
-		                                    GENERIC_WRITE, FILE_SHARE_WRITE,
-		                                    NULL, OPEN_EXISTING, 0, NULL);
+						    GENERIC_WRITE, FILE_SHARE_WRITE,
+						    NULL, OPEN_EXISTING, 0, NULL);
 		if (host_controller_device != INVALID_HANDLE_VALUE) {
 			enumerate_host_controller(port, host_controller_device, dev_inst_match);
 			CloseHandle(host_controller_device);
@@ -350,7 +424,7 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 	}
 
 	SetupDiDestroyDeviceInfoList(device_info);
-	return;
+	RETURN_OK();
 }
 
 SP_PRIV enum sp_return get_port_details(struct sp_port *port)
@@ -363,9 +437,10 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 	SP_DEVINFO_DATA device_info_data = { .cbSize = sizeof(device_info_data) };
 	HDEVINFO device_info;
 	int i;
+	enum sp_return err = SP_OK;
 
 	device_info = SetupDiGetClassDevs(NULL, 0, 0,
-	                                  DIGCF_PRESENT | DIGCF_ALLCLASSES);
+					  DIGCF_PRESENT | DIGCF_ALLCLASSES);
 	if (device_info == INVALID_HANDLE_VALUE)
 		RETURN_FAIL("SetupDiGetClassDevs() failed");
 
@@ -378,13 +453,15 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 		/* Check if this is the device we are looking for. */
 		device_key = SetupDiOpenDevRegKey(device_info, &device_info_data,
-		                                  DICS_FLAG_GLOBAL, 0,
-		                                  DIREG_DEV, KEY_QUERY_VALUE);
+						  DICS_FLAG_GLOBAL, 0,
+						  DIREG_DEV, KEY_QUERY_VALUE);
 		if (device_key == INVALID_HANDLE_VALUE)
 			continue;
 		size = sizeof(value);
-		if (RegQueryValueExA(device_key, "PortName", NULL, &type, (LPBYTE)value,
-		                     &size) != ERROR_SUCCESS || type != REG_SZ) {
+		if (RegQueryValueExA(device_key, "PortName", NULL,
+				     &type, (LPBYTE)value,
+				     &size) != ERROR_SUCCESS
+		    || type != REG_SZ) {
 			RegCloseKey(device_key);
 			continue;
 		}
@@ -416,72 +493,15 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 
 		/* Get more informations for USB connected ports. */
 		if (port->transport == SP_TRANSPORT_USB) {
-			char usb_path[MAX_USB_PATH] = "", tmp[MAX_USB_PATH];
-			char device_id[MAX_DEVICE_ID_LEN];
-
-			/* Recurse over parents to build the USB device path. */
-			dev_inst = device_info_data.DevInst;
-			do {
-				/* Verify that this layer of the tree is USB related. */
-				if (CM_Get_Device_IDA(dev_inst, device_id,
-				                      sizeof(device_id), 0) != CR_SUCCESS
-				    || strncmp(device_id, "USB\\", 4))
-					continue;
-
-				/* Discard one layer for composite devices. */
-				char compat_ids[512], *p = compat_ids;
-				size = sizeof(compat_ids);
-				if (CM_Get_DevNode_Registry_PropertyA(dev_inst,
-				                                      CM_DRP_COMPATIBLEIDS, 0,
-				                                      &compat_ids,
-				                                      &size, 0) == CR_SUCCESS) {
-					while (*p) {
-						if (!strncmp(p, "USB\\COMPOSITE", 13))
-							break;
-						p += strlen(p) + 1;
-					}
-					if (*p)
-						continue;
-				}
-
-				/* Stop the recursion when reaching the USB root. */
-				if (!strncmp(device_id, "USB\\ROOT", 8))
-					break;
-
-				/* Prepend the address of current USB layer to the USB path. */
-				DWORD address;
-				size = sizeof(address);
-				if (CM_Get_DevNode_Registry_PropertyA(dev_inst, CM_DRP_ADDRESS,
-				                        0, &address, &size, 0) == CR_SUCCESS) {
-					strcpy(tmp, usb_path);
-					snprintf(usb_path, sizeof(usb_path), "%d%s%s",
-					         (int)address, *tmp ? "." : "", tmp);
-				}
-			} while (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS);
-
-			port->usb_path = strdup(usb_path);
-
-			/* Wake up the USB device to be able to read string descriptor. */
-			char *escaped_port_name;
-			HANDLE handle;
-			if (!(escaped_port_name = malloc(strlen(port->name) + 5)))
-				RETURN_ERROR(SP_ERR_MEM, "Escaped port name malloc failed");
-			sprintf(escaped_port_name, "\\\\.\\%s", port->name);
-			handle = CreateFileA(escaped_port_name, GENERIC_READ, 0, 0,
-			                     OPEN_EXISTING,
-			                     FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OVERLAPPED, 0);
-			free(escaped_port_name);
-			CloseHandle(handle);
-
-			/* Retrieve USB device details from the device descriptor. */
-			get_usb_details(port, device_info_data.DevInst);
+			err = get_usb_details(port, device_info_data.DevInst);
+			/* Continue either way to allow cleanup */
 		}
 		break;
 	}
 
 	SetupDiDestroyDeviceInfoList(device_info);
 
-	RETURN_OK();
+	RETURN_CODE(err);
 }
 
 SP_PRIV enum sp_return list_ports(struct sp_port ***list)

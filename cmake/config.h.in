@@ -1,0 +1,39 @@
+#ifndef LIBSERIALPORT_CONFIG_H
+#define LIBSERIALPORT_CONFIG_H
+
+/* SPDX-License-Identifier: LGPL-3.0-or-later */
+
+#cmakedefine HAVE_SYS_FILE_H 1
+#cmakedefine HAVE_REALPATH 1
+#cmakedefine HAVE_FLOCK 1
+#cmakedefine HAVE_CLOCK_GETTIME 1
+#cmakedefine HAVE_TCDRAIN 1
+#cmakedefine HAVE_CFSETOBAUD 1
+#cmakedefine HAVE_STRUCT_SERIAL_STRUCT 1
+#cmakedefine HAVE_STRUCT_TERMIOS2 1
+#cmakedefine HAVE_STRUCT_TERMIOS_C_ISPEED 1
+#cmakedefine HAVE_STRUCT_TERMIOS_C_OSPEED 1
+#cmakedefine HAVE_STRUCT_TERMIOS2_C_ISPEED 1
+#cmakedefine HAVE_STRUCT_TERMIOS2_C_OSPEED 1
+#cmakedefine HAVE_STRUCT_TERMIOX 1
+#cmakedefine HAVE_TERMIOS_SPEED 1
+#cmakedefine HAVE_TERMIOS2_SPEED 1
+#cmakedefine01 HAVE_DECL_BOTHER
+#cmakedefine NO_ENUMERATION 1
+#cmakedefine NO_PORT_METADATA 1
+
+#ifndef _MSC_VER
+#define SP_API @SP_API@
+#define SP_PRIV @SP_PRIV@
+#endif
+
+#define PACKAGE "libserialport"
+#define PACKAGE_NAME "libserialport"
+#define PACKAGE_TARNAME "libserialport"
+#define PACKAGE_VERSION "@PROJECT_VERSION@"
+#define PACKAGE_STRING "libserialport @PROJECT_VERSION@"
+#define PACKAGE_BUGREPORT "hpa@zytor.com"
+#define PACKAGE_URL "https://github.com/hpax/libserialport"
+#define VERSION "@PROJECT_VERSION@"
+
+#endif

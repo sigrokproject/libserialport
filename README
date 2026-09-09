@@ -1,3 +1,5 @@
+This is a fork of libserialport maintained by H. Peter Anvin <hpa@zytor.com>.
+
 -------------------------------------------------------------------------------
 libserialport: cross-platform library for accessing serial ports
 -------------------------------------------------------------------------------
@@ -48,6 +50,24 @@ For other environments, the package uses a GNU style build based on autotools.
 Run "./autogen.sh" to generate the build system, "./configure" to setup, then
 "make" to build the library and "make install" to install it.
 
+CMake can be used on all supported platforms:
+
+    cmake -S . -B build
+    cmake --build build
+    ctest --test-dir build
+    cmake --install build --prefix /desired/install/prefix
+
+Set BUILD_SHARED_LIBS=ON to build a shared library and
+LIBSERIALPORT_BUILD_EXAMPLES=ON to build the example programs. Installed CMake
+packages can be consumed with find_package(libserialport CONFIG) and the
+libserialport::libserialport target. The source tree can also be added directly
+with add_subdirectory() and linked through libserialport.
+
+CMake also installs lib/pkgconfig/libserialport.pc. Add this directory to
+PKG_CONFIG_PATH when the installation is outside the default search paths.
+Use pkg-config --cflags --libs libserialport for a shared-library consumer.
+Add --static when linking the static library to include its dependencies.
+
 Windows builds can also be created using the autotools build system, using the
 MinGW-w64 toolchain from http://mingw-w64.sourceforge.net/ - either natively
 in Windows with the MSYS2 environment, or cross-compiling from another system.
@@ -61,32 +81,7 @@ against the Cygwin compatibility layer; this works, but port enumeration and
 metadata will not be available, and binaries will depend on Cygwin. The builds
 produced by MinGW-w64 are normal Windows DLLs without additional dependencies.
 
-API
-===
-
-Doxygen API documentation is included.
-
-It can also be viewed online at:
-
-  http://sigrok.org/api/libserialport/unstable/
-
 Bug reports
 ===========
 
-You can report bugs for libserialport at https://sigrok.org/bugzilla.
-
-Mailing list
-============
-
- https://lists.sourceforge.net/lists/listinfo/sigrok-devel
-
-IRC
-===
-
-You can find the developers in the #sigrok IRC channel on Libera.Chat.
-
-Website
-=======
-
-http://sigrok.org/wiki/Libserialport
-
+You can report bugs for libserialport at https://github.com/hpax/libserialport

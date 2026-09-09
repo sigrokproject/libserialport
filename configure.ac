@@ -1,3 +1,4 @@
+## SPDX-License-Identifier: LGPL-3.0-or-later
 ##
 ## This file is part of the libserialport project.
 ##
@@ -24,21 +25,41 @@ AC_PREREQ([2.63])
 # libserialport package version number (NOT the same as shared lib version!).
 m4_define([sp_package_version_major], [0])
 m4_define([sp_package_version_minor], [1])
-m4_define([sp_package_version_micro], [2])
+m4_define([sp_package_version_micro], [3])
 m4_define([sp_package_version], [sp_package_version_major.sp_package_version_minor.sp_package_version_micro])
 
-AC_INIT([libserialport], [sp_package_version], [martin-libserialport@earth.li],
-	[libserialport], [http://sigrok.org/wiki/Libserialport])
+AC_INIT([libserialport], [sp_package_version], [hpa@zytor.com],
+	[libserialport], [https://github.com/hpax/libserialport])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
-AH_BOTTOM([#if HAVE_STRUCT_TERMIOS_C_ISPEED && HAVE_STRUCT_TERMIOS_C_OSPEED
+# Make sure the presence of WINE on a system isn't interpreted as
+# a native compile; it can slow down or even prevent the build from
+# running.
+WINELOADER=/dev/null
+export WINELOADER
+WINESERVER=/dev/null
+export WINESERVER
+WINEPREFIX=/dev/null
+export WINEPREFIX
+
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+
+# C compiler configuration
+AC_USE_SYSTEM_EXTENSIONS
+AC_PROG_CC
+AC_SYS_LARGEFILE
+
+AH_BOTTOM([
+#if HAVE_STRUCT_TERMIOS_C_ISPEED && HAVE_STRUCT_TERMIOS_C_OSPEED
 # define HAVE_TERMIOS_SPEED 1
 #endif
 #if HAVE_STRUCT_TERMIOS2_C_ISPEED && HAVE_STRUCT_TERMIOS2_C_OSPEED
 # define HAVE_TERMIOS2_SPEED 1
-#endif])
+#endif
+])
 
 # We require at least automake 1.11 (needed for 'silent rules').
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror no-define check-news])
@@ -46,7 +67,6 @@ AM_SILENT_RULES([yes])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 # Checks for programs.
-AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
@@ -111,7 +131,10 @@ AC_SYS_LARGEFILE
 # Define size_t if not defined as standard.
 AC_TYPE_SIZE_T
 
-# Check for specific termios structures.
+# Check for cf[gs]et[io]baud()
+AC_CHECK_FUNCS([cfsetobaud])
+
+# Check for raw Linux kernel termios structures.
 AC_CHECK_TYPES([struct termios2],,,
 	[[#include <linux/termios.h>]])
 AC_CHECK_MEMBERS([struct termios.c_ispeed, struct termios.c_ospeed,
@@ -126,16 +149,18 @@ AC_CHECK_DECLS([BOTHER],,, [[#include <linux/termios.h>]])
 # Check for serial_struct.
 AC_CHECK_TYPES([struct serial_struct],,, [[#include <linux/serial.h>]])
 
+# Check for tcdrain (omitted in Android < 21)
+AC_CHECK_FUNCS([tcdrain])
+
 # Check for realpath().
-AC_CHECK_FUNC([realpath], [AC_DEFINE(HAVE_REALPATH, 1, [realpath is available.])], [])
+AC_CHECK_FUNCS([realpath])
 
 # Check for flock().
-AC_CHECK_HEADER([sys/file.h], [AC_DEFINE(HAVE_SYS_FILE_H, 1, [sys/file.h is available.])], [])
-AC_CHECK_FUNC([flock], [AC_DEFINE(HAVE_FLOCK, 1, [flock is available.])], [])
+AC_CHECK_HEADERS([sys/file.h])
+AC_CHECK_FUNCS([flock])
 
 # Check for clock_gettime().
-AC_CHECK_FUNC([clock_gettime],
-	[AC_DEFINE(HAVE_CLOCK_GETTIME, 1, [clock_gettime is available.])], [])
+AC_CHECK_FUNCS([clock_gettime])
 
 AC_CACHE_CHECK([for visibility control], [sp_cv_visibility_control], [
 	sp_saved_CFLAGS=$CFLAGS

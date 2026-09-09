@@ -22,6 +22,10 @@ Matthias Heidbrink contributed support for non-standard baudrates on Mac OS X.
 Bug fixes have been contributed by Bert Vermeulen, silverbuddy, Marcus
 Comstedt, Antti Nykanen, Michael B. Trausch and Janne Huttunen.
 
+H. Peter Anvin added support for arbitrary baud rates on "sane" Unix
+systems, and has been collecting miscellaneous fixes since the
+sigrok project seems to have gone inactive.
+
 For a full history of contributions, see the git history.
 
 Others have helped the project by contributing bug reports and discussion.

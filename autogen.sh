@@ -1,4 +1,6 @@
 #!/bin/sh -e
+## SPDX-License-Identifier: LGPL-3.0-or-later
+##
 ##
 ## This file is part of the libserialport project.
 ##

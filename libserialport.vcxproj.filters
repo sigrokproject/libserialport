@@ -26,6 +26,9 @@
     <ClCompile Include="serialport.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="serialport_win32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="windows.c">
       <Filter>Source Files</Filter>
     </ClCompile>

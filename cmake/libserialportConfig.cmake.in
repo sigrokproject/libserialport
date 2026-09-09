@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+@PACKAGE_INIT@
+
+if(@LIBSERIALPORT_NEEDS_LIBUSB@)
+    include(CMakeFindDependencyMacro)
+    find_dependency(PkgConfig)
+    pkg_check_modules(LIBUSB REQUIRED IMPORTED_TARGET libusb-2.0)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/libserialportTargets.cmake")
+check_required_components(libserialport)
