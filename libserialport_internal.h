@@ -161,15 +161,6 @@
 #endif
 #endif
 
-/* Non-standard baudrates are not available everywhere. */
-#if defined(HAVE_CFSETOBAUD) || defined(HAVE_SANE_TERMIOS)
-/* Directly supported by termios */
-# undef USE_TERMIOS_SPEED
-#elif (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) \
-    && HAVE_DECL_BOTHER
-# define USE_TERMIOS_SPEED
-#endif
-
 struct sp_port {
 	char *name;
 	char *description;

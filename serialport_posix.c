@@ -39,6 +39,14 @@
 #endif
 #endif
 
+/* Non-standard baudrate interfaces for some platforms */
+#ifndef HAVE_CFSETOBAUD
+#if (defined(HAVE_TERMIOS_SPEED) || defined(HAVE_TERMIOS2_SPEED)) \
+    && HAVE_DECL_BOTHER
+#define USE_TERMIOS_SPEED	/* Linux direct kernel interface */
+#endif
+#endif
+
 SP_PRIV void sp_platform_init_port(struct sp_port *port)
 {
 	port->fd = -1;
